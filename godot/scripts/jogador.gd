@@ -76,6 +76,7 @@ var _segurando := 0.0; var _ataque_seg := false; var _forte_pronto := false
 var _passo := 0.0; var _tempo := 0.0
 var _balanco := Vector2.ZERO     # armas atrasam ao girar
 var _tranco := Vector3.ZERO      # câmera: pitch, roll, avanço
+var _parado := 0.0               # 0..1: quanto está parado (idle)
 var _giro := 0.0                 # câmera: vira um pouco junto com o golpe (graus)
 var _queda := 0.0; var _no_chao := true
 var congelar := -1.0             # teste: para a ação nesse ponto (0..1)
@@ -368,8 +369,14 @@ func _physics_process(delta: float) -> void:
 			if _acao == "bash": _tocar_bash(delta, base_e)
 			else: piv_e.transform = piv_e.transform.interpolate_with(base_e, f)
 		piv_d.transform = _mao_t(_hp, _hd, _hn)
-	mao.position = bob + sway
-	mao.rotation = Vector3(_balanco.y * 0.6, _balanco.x * 0.6, _balanco.x * 0.4)
+	# idle (parado, sem golpe): respiração — os braços sobem e descem devagar, a espada balança de leve
+	var parado_alvo := (1.0 - minf(anda, 1.0)) * (0.0 if GOLPES.has(_acao) or _acao == "bash" else 1.0)
+	_parado = lerp(_parado, parado_alvo, 1.0 - exp(-3.0 * delta))
+	var resp := sin(_tempo * 1.5)                         # ~4 s por respiração
+	var idle_p := Vector3(sin(_tempo * 0.75) * 0.006, resp * 0.016, -resp * 0.006) * _parado
+	var idle_r := Vector3(sin(_tempo * 1.5 + 0.7) * 0.022, sin(_tempo * 0.6) * 0.012, sin(_tempo * 0.75 + 1.3) * 0.03) * _parado
+	mao.position = bob + sway + idle_p
+	mao.rotation = Vector3(_balanco.y * 0.6, _balanco.x * 0.6, _balanco.x * 0.4) + idle_r
 	# câmera: balanço da cabeça, queda, trancos dos golpes
 	_queda = lerp(_queda, 0.0, 1.0 - exp(-7.0 * delta))
 	_tranco = _tranco.lerp(Vector3.ZERO, 1.0 - exp(-10.0 * delta))
