@@ -35,6 +35,8 @@ func montar(mundo) -> void:
 	malhas = {
 		"copa_a": [_tronco_copa(), _cartoes_copa(1)],
 		"copa_b": [null, _cartoes_copa(2, "folhagem2")],
+		"copa_c": [null, _cartoes_copa(5)],
+		"copa_d": [null, _cartoes_copa(6, "folhagem2")],
 		"pinho": [_tronco_pinho(), _cartoes_pinho(3)],
 		"arbusto": [null, _cartoes_arbusto(4)],
 		"morta": [_tronco_copa(Color(0.55, 0.52, 0.48)), null],
@@ -187,7 +189,7 @@ func _cartoes_copa(seed: int, tex := "folhagem") -> ArrayMesh:
 		var cima := (Vector3.UP * rng.randf_range(0.2, 1.0) + fora * rng.randf_range(0.2, 0.9) + Vector3(rng.randfn(0, 0.35), 0, rng.randfn(0, 0.35))).normalized()
 		var lado := cima.cross(fora.rotated(Vector3.UP, rng.randf_range(-0.6, 0.6))).normalized()
 		if lado.length() < 0.1: lado = Vector3(1, 0, 0)
-		var tam := rng.randf_range(1.05, 1.5)
+		var tam := rng.randf_range(0.65, 1.0) if rng.randf() < 0.4 else (rng.randf_range(1.0, 1.5) if rng.randf() < 0.7 else rng.randf_range(1.5, 2.0))
 		var tom := clampf(0.72 + 0.3 * ((p.y - centro.y) / 1.35 * 0.5 + 0.5) + fora.length() * 0.0, 0.6, 1.08)
 		_cartao(st, p, lado, cima, Vector2(tam, tam), tom)
 		# cruzado: o mesmo lugar, girado 90° em volta do "cima" (vê-se cheio de qualquer lado)
@@ -268,7 +270,8 @@ func _pedaco(k: Vector2i) -> void:
 				var s := rng.randf_range(0.7, 1.5)
 				grupos["arbusto"].append([Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(0.8, 1.2), s)), Vector3(x, h - 0.05, z)), _verde(rng, f) * 0.9])
 				continue
-			var s := rng.randf_range(0.75, 1.4)
+			var sorteio := rng.randf()
+			var s := rng.randf_range(0.42, 0.65) if sorteio < 0.15 else (rng.randf_range(0.7, 1.25) if sorteio < 0.8 else rng.randf_range(1.4, 2.1))
 			var base := Vector3(x, h - 0.2, z)
 			if pnt > 0.5:
 				grupos["morta"].append([Transform3D(giro.scaled(Vector3(s, s * 0.9, s)), base), Color.WHITE]); lista.append([base, 0.3 * s])
@@ -276,8 +279,9 @@ func _pedaco(k: Vector2i) -> void:
 				var t := Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(1.0, 1.35), s)), base)
 				grupos["pinho"].append([t, Color(0.3, 0.48, 0.3) * rng.randf_range(0.85, 1.1)]); lista.append([base, 0.26 * s])
 			else:
-				var t := Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(0.9, 1.15), s)), base)
-				grupos["copa_a" if rng.randf() < 0.5 else "copa_b"].append([t, _cor_copa(rng, x, z)]); lista.append([base, 0.32 * s])
+				var larg := s * rng.randf_range(0.85, 1.2)          # umas mais largas, outras mais altas
+				var t := Transform3D(giro.scaled(Vector3(larg, s * rng.randf_range(0.85, 1.2), larg)), base)
+				grupos[["copa_a", "copa_b", "copa_c", "copa_d"][rng.randi() % 4]].append([t, _cor_copa(rng, x, z)]); lista.append([base, 0.32 * s])
 	arvores[k] = lista
 	var no := Node3D.new(); add_child(no)
 	for nome in grupos.keys():
@@ -285,7 +289,7 @@ func _pedaco(k: Vector2i) -> void:
 		if itens.is_empty(): continue
 		var par: Array = malhas[nome]
 		# copa_b usa o tronco da copa_a
-		var tronco: ArrayMesh = par[0] if par[0] != null else (malhas["copa_a"][0] if nome == "copa_b" else null)
+		var tronco: ArrayMesh = par[0] if par[0] != null else (malhas["copa_a"][0] if nome.begins_with("copa") else null)
 		if tronco: no.add_child(_mm(tronco, itens, false))
 		if par[1]: no.add_child(_mm(par[1], itens, true))
 
