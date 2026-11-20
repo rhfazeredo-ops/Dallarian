@@ -21,6 +21,7 @@ var estrada: PackedVector2Array      # estrada que sai da vila para o sul (poça
 var casas := [] # [pos, ang, w, d]
 var lugares := []                    # [centro Vector2, raio] — as árvores não nascem aqui
 var moinhos := []
+var _depois: Array[Callable] = []    # peças montadas depois do terreno (precisam da altura exata da malha)
 var args := {}
 var _mats := {}
 var _ultima := Vector3.ZERO
@@ -36,6 +37,7 @@ func _ready() -> void:
 	jogador = Jogador.new()
 	_lugares()                      # antes do terreno: as construções aplanam o chão embaixo delas
 	terreno.montar(self)
+	for f in _depois: f.call()        # cercas, muros e blocos: assentados na malha final do terreno
 	_agua()
 	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self)
 	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
@@ -262,20 +264,52 @@ func _pontes() -> void:
 
 # cerca de madeira em volta de um retângulo (centro, tamanho, ângulo), com abertura na frente
 func _cerca(c: Vector2, tam: Vector2, ang: float) -> void:
+	_depois.append(func(): _montar_cerca(c, tam, ang))
+
+# cerca de madeira na altura EXATA da malha do terreno: mourões enterrados 0,6 m, travessas seguindo o chão
+# a cada 1 m (nunca flutuam nem entram no chão), e colisão em cada trecho (só a porteira fica aberta)
+func _montar_cerca(c: Vector2, tam: Vector2, ang: float) -> void:
 	var st := _st()
 	var cantos := [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]
 	for k in 4:
 		var a: Vector2 = c + (cantos[k] * tam * 0.5).rotated(ang); var b: Vector2 = c + (cantos[(k + 1) % 4] * tam * 0.5).rotated(ang)
-		var n := int(a.distance_to(b) / 3.0)
+		var comp := a.distance_to(b)
+		var n := maxi(int(comp / 3.0), 1)
+		var abre0 := 0.5 - 2.0 / comp; var abre1 := 0.5 + 2.0 / comp      # porteira de 4 m no meio do lado 2
 		for i in n + 1:
-			if k == 2 and i > n / 2 - 2 and i < n / 2 + 2: continue          # porteira
-			var q := a.lerp(b, float(i) / n); var y := altura(q.x, q.y)
-			_caixa(st, Vector3(q.x, y + 0.55, q.y), Vector3(0.14, 1.1, 0.14))
-			if i < n and not (k == 2 and i >= n / 2 - 3 and i < n / 2 + 2):
-				var q2 := a.lerp(b, float(i + 1) / n); var y2 := altura(q2.x, q2.y)
+			var t := float(i) / n
+			if k == 2 and t > abre0 and t < abre1: continue
+			var q := a.lerp(b, t); var y := terreno.altura_malha(q.x, q.y)
+			_caixa(st, Vector3(q.x, y + 0.25, q.y), Vector3(0.15, 1.7, 0.15))           # de -0,6 a +1,1
+		# travessas em pedaços de ~1 m seguindo o chão
+		var m := maxi(int(comp), 1)
+		var trecho_ini := -1
+		for j in m + 1:
+			var t := float(j) / m
+			var aberto := k == 2 and t > abre0 - 0.001 and t < abre1 + 0.001
+			if j < m and not aberto and not (k == 2 and float(j + 1) / m > abre0 and float(j + 1) / m < abre1):
+				var q := a.lerp(b, t); var q2 := a.lerp(b, float(j + 1) / m)
+				var y := terreno.altura_malha(q.x, q.y); var y2 := terreno.altura_malha(q2.x, q2.y)
 				for alt in [0.45, 0.85]:
-					_quad(st, Vector3(q.x, y + alt, q.y), Vector3(q2.x, y2 + alt, q2.y), Vector3(q2.x, y2 + alt + 0.1, q2.y), Vector3(q.x, y + alt + 0.1, q.y), 1.5, 0.1)
+					_quad(st, Vector3(q.x, y + alt, q.y), Vector3(q2.x, y2 + alt, q2.y), Vector3(q2.x, y2 + alt + 0.1, q2.y), Vector3(q.x, y + alt + 0.1, q.y), 1.0, 0.1)
+					_quad(st, Vector3(q2.x, y2 + alt, q2.y), Vector3(q.x, y + alt, q.y), Vector3(q.x, y + alt + 0.1, q.y), Vector3(q2.x, y2 + alt + 0.1, q2.y), 1.0, 0.1)
+		# colisão: um trecho reto de cada lado da porteira (ou o lado inteiro)
+		var partes := [[0.0, 1.0]] if k != 2 else [[0.0, abre0], [abre1, 1.0]]
+		for pt in partes:
+			var p0: Vector2 = a.lerp(b, pt[0]); var p1: Vector2 = a.lerp(b, pt[1])
+			_parede_colisao(p0, p1, 0.3, 1.3)
 	_peca(st, mat("madeira", 1.0, Color(0.8, 0.7, 0.6)), Vector3.ZERO)
+
+# caixa de colisão de um trecho reto (de p0 a p1), da altura do chão mais baixo até "alt" acima do mais alto
+func _parede_colisao(p0: Vector2, p1: Vector2, esp: float, alt: float) -> void:
+	var d := p1 - p0; var comp := d.length()
+	if comp < 0.2: return
+	var meio := (p0 + p1) * 0.5
+	var ymin := INF; var ymax := -INF
+	for i in 5:
+		var q := p0.lerp(p1, i / 4.0); var y := terreno.altura_malha(q.x, q.y)
+		ymin = minf(ymin, y); ymax = maxf(ymax, y)
+	_colisor_caixa(Vector3(meio.x, ymin - 0.3, meio.y), Vector3(esp, ymax - ymin + alt + 0.3, comp), atan2(d.x, d.y))
 
 func _fazendas() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 8
@@ -356,10 +390,21 @@ func _ruinas() -> void:
 		_quad(st, p1, p0, p0 + Vector3(0, h, 0), p1 + Vector3(0, h, 0), 2, h / 2)
 		_quad(st, p0 * 0.8, p1 * 0.8, p1 * 0.8 + Vector3(0, h, 0), p0 * 0.8 + Vector3(0, h, 0), 2, h / 2)
 		_quad(st, p0 + Vector3(0, h, 0), p0 * 0.8 + Vector3(0, h, 0), p1 * 0.8 + Vector3(0, h, 0), p1 + Vector3(0, h, 0), 1, 0.3)
-	for k in 9:                                          # muros caídos e blocos
+	var blocos := []
+	for k in 9:                                          # muros caídos e blocos (assentados depois do terreno)
 		var q := Vector3(rng.randf_range(-14, 14), 0, rng.randf_range(-14, 14))
 		if q.length() < 5.0: continue
-		_caixa(st, q + Vector3(0, 0.3, 0), Vector3(rng.randf_range(1, 5), rng.randf_range(0.6, 2.2), rng.randf_range(0.6, 1.2)))
+		blocos.append([Vector2(c.x + q.x, c.y + q.z), Vector3(rng.randf_range(1, 5), rng.randf_range(0.6, 2.2), rng.randf_range(0.6, 1.2)), rng.randf() * PI])
+	_depois.append(func():
+		var sb := _st()
+		for bl in blocos:
+			var p: Vector2 = bl[0]; var t: Vector3 = bl[1]; var giro: float = bl[2]
+			var ymin := INF
+			for o in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+				var w: Vector2 = p + (o * Vector2(t.x, t.z) * 0.5).rotated(-giro); ymin = minf(ymin, terreno.altura_malha(w.x, w.y))
+			var bx := _st(); _caixa(bx, Vector3(0, t.y * 0.5 - 0.4, 0), t + Vector3(0, 0.4, 0))
+			var mi := _peca(bx, mat("pedra"), Vector3(p.x, ymin, p.y)); mi.rotation.y = giro
+			_colisor_caixa(Vector3(p.x, ymin - 0.4, p.y), t + Vector3(0, 0.4, 0), giro))
 	_peca(st, mat("pedra"), Vector3(c.x, y - 0.8, c.y))
 	_colisor_cilindro(Vector3(c.x, y - 0.8, c.y), 3.5, 6.0)
 	lugares.append([c, 18.0])
@@ -420,15 +465,16 @@ func _caverna() -> void:
 func base_vale(z: float) -> float: return reg.base(z)
 
 func _barricada() -> void:
-	# paliçada fechando o desfiladeiro do norte (por enquanto não se passa)
+	# paliçada fechando o desfiladeiro do norte (por enquanto não se passa): estacas enterradas 1,5 m na malha
 	var z := -468.0
-	var st := _st()
-	for i in 112:
-		var x := -45.0 + i * 0.8; var y := altura(x, z)
-		cilindro(st, Vector3(x, y - 0.5, z), 0.38, 0.32, 4.6, 5)
-		cilindro(st, Vector3(x, y + 4.1, z), 0.32, 0.0, 0.7, 5)
-	_peca(st, mat("casca"), Vector3.ZERO)
-	_colisor_caixa(Vector3(0, altura(0, z) - 2.0, z), Vector3(92, 12, 1.2), 0.0)
+	_depois.append(func():
+		var st := _st()
+		for i in 112:
+			var x := -45.0 + i * 0.8; var y := terreno.altura_malha(x, z)
+			cilindro(st, Vector3(x, y - 1.5, z), 0.38, 0.32, 5.6, 5)
+			cilindro(st, Vector3(x, y + 4.1, z), 0.32, 0.0, 0.7, 5)
+		_peca(st, mat("casca"), Vector3.ZERO)
+		_parede_colisao(Vector2(-45.5, z), Vector2(44.5, z), 1.2, 4.6))
 	lugares.append([Vector2(0, z), 46.0])
 
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, uw: float, vh: float) -> void:
@@ -561,6 +607,12 @@ func _modo_teste() -> void:
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
+	if args.has("andar"):        # teste de colisão: anda para a frente N segundos e diz onde parou
+		await get_tree().create_timer(2.0).timeout
+		var ini := jogador.global_position
+		controles.dir = Vector2(0, -1); controles.set_process(false)
+		await get_tree().create_timer(float(args.andar)).timeout
+		print("ANDOU de %s até %s" % [ini, jogador.global_position]); get_tree().quit(); return
 	if args.has("golpe"):        # filma um golpe: --golpe=leve1 (ou combo) → varios PNGs a cada 1/30 s
 		await get_tree().create_timer(float(args.get("espera", "2"))).timeout
 		Engine.time_scale = float(args.get("lento", "0.16"))     # o jogo anda devagar: cada quadro ≈ 1/30 s de jogo
