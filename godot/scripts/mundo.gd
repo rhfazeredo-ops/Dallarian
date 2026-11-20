@@ -19,6 +19,7 @@ var estrada: PackedVector2Array = PackedVector2Array([
 var casas := [] # [pos, ang, w, d]
 var args := {}
 var _mats := {}
+var _hs: PackedFloat32Array   # alturas da malha do terreno (para pôr coisas exatamente no chão)
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -28,10 +29,11 @@ func _ready() -> void:
 	_ambiente()
 	_terreno()
 	_vila()
+	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
 	_arvores()
 	_grama()
 	jogador = Jogador.new(); raiz.add_child(jogador)
-	jogador.position = Vector3(8, altura(8, 88) + 0.2, 88)
+	jogador.position = Vector3(10, altura(10, 74) + 0.2, 74)
 	jogador.rotation.y = deg_to_rad(8)
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
@@ -87,7 +89,7 @@ var _ruido := FastNoiseLite.new()
 func altura(x: float, z: float) -> float:
 	var r := Vector2(x, z).length()
 	var h := 0.0016 * r * r + _ruido.get_noise_2d(x, z) * 5.0
-	if r > 100.0: h += pow(r - 100.0, 1.5) * 0.22 * (0.7 + 0.6 * (_ruido.get_noise_2d(x * 0.4, z * 0.4) + 0.5))   # montanhas em volta
+	if r > 108.0: h += pow(r - 108.0, 1.5) * 0.3 * (0.7 + 0.6 * (_ruido.get_noise_2d(x * 0.4, z * 0.4) + 0.5))   # montanhas em volta
 	h = lerp(0.6, h, smoothstep(16.0, 30.0, r))                    # praça da vila plana
 	var de := _dist_estrada(Vector2(x, z))
 	h -= (1.0 - smoothstep(1.5, 4.0, de)) * 0.35                   # estrada um pouco afundada
@@ -118,6 +120,7 @@ func _terreno() -> void:
 	var hs := PackedFloat32Array(); hs.resize((CEL + 1) * (CEL + 1))
 	for j in CEL + 1: for i in CEL + 1:
 		hs[j * (CEL + 1) + i] = altura(i * passo - meio, j * passo - meio)
+	_hs = hs
 	var pos := func(i: int, j: int) -> Vector3: return Vector3(i * passo - meio, hs[j * (CEL + 1) + i], j * passo - meio)
 	for j in CEL: for i in CEL:
 		var a: Vector3 = pos.call(i, j); var b: Vector3 = pos.call(i + 1, j)
@@ -136,6 +139,22 @@ func _terreno() -> void:
 	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var forma: ConcavePolygonShape3D = mi.mesh.create_trimesh_shape()
 	forma.backface_collision = true; cs.shape = forma
 	corpo.add_child(cs); raiz.add_child(corpo)
+
+# altura e normal exatas da malha do terreno (triângulos), para os splats encostarem no chão
+func altura_malha(x: float, z: float) -> float:
+	var passo := TAM / CEL; var fx := (x + TAM / 2.0) / passo; var fz := (z + TAM / 2.0) / passo
+	var i := clampi(int(floor(fx)), 0, CEL - 1); var j := clampi(int(floor(fz)), 0, CEL - 1)
+	var u := clampf(fx - i, 0.0, 1.0); var v := clampf(fz - j, 0.0, 1.0)
+	var ha := _hs[j * (CEL + 1) + i]; var hb := _hs[j * (CEL + 1) + i + 1]
+	var hc := _hs[(j + 1) * (CEL + 1) + i + 1]; var hd := _hs[(j + 1) * (CEL + 1) + i]
+	if u > v: return ha + (hb - ha) * u + (hc - hb) * v
+	return ha + (hd - ha) * v + (hc - hd) * u
+
+func normal_malha(x: float, z: float) -> Vector3:
+	var e := 0.5
+	var dx := altura_malha(x + e, z) - altura_malha(x - e, z)
+	var dz := altura_malha(x, z + e) - altura_malha(x, z - e)
+	return Vector3(-dx, 2.0 * e, -dz).normalized()
 
 # ---------- vila ----------
 func _vila() -> void:
@@ -305,7 +324,7 @@ func _grama() -> void:
 	for bz in range(-110, 110, int(bloco)):
 		for bx in range(-110, 110, int(bloco)):
 			var itens := []
-			for k in 650:
+			for k in 170:
 				var p := Vector2(bx + rng.randf() * bloco, bz + rng.randf() * bloco)
 				var r := p.length()
 				if r > 105.0 or r < 17.0 or _dist_estrada(p) < 2.4: continue
@@ -313,10 +332,13 @@ func _grama() -> void:
 				if h > 26.0: continue
 				var c := cor_chao(p.x, p.y, h, 1.0)
 				var trigo := c.r > 0.66
-				var s := rng.randf_range(0.7, 1.3) * (1.6 if trigo else 1.0)
-				itens.append([Vector3(p.x, h - 0.05, p.y), c * rng.randf_range(0.85, 1.15), s])
+				var base_cor := c * (0.78 if not trigo else 0.95)
+				for f in rng.randi_range(3, 5):
+					var o := Vector2(rng.randf_range(-0.12, 0.12), rng.randf_range(-0.12, 0.12))
+					var s := rng.randf_range(0.7, 1.3) * (1.5 if trigo else 1.0)
+					itens.append([Vector3(p.x + o.x, h - 0.05, p.y + o.y), base_cor * rng.randf_range(0.85, 1.2), s])
 			if itens.is_empty(): continue
-			var mi := _splats(itens, Vector2(0.2, 0.46), true, 0.06, 42.0)
+			var mi := _splats(itens, Vector2(0.1, 0.42), true, 0.05, 42.0)
 			mi.custom_aabb = AABB(Vector3(bx, -5, bz), Vector3(bloco, 80, bloco))
 
 # ---------- modo de teste: --shot=arquivo.png --espera=2 --pos=x,z --olhar=graus ----------
