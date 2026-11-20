@@ -40,19 +40,19 @@ const GOLPES := {
 	# 1: diagonal de cima à direita até embaixo à esquerda
 	"leve1": { "a": Vector3(0.72, 0.18, -0.3), "da": Vector3(0.55, 0.72, 0.42), "dm": Vector3(-0.55, 0.2, -0.82),
 		"b": Vector3(-0.78, -0.58, -0.42), "db": Vector3(-0.82, -0.45, -0.35), "c": Vector3(0.12, -0.08, -0.78),
-		"t": [0.22, 0.15, 0.08, 0.5], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
+		"t": [0.32, 0.22, 0.12, 0.65], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
 	# 2: horizontal da esquerda para a direita, na altura da cintura/peito
 	"leve2": { "a": Vector3(-0.78, -0.28, -0.3), "da": Vector3(-0.85, 0.15, 0.5), "dm": Vector3(0.78, 0.06, -0.62),
 		"b": Vector3(0.82, -0.3, -0.36), "db": Vector3(0.88, 0.0, 0.45), "c": Vector3(-0.05, -0.28, -0.74),
-		"t": [0.22, 0.15, 0.08, 0.5], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 3.0 },
+		"t": [0.32, 0.22, 0.12, 0.65], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 3.0 },
 	# 3: de cima para baixo pelo meio (fecha o combo)
 	"leve3": { "a": Vector3(0.24, 0.62, -0.22), "da": Vector3(0.1, 0.6, 0.8), "dm": Vector3(0.04, 0.55, -0.83),
 		"b": Vector3(0.06, -0.8, -0.48), "db": Vector3(0.0, -0.8, -0.6), "c": Vector3(0.12, 0.16, -0.78),
-		"t": [0.24, 0.15, 0.09, 0.52], "tranco": Vector3(-5.0, 0.5, 0.08), "giro": 0.0 },
+		"t": [0.34, 0.22, 0.13, 0.68], "tranco": Vector3(-5.0, 0.5, 0.08), "giro": 0.0 },
 	# forte: a diagonal com preparação longa (segurando) e o corpo indo junto
 	"forte": { "a": Vector3(0.75, 0.24, -0.22), "da": Vector3(0.55, 0.7, 0.45), "dm": Vector3(-0.5, 0.25, -0.83),
 		"b": Vector3(-0.8, -0.62, -0.4), "db": Vector3(-0.85, -0.45, -0.3), "c": Vector3(0.1, -0.06, -0.84),
-		"t": [0.34, 0.17, 0.12, 0.58], "tranco": Vector3(-5.0, 6.0, 0.32), "giro": -5.0 },
+		"t": [0.45, 0.24, 0.16, 0.75], "tranco": Vector3(-5.0, 6.0, 0.32), "giro": -5.0 },
 }
 # poses da mão esquerda (escudo): [posição, rotação em graus]
 const PE := {
@@ -240,7 +240,7 @@ func iniciar(nome: String) -> void:
 
 func _golpe_leve() -> void:
 	if _acao == "" or _acao == "bash":
-		if _tempo - _ultimo_golpe > 1.0: _combo = 0
+		if _tempo - _ultimo_golpe > 1.6: _combo = 0
 		iniciar(["leve1", "leve2", "leve3"][_combo % 3]); _combo += 1; _ultimo_golpe = _tempo
 	elif _acao.begins_with("leve"):
 		_proximo = true                       # guarda o próximo golpe do combo
