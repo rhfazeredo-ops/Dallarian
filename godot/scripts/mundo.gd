@@ -23,7 +23,7 @@ var _hs: PackedFloat32Array   # alturas da malha do terreno (para pôr coisas ex
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
-		var p := a.trim_prefix("--").split("=")
+		var p := a.trim_prefix("--").split("=", true, 1)
 		args[p[0]] = p[1] if p.size() > 1 else "1"
 	_tela()
 	_ambiente()
@@ -361,6 +361,7 @@ func _modo_teste() -> void:
 		var pp := String(args.pos).split(","); jogador.position = Vector3(float(pp[0]), altura(float(pp[0]), float(pp[1])) + 0.2, float(pp[1]))
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
+	if args.has("pose"): jogador.mostrar_pose(args.pose)
 	await get_tree().create_timer(float(args.get("espera", "2"))).timeout
 	get_viewport().get_texture().get_image().save_png(args.shot)
 	get_tree().quit()

@@ -7,5 +7,7 @@ estilo pixel art.
 - Navegador: https://rhfazeredo-ops.github.io/Dallarian/
 - Android: https://github.com/rhfazeredo-ops/Dallarian/releases/download/apk/dallarian.apk
 
-Controles — celular: joystick à esquerda, arraste à direita para olhar, botões PULAR e ATACAR.
-PC: WASD anda, mouse olha (clique para prender o mouse, Esc solta), clique ataca, espaço pula.
+Controles — celular: joystick à esquerda, arraste à direita para olhar; ATACAR (toque = golpe, segurar e
+soltar = golpe forte), BLOQUEAR (segurar; atacar enquanto bloqueia = escudada), CORRER (segurar), PULAR.
+PC: WASD anda, Shift corre, espaço pula, mouse olha (clique para prender, Esc solta), botão esquerdo ataca
+(segurar = golpe forte), botão direito bloqueia.

@@ -1,5 +1,6 @@
-# Controles: celular (joystick à esquerda, arrastar à direita para olhar, botões PULAR e ATACAR)
-# e PC (WASD/setas, espaço pula, mouse olha e clique ataca).
+# Controles: celular (joystick à esquerda, arrastar à direita para olhar, botões ATACAR, BLOQUEAR, CORRER,
+# PULAR — atacar, bloquear e correr funcionam segurando) e PC (WASD anda, Shift corre, espaço pula,
+# mouse olha, botão esquerdo ataca — segurar = golpe forte —, botão direito bloqueia).
 extends Control
 class_name Controles
 
@@ -7,6 +8,9 @@ var dir := Vector2.ZERO
 var _olhar := Vector2.ZERO
 var _pulo := false
 var _ataque := false
+var _seg := {}                 # botões de segurar apertados agora
+var ataque_mouse := false
+var bloqueio_mouse := false
 var _dedo := -1; var _centro := Vector2.ZERO; var _ponta := Vector2.ZERO
 var _dedo_olhar := -1
 var fps: Label
@@ -15,20 +19,26 @@ const RAIO := 110.0
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_botao("ATACAR", -330, -300, 250, func(): _ataque = true)
-	_botao("PULAR", -590, -200, 200, func(): _pulo = true)
+	_botao("ATACAR", -330, -300, 250, "atacar")
+	_botao("BLOQUEAR", -600, -250, 190, "bloquear")
+	_botao("CORRER", -330, -560, 170, "correr")
+	_botao("PULAR", -560, -470, 150, "pular")
 	fps = Label.new(); fps.position = Vector2(24, 18); fps.add_theme_font_size_override("font_size", 30)
 	fps.add_theme_color_override("font_outline_color", Color.BLACK); fps.add_theme_constant_override("outline_size", 8)
 	add_child(fps)
 
-func _botao(txt: String, x: float, y: float, t: float, f: Callable) -> void:
+func _botao(txt: String, x: float, y: float, t: float, nome: String) -> void:
 	var b := Button.new(); b.text = txt; b.add_theme_font_size_override("font_size", int(t * 0.17))
 	b.anchor_left = 1; b.anchor_top = 1; b.anchor_right = 1; b.anchor_bottom = 1
 	b.offset_left = x; b.offset_top = y; b.offset_right = x + t; b.offset_bottom = y + t
 	var st := StyleBoxFlat.new(); st.bg_color = Color(0.12, 0.1, 0.16, 0.55); st.set_corner_radius_all(int(t / 2))
 	st.border_color = Color(0.85, 0.75, 0.5, 0.8); st.set_border_width_all(4)
 	for k in ["normal", "hover", "pressed", "focus"]: b.add_theme_stylebox_override(k, st)
-	b.button_down.connect(f); add_child(b)
+	b.button_down.connect(func():
+		_seg[nome] = true
+		if nome == "pular": _pulo = true)
+	b.button_up.connect(func(): _seg[nome] = false)
+	add_child(b)
 
 func _input(e: InputEvent) -> void:
 	if e is InputEventScreenTouch:
@@ -65,8 +75,9 @@ func consumir_olhar() -> Vector2:
 	var v := _olhar; _olhar = Vector2.ZERO; return v
 func consumir_pulo() -> bool:
 	var v := _pulo; _pulo = false; return v
-func consumir_ataque() -> bool:
-	var v := _ataque; _ataque = false; return v
+func atacando() -> bool: return _seg.get("atacar", false) or ataque_mouse
+func bloqueando() -> bool: return _seg.get("bloquear", false) or bloqueio_mouse
+func correndo() -> bool: return _seg.get("correr", false) or Input.is_key_pressed(KEY_SHIFT)
 
 func _draw() -> void:
 	if _dedo == -1: return
