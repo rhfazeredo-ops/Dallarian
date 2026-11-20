@@ -45,8 +45,16 @@ func _ready() -> void:
 	_ultima = jogador.position
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
+	_musica()
 	if args.has("checar"): _checar_chao()
 	if args.has("shot"): _modo_teste()
+
+# música de fundo ("Time Flows Ever Onward"), em volume bem baixo, repetindo
+func _musica() -> void:
+	var st: AudioStreamMP3 = load("res://assets/som/musica_vale.mp3")
+	st.loop = true
+	var mus := AudioStreamPlayer.new(); mus.stream = st; mus.volume_db = -20.0
+	add_child(mus); mus.play()
 
 # o jogador não sai da região nem entra em água funda (volta para o último lugar bom)
 func _physics_process(_d: float) -> void:
