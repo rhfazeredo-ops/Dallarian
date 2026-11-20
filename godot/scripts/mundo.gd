@@ -179,13 +179,6 @@ func _vila() -> void:
 		var ang := atan2(-p.x, -p.y)                     # porta virada para a praça
 		_casa(Vector3(p.x, altura(p.x, p.y) - 0.2, p.y), ang, rng.randf_range(4.5, 6.5), rng.randf_range(4.0, 5.0), rng.randf_range(2.6, 3.2))
 	_poco(Vector3(0, altura(0, 0), 0))
-	# a Dallarian (modelo do Tripo, 2.500 triângulos) em pé na praça, para ver como fica no mundo.
-	# No arquivo: 0,98 m de altura, de frente para +X, pés em y = -0,49 → 1,75 m, virada para a estrada.
-	var her := modelo_ps1("res://assets/modelos/dallarian.glb")
-	var k := 1.75 / 0.979
-	her.scale = Vector3(k, k, k); her.rotation_degrees.y = -90
-	her.position = Vector3(3.0, altura(3.0, 6.0) + 0.489 * k, 6.0)
-	raiz.add_child(her); _colisor_cilindro(Vector3(3.0, altura(3.0, 6.0), 6.0), 0.3, 1.75)
 	for b in [[3.5, 2.0], [4.2, 2.6], [-3.0, 3.6], [6.0, -9.0]]:
 		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
 
