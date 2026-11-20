@@ -48,6 +48,7 @@ func _ready() -> void:
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
 	_musica()
+	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
 	if args.has("checar"): _checar_chao()
 	if args.has("shot"): _modo_teste()
 
@@ -152,7 +153,8 @@ func _vila() -> void:
 	# igreja de pedra com torre
 	var ig := Vector2(18, -40); var ang_ig := atan2(-ig.x, -ig.y)
 	_casa(Vector3(ig.x, altura(ig.x, ig.y) - 0.2, ig.y), ang_ig, 7.5, 12.0, 5.0, mat("pedra"), mat("madeira", 1.0, Color(0.55, 0.5, 0.55)))
-	var torre := Vector3(ig.x, 0, ig.y) + Vector3(0, 0, -7.5).rotated(Vector3.UP, ang_ig)
+	var pig: Vector3 = casas[casas.size() - 1][0]
+	var torre := Vector3(pig.x, 0, pig.z) + Vector3(0, 0, -7.5).rotated(Vector3.UP, ang_ig)
 	torre.y = reg.aplanar(Vector2(torre.x, torre.z), Vector2(2.4, 2.4), -ang_ig, 3.0) - 0.3
 	var mesh := ArrayMesh.new(); var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	_caixa(st, Vector3(0, 5.0, 0), Vector3(3.6, 10.0, 3.6)); st.set_material(mat("pedra")); st.commit(mesh)
@@ -314,6 +316,9 @@ func _parede_colisao(p0: Vector2, p1: Vector2, esp: float, alt: float) -> void:
 func _fazendas() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 8
 	for cp in reg.campos:
+		var livre := _longe_da_estrada(Vector2(cp[0], cp[1]), Vector2(cp[2] + 2, cp[3] + 2) * 0.5, -deg_to_rad(cp[4]))
+		cp[0] = livre.x; cp[1] = livre.y
+	for cp in reg.campos:
 		var c := Vector2(cp[0], cp[1]); var ang := deg_to_rad(cp[4])
 		lugares.append([c, max(cp[2], cp[3]) * 0.55])
 		_cerca(c, Vector2(cp[2] + 2, cp[3] + 2), ang)
@@ -410,7 +415,7 @@ func _ruinas() -> void:
 	lugares.append([c, 18.0])
 
 func _serraria() -> void:
-	var c := Vector2(282, -152); var y := reg.aplanar(c, Vector2(14.0, 12.0), 0.0, 5.0)
+	var c := Vector2(286, -170); var y := reg.aplanar(c, Vector2(14.0, 12.0), 0.0, 5.0)   # a estrada chega na beira do pátio
 	_casa(Vector3(c.x, y - 0.2, c.y), 0.4, 7.0, 5.0, 2.8, mat("madeira"), mat("madeira", 1.0, Color(0.6, 0.55, 0.5)))
 	var st := _st()
 	for pilha in [[8.0, 4.0], [9.0, -5.0], [-8.0, 6.0]]:
@@ -492,6 +497,8 @@ func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, uw: float, vh: fl
 
 func _casa(pos: Vector3, ang: float, w: float, d: float, h: float, parede: Material = null, telhado: Material = null) -> void:
 	var x := w / 2.0; var z := d / 2.0; var cume := h + w * 0.55; var beiral := 0.45
+	var livre := _longe_da_estrada(Vector2(pos.x, pos.z), Vector2(x + 0.5, z + 0.5), ang)   # nunca em cima da estrada
+	pos.x = livre.x; pos.z = livre.y
 	pos.y = reg.aplanar(Vector2(pos.x, pos.z), Vector2(x + 0.8, z + 0.8), -ang, 4.0) - 0.05
 	var mesh := ArrayMesh.new()
 	# paredes (com as empenas triangulares) — textura enxaimel a cada 2 m
@@ -585,6 +592,47 @@ func _splats(itens: Array, tam: Vector2, em_pe: bool, balanco: float, ate := 0.0
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = sm
 	if ate > 0.0: mi.visibility_range_end = ate; mi.visibility_range_end_margin = 4.0
 	raiz.add_child(mi); return mi
+
+# teste: lista construções e campos em cima da estrada (pontos da área a menos de 2,6 m do meio da estrada)
+func _checar_estrada() -> void:
+	var ruins := 0
+	for c in casas:
+		var p: Vector3 = c[0]
+		var d := _pior_estrada(Vector2(p.x, p.z), Vector2(c[2], c[3]) * 0.5, c[1])
+		if d < 3.0: ruins += 1; print("CASA na estrada: %s  folga %.1f m" % [Vector2(p.x, p.z), d - 2.6])
+	for cp in reg.campos:
+		var d := _pior_estrada(Vector2(cp[0], cp[1]), Vector2(cp[2] + 2, cp[3] + 2) * 0.5, -deg_to_rad(cp[4]))
+		if d < 3.0: ruins += 1; print("CAMPO na estrada: %s  folga %.1f m" % [Vector2(cp[0], cp[1]), d - 2.6])
+	for pl in reg.planos:
+		var d := _pior_estrada(pl[0], pl[1] - Vector2(1, 1), -pl[2])
+		if d < 3.0: ruins += 1; print("PLANO na estrada: %s  folga %.1f m" % [pl[0], d - 2.6])
+	print("na estrada: %d" % ruins)
+
+# empurra um retângulo para longe da estrada até sobrar "folga" metros entre ele e a beira da estrada
+func _longe_da_estrada(c: Vector2, meia: Vector2, ang: float, folga := 1.5) -> Vector2:
+	var precisa := 2.6 + folga
+	for it in 120:
+		var pior := INF; var ponto := c
+		for j in 5: for i in 5:
+			var q: Vector2 = c + (Vector2(lerp(-1.0, 1.0, i / 4.0), lerp(-1.0, 1.0, j / 4.0)) * meia).rotated(-ang)
+			var dq := reg.dist_estrada(q.x, q.y)
+			if dq < pior: pior = dq; ponto = q
+		if pior >= precisa: return c
+		var e := 0.6
+		var g := Vector2(reg.dist_estrada(ponto.x + e, ponto.y) - reg.dist_estrada(ponto.x - e, ponto.y),
+			reg.dist_estrada(ponto.x, ponto.y + e) - reg.dist_estrada(ponto.x, ponto.y - e))
+		if g.length() < 0.001: g = (c - ponto)
+		if g.length() < 0.001: g = Vector2(1, 0)
+		c += g.normalized() * 0.5
+	return c
+
+# menor distância do meio da estrada a um retângulo (centro, meia medida, ângulo como rotation.y)
+func _pior_estrada(c: Vector2, meia: Vector2, ang: float) -> float:
+	var pior := INF
+	for j in 5: for i in 5:
+		var q: Vector2 = c + (Vector2(lerp(-1.0, 1.0, i / 4.0), lerp(-1.0, 1.0, j / 4.0)) * meia).rotated(-ang)
+		pior = minf(pior, reg.dist_estrada(q.x, q.y))
+	return pior
 
 # teste: mede o vão entre o piso de cada construção e o terreno de verdade (cantos e meio das bordas)
 func _checar_chao() -> void:
