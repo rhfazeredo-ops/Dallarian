@@ -40,6 +40,18 @@ monstros, política e traição, onde ainda existem amor, amizade e gente boa pe
 4. **Crescer:** de aspirante a cavaleiro, por feitos, treino, equipamentos e reputação.
 5. (proposta) **Escolher lados** na política, com consequências nas cidades e nas pessoas.
 
+## 6.1 História principal e favores
+- **História principal:** a jornada do Dallarian para se tornar herói/cavaleiro, em capítulos pelo mundo.
+- **Favores (missões extras):** as pessoas pedem ajuda no caminho: buscar algo, entregar uma carta, resolver
+  uma briga, proteger alguém, achar um animal perdido, enfrentar um monstro que ronda a vila...
+  Pequenos, humanos, ligados à vida de cada lugar.
+- **O mundo comenta o sonho dele:** os moradores falam sobre o que ele quer ser.
+  - Uns **zombam** ("um camponês querendo ser cavaleiro?"), outros **apoiam** e incentivam,
+    alguns desconfiam, alguns se inspiram nele.
+  - (proposta) As falas mudam com a **reputação** do Dallarian: quanto mais favores e feitos, mais gente
+    respeita; falhar, fugir ou trair faz a zombaria e a desconfiança voltarem.
+  - (proposta) Comentários soltos ao passar perto das pessoas (sem precisar abrir conversa), como num mundo vivo.
+
 ## 7. Direção de arte
 - **3D com cara de PlayStation 1, mas com estilo pintado:** poucos polígonos, texturas pequenas e
   pixeladas (sem suavização), vértices que "tremem", neblina na distância, resolução baixa, pontilhado.
