@@ -560,7 +560,7 @@ func _modo_teste() -> void:
 		var q := 0
 		for nm in nomes:
 			jogador.iniciar(nm)
-			for f in 20:
+			for f in int(args.get("quadros", "20")):
 				await RenderingServer.frame_post_draw
 				get_viewport().get_texture().get_image().save_png(String(args.shot).replace(".png", "-%02d.png" % q)); q += 1
 		get_tree().quit(); return

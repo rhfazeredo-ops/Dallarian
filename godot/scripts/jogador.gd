@@ -26,36 +26,38 @@ var braco_e: MeshInstance3D
 # MÃO DIREITA = [posição do cabo, direção da lâmina, normal da face da lâmina], no espaço da câmera
 # (x direita, y cima, -z frente). A espada é montada a partir disso: lâmina = direção, guarda = perpendicular.
 const MAO := {
-	"repouso": [Vector3(0.3, -0.4, -0.5), Vector3(-0.3, 0.78, -0.55), Vector3(0.45, 0.1, 1.0)],
+	"repouso": [Vector3(0.34, -0.44, -0.56), Vector3(-0.02, 1.0, -0.1), Vector3(0.15, 0.0, 1.0)],
 	"correr": [Vector3(0.34, -0.52, -0.42), Vector3(0.1, 0.3, -0.95), Vector3(0.9, 0.0, 0.3)],
 	"bloq": [Vector3(0.38, -0.52, -0.5), Vector3(0.2, 0.5, -0.85), Vector3(0.6, 0.0, 0.8)],
 }
-# GOLPES: a lâmina varre um arco limpo. a = cabo na preparação, da = lâmina na preparação, dm = lâmina no meio
-# do corte (apontando para a frente), b/db = fim do corte; c = ponto de controle do caminho da mão (à frente).
-# Durante o corte a face da lâmina fica perpendicular ao arco (o fio vai na frente): nada de espada torta.
-# tempos: preparação, corte, seguir (a lâmina continua um pouco), volta. tranco = câmera [pitch, roll, avanço].
+# GOLPES (copiados do vídeo de referência de espada e escudo em primeira pessoa, quadro a quadro):
+#  - guarda: espada em pé à direita, escudo aparecendo embaixo à esquerda;
+#  - preparação rápida que tira a espada da tela (para cima/para o lado);
+#  - corte muito rápido (~0,1 s) atravessando a tela, a lâmina grande e de lado;
+#  - a espada termina fora da tela e VOLTA SUBINDO por baixo, em pé, até a guarda.
+# a/da = cabo e lâmina na preparação; dm = lâmina no meio do corte; b/db = fim; c = controle do caminho da mão.
 const GOLPES := {
-	# 1: corte quase horizontal da direita para a esquerda, na altura do peito (o ataque padrão)
-	"leve1": { "a": Vector3(0.38, -0.1, -0.52), "da": Vector3(0.62, 0.62, 0.45), "dm": Vector3(-0.55, 0.25, -0.8),
-		"b": Vector3(-0.12, -0.3, -0.56), "db": Vector3(-0.88, -0.02, -0.47), "c": Vector3(0.18, -0.1, -0.8),
-		"t": [0.14, 0.12, 0.05, 0.24], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
-	# 2: corte de volta, da esquerda para a direita, um pouco de baixo para cima
-	"leve2": { "a": Vector3(-0.14, -0.22, -0.52), "da": Vector3(-0.75, 0.4, 0.5), "dm": Vector3(0.5, 0.32, -0.8),
-		"b": Vector3(0.38, -0.22, -0.54), "db": Vector3(0.9, 0.12, -0.42), "c": Vector3(0.1, -0.14, -0.8),
-		"t": [0.12, 0.12, 0.05, 0.24], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 2.5 },
-	# 3: diagonal de cima, do ombro direito até embaixo à esquerda (fecha o combo)
-	"leve3": { "a": Vector3(0.32, 0.02, -0.52), "da": Vector3(0.35, 0.88, 0.3), "dm": Vector3(-0.3, 0.45, -0.84),
-		"b": Vector3(-0.16, -0.34, -0.55), "db": Vector3(-0.7, -0.55, -0.45), "c": Vector3(0.16, -0.02, -0.78),
-		"t": [0.16, 0.12, 0.06, 0.26], "tranco": Vector3(-4.0, 2.0, 0.08), "giro": -1.5 },
-	# forte: a espada vai bem para trás do ombro, segura, e desce em diagonal com o corpo indo junto
-	"forte": { "a": Vector3(0.38, 0.04, -0.5), "da": Vector3(0.55, 0.78, 0.3), "dm": Vector3(-0.35, 0.35, -0.87),
-		"b": Vector3(-0.26, -0.34, -0.55), "db": Vector3(-0.85, -0.42, -0.32), "c": Vector3(0.12, -0.04, -0.84),
-		"t": [0.3, 0.15, 0.1, 0.45], "tranco": Vector3(-5.0, 6.0, 0.32), "giro": -5.0 },
+	# 1: diagonal de cima à direita até embaixo à esquerda
+	"leve1": { "a": Vector3(0.72, 0.18, -0.3), "da": Vector3(0.55, 0.72, 0.42), "dm": Vector3(-0.55, 0.2, -0.82),
+		"b": Vector3(-0.78, -0.58, -0.42), "db": Vector3(-0.82, -0.45, -0.35), "c": Vector3(0.12, -0.08, -0.78),
+		"t": [0.16, 0.1, 0.06, 0.42], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
+	# 2: horizontal da esquerda para a direita, na altura da cintura/peito
+	"leve2": { "a": Vector3(-0.78, -0.28, -0.3), "da": Vector3(-0.85, 0.15, 0.5), "dm": Vector3(0.78, 0.06, -0.62),
+		"b": Vector3(0.82, -0.3, -0.36), "db": Vector3(0.88, 0.0, 0.45), "c": Vector3(-0.05, -0.28, -0.74),
+		"t": [0.16, 0.1, 0.06, 0.42], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 3.0 },
+	# 3: de cima para baixo pelo meio (fecha o combo)
+	"leve3": { "a": Vector3(0.24, 0.62, -0.22), "da": Vector3(0.1, 0.6, 0.8), "dm": Vector3(0.04, 0.55, -0.83),
+		"b": Vector3(0.06, -0.8, -0.48), "db": Vector3(0.0, -0.8, -0.6), "c": Vector3(0.12, 0.16, -0.78),
+		"t": [0.18, 0.1, 0.07, 0.44], "tranco": Vector3(-5.0, 0.5, 0.08), "giro": 0.0 },
+	# forte: a diagonal com preparação longa (segurando) e o corpo indo junto
+	"forte": { "a": Vector3(0.75, 0.24, -0.22), "da": Vector3(0.55, 0.7, 0.45), "dm": Vector3(-0.5, 0.25, -0.83),
+		"b": Vector3(-0.8, -0.62, -0.4), "db": Vector3(-0.85, -0.45, -0.3), "c": Vector3(0.1, -0.06, -0.84),
+		"t": [0.28, 0.12, 0.1, 0.5], "tranco": Vector3(-5.0, 6.0, 0.32), "giro": -5.0 },
 }
 # poses da mão esquerda (escudo): [posição, rotação em graus]
 const PE := {
-	"e_repouso": [Vector3(-0.5, -0.5, -0.6), Vector3(80, 10, -25)],
-	"e_golpe": [Vector3(-0.56, -0.6, -0.58), Vector3(74, 12, -30)],
+	"e_repouso": [Vector3(-0.52, -0.56, -0.6), Vector3(80, 10, -22)],
+	"e_golpe": [Vector3(-0.54, -0.6, -0.6), Vector3(78, 10, -26)],
 	"e_correr": [Vector3(-0.52, -0.64, -0.5), Vector3(70, 20, -40)],
 	"e_bloq": [Vector3(-0.12, -0.2, -0.46), Vector3(88, 0, -5)],
 	"bash_prep": [Vector3(-0.2, -0.24, -0.38), Vector3(88, 10, -10)],
@@ -65,7 +67,7 @@ const PE := {
 const BASH := [[0.08, "bash_prep", Vector3.ZERO], [0.1, "bash_fim", Vector3(-2, 0, 0.12)], [0.28, "", Vector3.ZERO]]
 
 # estado da mão direita (sempre: a espada é montada daqui)
-var _hp := Vector3(0.3, -0.4, -0.5); var _hd := Vector3(-0.3, 0.78, -0.55).normalized(); var _hn := Vector3(0.35, 0, 1).normalized()
+var _hp := Vector3(0.34, -0.44, -0.56); var _hd := Vector3(-0.02, 1.0, -0.1).normalized(); var _hn := Vector3(0.35, 0, 1).normalized()
 var _fase := 0; var _sp := Vector3.ZERO; var _sd := Vector3.UP; var _sn := Vector3.BACK
 var _acao := ""; var _passo_acao := 0; var _t_acao := 0.0
 var _ini_e: Transform3D
@@ -270,7 +272,7 @@ func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
 			_hp = _sp.lerp(g.a, e); _hd = _sd.slerp(g.da.normalized(), e); _hn = _sn.slerp(ng, e).normalized()
 			if esperando: _hp += Vector3(0.006, 0.004, 0.004) * sin(_tempo * 30.0)     # tremidinha segurando
 		1:   # corte: rápido, a mão passa pela frente (curva) e a lâmina varre o arco
-			var e := 1.0 - pow(1.0 - u, 2.2)
+			var e := u * u * (3.0 - 2.0 * u) * 0.35 + u * 0.65       # muito rápido do começo ao fim
 			var a: Vector3 = g.a; var c: Vector3 = g.c; var b: Vector3 = g.b
 			_hp = a.lerp(c, e).lerp(c.lerp(b, e), e)
 			_hd = _arco(g.da, g.dm, g.db, e); _hn = ng
@@ -280,9 +282,14 @@ func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
 			var b: Vector3 = g.b; var c: Vector3 = g.c
 			_hp = b + (b - c).normalized() * 0.04 * u
 			_hd = g.db.normalized().slerp(_arco(g.da, g.dm, g.db, 1.0), 0.0); _hn = ng
-		3:   # volta para a guarda
-			var e := u * u * (3.0 - 2.0 * u)
-			_hp = _sp.lerp(base[0], e); _hd = _sd.slerp(base[1].normalized(), e); _hn = _sn.slerp(base[2].normalized(), e).normalized()
+		3:   # volta: desce para baixo da tela e SOBE em pé até a guarda (como no vídeo de referência)
+			var baixo: Vector3 = base[0] + Vector3(0.02, -0.55, 0.06)
+			if u < 0.4:
+				var e := smoothstep(0.0, 0.4, u)
+				_hp = _sp.lerp(baixo, e); _hd = _sd.slerp(Vector3(0.1, 1.0, -0.25).normalized(), e); _hn = _sn.slerp(base[2].normalized(), e).normalized()
+			else:
+				var e := smoothstep(0.4, 1.0, u); e = 1.0 - pow(1.0 - e, 2.0)
+				_hp = baixo.lerp(base[0], e); _hd = Vector3(0.1, 1.0, -0.25).normalized().slerp(base[1].normalized(), e); _hn = base[2].normalized()
 	if congelar >= 0.0: return
 	if _t_acao >= dur and not esperando:
 		# combo: o próximo golpe já sai do fim deste (sem voltar para a guarda)
