@@ -63,6 +63,17 @@ monstros, política e traição, onde ainda existem amor, amizade e gente boa pe
   texturas 128–256 px.
 - Arte: ChatGPT (folhas com 4 vistas) → Tripo 3D (Multiview, Low Poly, GLB) → redução no projeto.
 
+## 7.1 A região inicial (feita)
+Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
+- **Limites:** montanhas ao norte (com um desfiladeiro fechado por uma paliçada — saída futura) e a oeste,
+  mar a leste, pântano e morros escuros ao sul.
+- **Rio em "S"** do norte ao pântano, com três pontes; **lago** com um **mosteiro numa ilha** (passarela).
+- **Vila** no centro, no cruzamento das estradas: casas, taverna, igreja com torre, poço.
+- **Fazendas** a oeste (campos de trigo e terra arada, cercas, celeiros vermelhos, moinho de vento).
+- **Porto** de pescadores no litoral leste (píer, barcos), **ruínas** de uma torre num morro (nordeste),
+  **serraria**, **acampamento de bandidos** (sudoeste), **caverna** no pé das montanhas a oeste.
+- Floresta de carvalhos, bétulas e pinheiros (algumas copas de outono), árvores mortas no pântano.
+
 ## 8. Primeiros passos de produção
 1. Base jogável: câmera em primeira pessoa, filtro PS1, chão e casas low poly, grama e árvores em splats,
    céu de tempestade, espada e escudo provisórios.

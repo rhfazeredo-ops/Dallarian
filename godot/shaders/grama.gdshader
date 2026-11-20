@@ -3,8 +3,8 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
-uniform float neb_ini = 30.0;
-uniform float neb_fim = 190.0;
+uniform float neb_ini = 40.0;
+uniform float neb_fim = 330.0;
 uniform vec3 jogador = vec3(0.0, -100.0, 0.0);
 uniform float vento = 1.0;
 global uniform float relampago;

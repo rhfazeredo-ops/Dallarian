@@ -7,8 +7,8 @@ uniform vec3 sol = vec3(0.45, 0.6, 0.35);
 uniform vec3 luz_sol : source_color = vec3(0.95, 0.88, 0.72);
 uniform vec3 luz_amb : source_color = vec3(0.5, 0.54, 0.64);
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
-uniform float neb_ini = 30.0;
-uniform float neb_fim = 190.0;
+uniform float neb_ini = 40.0;
+uniform float neb_fim = 330.0;
 uniform float corte = 0.32;
 // mesmas cores do céu (shaders/ceu.gdshader), para o reflexo das poças
 uniform vec3 ceu_alto : source_color = vec3(0.2, 0.42, 0.82);

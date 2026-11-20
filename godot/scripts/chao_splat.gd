@@ -4,8 +4,8 @@
 # Três camadas, da menor para a maior:
 #  - miúda: manchas bem pequenas e muito densas, só até ~18 m do jogador
 #  - média: manchas médias, até ~55 m (flores ficam na miúda)
-#  - grossa: manchas grandes no mapa todo (paisagem distante; montada uma vez só)
-# As camadas miúda e média são montadas EM VOLTA do jogador enquanto ele anda (blocos criados perto e
+#  - grossa: manchas grandes até ~150 m (paisagem)
+# As camadas são montadas EM VOLTA do jogador enquanto ele anda (blocos criados perto e
 # apagados longe, poucos por quadro). Cada bloco tem sorteio fixo (semente pela posição): volta igual.
 extends Node3D
 class_name ChaoSplat
@@ -17,6 +17,7 @@ var _luz := FastNoiseLite.new()
 var camadas := [
 	{ "bloco": 8, "raio": 18.0, "dens": 18.0, "tam": Vector2(0.18, 0.38), "alt": 0.06, "flores": true, "ativos": {} },
 	{ "bloco": 16, "raio": 55.0, "dens": 2.2, "tam": Vector2(0.28, 0.55), "alt": 0.035, "flores": false, "ativos": {} },
+	{ "bloco": 32, "raio": 150.0, "dens": 0.2, "tam": Vector2(1.4, 3.0), "alt": 0.012, "flores": false, "ativos": {} },
 ]
 
 func montar(mundo) -> void:
@@ -24,7 +25,6 @@ func montar(mundo) -> void:
 	_luz.seed = 3; _luz.frequency = 0.03
 	mat = ShaderMaterial.new(); mat.shader = load("res://shaders/splat_chao.gdshader")
 	mat.set_shader_parameter("neblina", m.NEBLINA)
-	_grossa()
 	_pocas()
 
 var _primeira := true
@@ -73,8 +73,9 @@ func _bloco(c: Dictionary, k: Vector2i) -> MultiMeshInstance3D:
 	var b: int = c.bloco; var itens := []
 	for n in int(b * b * c.dens):
 		var x := k.x * b + rng.randf() * b; var z := k.y * b + rng.randf() * b
-		if Vector2(x, z).length() > 125.0: continue
+		if not m.reg.dentro(x, z): continue
 		var h: float = m.altura_malha(x, z); var nrm: Vector3 = m.normal_malha(x, z)
+		if h < m.reg.agua(x, z) - 0.05: continue
 		var s := rng.randf_range(c.tam.x, c.tam.y)
 		var p: Vector3 = Vector3(x, h, z) + nrm * (c.alt + rng.randf() * c.alt)
 		itens.append([_transf(p, nrm, s, s * rng.randf_range(0.45, 1.0), rng.randf() * TAU), pincel(rng, x, z, h, nrm.y), 0.0])
@@ -87,21 +88,6 @@ func _bloco(c: Dictionary, k: Vector2i) -> MultiMeshInstance3D:
 					q.y = m.altura_malha(q.x, q.z) + 0.13
 					itens.append([_transf(q, nrm, 0.09, 0.09, 0.0), fl * rng.randf_range(0.9, 1.1), 0.0])
 	return _multimesh(itens) if not itens.is_empty() else null
-
-# camada grossa: mapa todo, montada uma vez
-func _grossa() -> void:
-	var rng := RandomNumberGenerator.new(); rng.seed = 77
-	var b := 32
-	for bz in range(-135, 135, b):
-		for bx in range(-135, 135, b):
-			var itens := []
-			for n in int(b * b * 0.22):
-				var x := bx + rng.randf() * b; var z := bz + rng.randf() * b
-				if Vector2(x, z).length() > 135.0: continue
-				var h: float = m.altura_malha(x, z); var nrm: Vector3 = m.normal_malha(x, z)
-				var s := rng.randf_range(1.4, 3.0)
-				itens.append([_transf(Vector3(x, h, z) + nrm * (0.012 + rng.randf() * 0.012), nrm, s, s * rng.randf_range(0.45, 1.0), rng.randf() * TAU), pincel(rng, x, z, h, nrm.y), 0.0])
-			if not itens.is_empty(): _multimesh(itens)
 
 func _multimesh(itens: Array) -> MultiMeshInstance3D:
 	var pm := PlaneMesh.new(); pm.size = Vector2(1, 1)

@@ -10,8 +10,8 @@ uniform vec3 sol = vec3(0.45, 0.6, 0.35);        // direção da luz (mundo)
 uniform vec3 luz_sol : source_color = vec3(0.95, 0.88, 0.72);
 uniform vec3 luz_amb : source_color = vec3(0.5, 0.54, 0.64);
 uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
-uniform float neb_ini = 30.0;
-uniform float neb_fim = 190.0;
+uniform float neb_ini = 40.0;
+uniform float neb_fim = 330.0;
 uniform float escala_uv = 1.0;
 global uniform float relampago;
 varying vec3 luz;
@@ -22,6 +22,8 @@ void vertex() {
   luz *= COLOR.rgb;
   vec4 vp = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);
+  // montanhas altas aparecem através da névoa (silhueta dos limites)
+  nb *= 1.0 - smoothstep(14.0, 70.0, (MODEL_MATRIX * vec4(VERTEX, 1.0)).y) * 0.5;
   vec4 c = PROJECTION_MATRIX * vp;
   vec2 g = grade * 0.5;
   c.xy = round(c.xy / c.w * g) / g * c.w;            // "tremida" dos vértices

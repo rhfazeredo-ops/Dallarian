@@ -72,7 +72,7 @@ func _ready() -> void:
 	cs.shape = cap; cs.position = Vector3(0, 0.875, 0); add_child(cs)
 	floor_snap_length = 0.4; floor_max_angle = deg_to_rad(48)
 	pescoco = Node3D.new(); pescoco.position = Vector3(0, 1.62, 0); add_child(pescoco)
-	cam = Camera3D.new(); cam.fov = 70; cam.near = 0.04; cam.far = 400
+	cam = Camera3D.new(); cam.fov = 70; cam.near = 0.04; cam.far = 900
 	pescoco.add_child(cam); cam.current = true
 	mao = Node3D.new(); cam.add_child(mao)
 	_armas()

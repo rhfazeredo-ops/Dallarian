@@ -87,18 +87,17 @@ func _bloco(c: Dictionary, k: Vector2i) -> Array:
 	var verde := []; var trigo := []
 	for n in int(b * b * c.dens):
 		var x := k.x * b + rng.randf() * b; var z := k.y * b + rng.randf() * b
-		var p := Vector2(x, z); var r := p.length()
-		if r > 108.0 or r < 16.5: continue
+		var p := Vector2(x, z)
+		if not m.reg.dentro(x, z): continue
 		var de: float = m._dist_estrada(p)
 		if de < 2.2 + rng.randf() * 0.8: continue                 # beira da estrada irregular
 		var h: float = m.altura_malha(x, z)
-		if h > 26.0: continue
 		var nrm: Vector3 = m.normal_malha(x, z)
-		if nrm.y < 0.8: continue                                   # encosta de pedra: sem grama
+		if rng.randf() > m.reg.grama(x, z, h, nrm.y): continue
 		var cor: Color = m.cor_chao(x, z, h, nrm.y)
 		var eh_trigo := cor.r > 0.66
 		# falhas: em alguns lugares a grama some (manchas de terra)
-		if not eh_trigo and m._ruido.get_noise_2d(x * 2.3, z * 2.3) < -0.35: continue
+		if not eh_trigo and m.reg.ruido.get_noise_2d(x * 2.3, z * 2.3) < -0.35: continue
 		var alt: float = rng.randf_range(0.28, 0.5) * c.esc
 		var larg: float = rng.randf_range(0.8, 1.25) * c.esc
 		if eh_trigo: alt = rng.randf_range(0.75, 1.0) * c.esc
