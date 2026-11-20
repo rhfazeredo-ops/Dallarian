@@ -1,0 +1,26 @@
+; Dallarian — jogo 3D em primeira pessoa (Godot 4.5), visual PS1 pintado + pixel splats
+config_version=5
+
+[application]
+config/name="Dallarian"
+run/main_scene="res://cenas/mundo.tscn"
+config/features=PackedStringArray("4.5", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+textures/canvas_textures/default_texture_filter=0
+
+[shader_globals]
+relampago={
+"type": "float",
+"value": 0.0
+}
