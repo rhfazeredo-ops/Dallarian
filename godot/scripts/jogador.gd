@@ -40,19 +40,19 @@ const GOLPES := {
 	# 1: diagonal de cima à direita até embaixo à esquerda
 	"leve1": { "a": Vector3(0.72, 0.18, -0.3), "da": Vector3(0.55, 0.72, 0.42), "dm": Vector3(-0.55, 0.2, -0.82),
 		"b": Vector3(-0.78, -0.58, -0.42), "db": Vector3(-0.82, -0.45, -0.35), "c": Vector3(0.12, -0.08, -0.78),
-		"t": [0.16, 0.1, 0.06, 0.42], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
+		"t": [0.22, 0.15, 0.08, 0.5], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
 	# 2: horizontal da esquerda para a direita, na altura da cintura/peito
 	"leve2": { "a": Vector3(-0.78, -0.28, -0.3), "da": Vector3(-0.85, 0.15, 0.5), "dm": Vector3(0.78, 0.06, -0.62),
 		"b": Vector3(0.82, -0.3, -0.36), "db": Vector3(0.88, 0.0, 0.45), "c": Vector3(-0.05, -0.28, -0.74),
-		"t": [0.16, 0.1, 0.06, 0.42], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 3.0 },
+		"t": [0.22, 0.15, 0.08, 0.5], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 3.0 },
 	# 3: de cima para baixo pelo meio (fecha o combo)
 	"leve3": { "a": Vector3(0.24, 0.62, -0.22), "da": Vector3(0.1, 0.6, 0.8), "dm": Vector3(0.04, 0.55, -0.83),
 		"b": Vector3(0.06, -0.8, -0.48), "db": Vector3(0.0, -0.8, -0.6), "c": Vector3(0.12, 0.16, -0.78),
-		"t": [0.18, 0.1, 0.07, 0.44], "tranco": Vector3(-5.0, 0.5, 0.08), "giro": 0.0 },
+		"t": [0.24, 0.15, 0.09, 0.52], "tranco": Vector3(-5.0, 0.5, 0.08), "giro": 0.0 },
 	# forte: a diagonal com preparação longa (segurando) e o corpo indo junto
 	"forte": { "a": Vector3(0.75, 0.24, -0.22), "da": Vector3(0.55, 0.7, 0.45), "dm": Vector3(-0.5, 0.25, -0.83),
 		"b": Vector3(-0.8, -0.62, -0.4), "db": Vector3(-0.85, -0.45, -0.3), "c": Vector3(0.1, -0.06, -0.84),
-		"t": [0.28, 0.12, 0.1, 0.5], "tranco": Vector3(-5.0, 6.0, 0.32), "giro": -5.0 },
+		"t": [0.34, 0.17, 0.12, 0.58], "tranco": Vector3(-5.0, 6.0, 0.32), "giro": -5.0 },
 }
 # poses da mão esquerda (escudo): [posição, rotação em graus]
 const PE := {
@@ -267,12 +267,12 @@ func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
 	if congelar >= 0.0: u = congelar
 	var ng := _normal_golpe(g)
 	match _fase:
-		0:   # preparação: levanta a espada para trás do ombro (devagar no fim = "carregando")
-			var e := u * u * (3.0 - 2.0 * u)
+		0:   # preparação: começa devagar e acelera para fora da tela
+			var e := u * u * (2.0 - u)
 			_hp = _sp.lerp(g.a, e); _hd = _sd.slerp(g.da.normalized(), e); _hn = _sn.slerp(ng, e).normalized()
 			if esperando: _hp += Vector3(0.006, 0.004, 0.004) * sin(_tempo * 30.0)     # tremidinha segurando
 		1:   # corte: rápido, a mão passa pela frente (curva) e a lâmina varre o arco
-			var e := u * u * (3.0 - 2.0 * u) * 0.35 + u * 0.65       # muito rápido do começo ao fim
+			var e := 1.0 - pow(1.0 - u, 1.6)                           # rápido, freando só no fim
 			var a: Vector3 = g.a; var c: Vector3 = g.c; var b: Vector3 = g.b
 			_hp = a.lerp(c, e).lerp(c.lerp(b, e), e)
 			_hd = _arco(g.da, g.dm, g.db, e); _hn = ng
@@ -283,12 +283,13 @@ func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
 			_hp = b + (b - c).normalized() * 0.04 * u
 			_hd = g.db.normalized().slerp(_arco(g.da, g.dm, g.db, 1.0), 0.0); _hn = ng
 		3:   # volta: desce para baixo da tela e SOBE em pé até a guarda (como no vídeo de referência)
-			var baixo: Vector3 = base[0] + Vector3(0.02, -0.55, 0.06)
-			if u < 0.4:
-				var e := smoothstep(0.0, 0.4, u)
+			var baixo: Vector3 = base[0] + Vector3(0.02, -0.42, 0.06)
+			if u < 0.45:
+				var e := smoothstep(0.0, 0.45, u)
 				_hp = _sp.lerp(baixo, e); _hd = _sd.slerp(Vector3(0.1, 1.0, -0.25).normalized(), e); _hn = _sn.slerp(base[2].normalized(), e).normalized()
 			else:
-				var e := smoothstep(0.4, 1.0, u); e = 1.0 - pow(1.0 - e, 2.0)
+				var k := clampf((u - 0.45) / 0.55, 0.0, 1.0)
+				var e := 1.0 + 2.2 * pow(k - 1.0, 3.0) + 1.2 * pow(k - 1.0, 2.0)   # sobe rápido e assenta (passa um tiquinho e volta)
 				_hp = baixo.lerp(base[0], e); _hd = Vector3(0.1, 1.0, -0.25).normalized().slerp(base[1].normalized(), e); _hn = base[2].normalized()
 	if congelar >= 0.0: return
 	if _t_acao >= dur and not esperando:
