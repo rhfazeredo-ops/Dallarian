@@ -1,7 +1,7 @@
 # Floresta com a técnica de "cartões" (alpha cards), a mesma usada em MMOs para ter muita árvore sem pesar:
 #  - tronco simples (poucos lados, abrindo na base) com alguns galhos;
 #  - a copa é feita de ~25 retângulos planos ("cartões") cruzados em ângulos diferentes, cada um com o desenho
-#    de um galho cheio de folhas com fundo transparente (gerado aqui, em pixel art);
+#    de um galho com cachos de folhas (formato de folha de verdade) e fundo transparente, gerado aqui;
 #  - pinheiros: andares de cartões de agulhas caídos para baixo em volta do tronco;
 #  - arbustos: 5 cartões cruzados.
 # A mesma árvore serve de perto e de longe (não precisa trocar), poucas centenas de triângulos cada.
@@ -24,13 +24,17 @@ const PONTAS := [Vector3(1.4, 4.2, 0.3), Vector3(-1.2, 4.7, -0.5), Vector3(0.2, 
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
 	_mat_cartao = {
-		"folhagem": _material(_tex_folhagem(96, 11)),
+		"folhagem": _material(_tex_folhagem(192, 11)),
+		"folhagem2": _material(_tex_folhagem(192, 21)),
 		"agulhas": _material(_tex_agulhas(128, 64, 12)),
-		"arbusto": _material(_tex_folhagem(64, 13, true)),
+		"arbusto": _material(_tex_folhagem(128, 13, true)),
 	}
+	if OS.get_cmdline_user_args().has("--desenhos"):
+		for k in _mat_cartao.keys():
+			var tx: ImageTexture = _mat_cartao[k].get_shader_parameter("tex"); tx.get_image().save_png("user://cartao_%s.png" % k)
 	malhas = {
 		"copa_a": [_tronco_copa(), _cartoes_copa(1)],
-		"copa_b": [null, _cartoes_copa(2)],
+		"copa_b": [null, _cartoes_copa(2, "folhagem2")],
 		"pinho": [_tronco_pinho(), _cartoes_pinho(3)],
 		"arbusto": [null, _cartoes_arbusto(4)],
 		"morta": [_tronco_copa(Color(0.55, 0.52, 0.48)), null],
@@ -54,27 +58,80 @@ func _linha(im: Image, a: Vector2, b: Vector2, l: float, w: int) -> void:
 	for i in n + 1:
 		var p := a.lerp(b, float(i) / n); _px(im, int(p.x), int(p.y), l, w)
 
-# galho folhoso: gravetos escuros saindo de baixo e tufos de folhinhas quadradas nas pontas
+# galho folhoso: graveto curvo que afina e se divide (de baixo para cima), com cachos de folhas de verdade
+# (formato de folha: oval com ponta, nervura clara no meio) nas pontas e ao longo dos galhos.
+# Tons de cinza: a cor vem de cada árvore. Fundo transparente.
 func _tex_folhagem(t: int, seed: int, redondo := false) -> ImageTexture:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var im := Image.create(t, t, true, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
-	var base := Vector2(t * 0.5, t - 1)
-	var centros := []
-	for k in (7 if not redondo else 5):
-		var a := rng.randf_range(-PI * 0.85, -PI * 0.15) if not redondo else rng.randf() * TAU
-		var r := rng.randf_range(0.18, 0.36) * t
-		centros.append(Vector2(t * 0.5, t * 0.44) + Vector2(cos(a), sin(a)) * r)
-	if not redondo:
-		for c in centros: _linha(im, base.lerp(c, 0.35), base.lerp(c, 0.8), 0.3, 1)     # gravetos curtos (não viram "guarda-chuva")
-	var nf := int(t * t * 0.14)
-	for i in nf:
-		var c: Vector2 = centros[rng.randi() % centros.size()]
-		var p := c + Vector2(rng.randfn(0, 1), rng.randfn(0, 1)) * t * (0.085 if not redondo else 0.11)
-		var l := 0.62 + 0.42 * (1.0 - p.y / t) + rng.randf_range(-0.08, 0.08)
-		if rng.randf() < 0.12: l *= 0.7
-		_px(im, int(p.x), int(p.y), clampf(l, 0.3, 1.1), rng.randi_range(2, 3))
+	var pontas := []          # [posição, direção] onde nascem os cachos
+	var galhos := []          # [a, b, espessura]
+	var _ramo := func(rec: Callable, a: Vector2, dir: Vector2, comp: float, esp: float, nivel: int) -> void:
+		var p := a; var d := dir
+		var passos := 6
+		for i in passos:
+			d = d.rotated(rng.randf_range(-0.25, 0.25)).normalized()
+			var q := p + d * comp / passos
+			galhos.append([p, q, esp * (1.0 - float(i) / passos * 0.5)])
+			if nivel < 3 and i >= 2 and rng.randf() < 0.45:
+				var lado := 1.0 if rng.randf() < 0.5 else -1.0
+				rec.call(rec, q, d.rotated(lado * rng.randf_range(0.5, 1.0)), comp * rng.randf_range(0.45, 0.65), esp * 0.6, nivel + 1)
+			p = q
+		pontas.append([p, d])
+	if redondo:
+		for k in 6: _ramo.call(_ramo, Vector2(t * 0.5, t * 0.85), Vector2(0, -1).rotated(lerp(-1.2, 1.2, k / 5.0) + rng.randf_range(-0.15, 0.15)), t * 0.36, t * 0.022, 1)
+	else:
+		_ramo.call(_ramo, Vector2(t * 0.5, t * 0.98), Vector2(rng.randf_range(-0.15, 0.15), -1).normalized(), t * 0.62, t * 0.035, 0)
+	# gravetos (escuros)
+	for g in galhos: _traco(im, g[0], g[1], max(g[2], 1.0), 0.22)
+	# folhas: muitas nas pontas (cachos) e algumas ao longo dos galhos
+	var folhas := []
+	for pt in pontas:
+		var c: Vector2 = pt[0]
+		for k in 30:
+			var o := Vector2(rng.randfn(0, 1), rng.randfn(0, 1)) * t * 0.065
+			folhas.append([c + o, rng.randf() * TAU, -o.y / (t * 0.065)])
+	for g in galhos:
+		if rng.randf() < 0.5:
+			var p: Vector2 = g[0].lerp(g[1], rng.randf())
+			folhas.append([p + Vector2(rng.randfn(0, 1), rng.randfn(0, 1)) * t * 0.02, rng.randf() * TAU, 0.0])
+	# as de baixo/escuras primeiro, as de cima (claras) por cima
+	folhas.sort_custom(func(a, b): return a[2] < b[2])
+	for f in folhas:
+		var p: Vector2 = f[0]
+		var l: float = 0.55 + 0.35 * (1.0 - p.y / t) + 0.14 * clampf(f[2], -1.0, 1.0) + rng.randf_range(-0.08, 0.08)
+		_folha(im, p, f[1], t * rng.randf_range(0.045, 0.065), t * rng.randf_range(0.018, 0.026), clampf(l, 0.32, 1.1))
 	im.generate_mipmaps()
 	return ImageTexture.create_from_image(im)
+
+# graveto: traço com espessura
+func _traco(im: Image, a: Vector2, b: Vector2, esp: float, l: float) -> void:
+	var n := int(a.distance_to(b)) + 1
+	var r := esp * 0.5
+	for i in n + 1:
+		var p := a.lerp(b, float(i) / n)
+		for dy in range(int(-r) - 1, int(r) + 2):
+			for dx in range(int(-r) - 1, int(r) + 2):
+				if dx * dx + dy * dy <= r * r + 0.5:
+					var x := int(p.x) + dx; var y := int(p.y) + dy
+					if x >= 0 and y >= 0 and x < im.get_width() and y < im.get_height(): im.set_pixel(x, y, Color(l, l, l, 1))
+
+# uma folha: oval com as duas pontas finas (formato de folha), metade de um lado um tom mais clara (nervura)
+func _folha(im: Image, c: Vector2, ang: float, comp: float, larg: float, l: float) -> void:
+	var d := Vector2(cos(ang), sin(ang)); var n := Vector2(-d.y, d.x)
+	var r := int(comp) + 1
+	for dy in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			var q := Vector2(dx, dy)
+			var u := q.dot(d) / comp; var v := q.dot(n)
+			if abs(u) > 1.0: continue
+			var meia: float = larg * sqrt(max(0.0, 1.0 - u * u)) * (1.0 - 0.35 * max(u, 0.0))   # mais fina na ponta
+			if abs(v) > meia: continue
+			var x := int(c.x) + dx; var y := int(c.y) + dy
+			if x < 0 or y < 0 or x >= im.get_width() or y >= im.get_height(): continue
+			var tom := l * (1.08 if v > 0.0 else 0.9)
+			if abs(v) < 0.6 and u > -0.8: tom = l * 1.15                                     # nervura
+			im.set_pixel(x, y, Color(tom, tom, tom, 1))
 
 # galho de pinheiro visto de cima: graveto no meio (esquerda = tronco) e agulhas para os lados
 func _tex_agulhas(w: int, h: int, seed: int) -> ImageTexture:
@@ -114,7 +171,7 @@ func _tronco_copa(cor := Color.WHITE) -> ArrayMesh:
 	var mesh := ArrayMesh.new(); st.set_material(m.mat("casca", 1.0, cor)); st.commit(mesh)
 	return mesh
 
-func _cartoes_copa(seed: int) -> ArrayMesh:
+func _cartoes_copa(seed: int, tex := "folhagem") -> ArrayMesh:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var centro := Vector3(0, 4.9, 0)
@@ -135,7 +192,7 @@ func _cartoes_copa(seed: int) -> ArrayMesh:
 		_cartao(st, p, lado, cima, Vector2(tam, tam), tom)
 		# cruzado: o mesmo lugar, girado 90° em volta do "cima" (vê-se cheio de qualquer lado)
 		if rng.randf() < 0.55: _cartao(st, p, lado.rotated(cima, PI / 2), cima, Vector2(tam, tam) * 0.9, tom * 0.92)
-	var mesh := ArrayMesh.new(); st.set_material(_mat_cartao["folhagem"]); st.commit(mesh)
+	var mesh := ArrayMesh.new(); st.set_material(_mat_cartao[tex]); st.commit(mesh)
 	return mesh
 
 func _tronco_pinho() -> ArrayMesh:
