@@ -7,7 +7,8 @@ extends Node
 const TAM := 260.0          # lado do terreno (m)
 const CEL := 100            # quadrados do terreno por lado
 const REDUCAO := 4          # a imagem 3D é desenhada em 1/4 da resolução da tela
-const NEBLINA := Color(0.56, 0.55, 0.7)
+const NEBLINA := Color(0.74, 0.83, 0.94)
+const TEMPESTADE := false     # céu limpo; true = relâmpagos (clima de tempestade)
 
 var vp: SubViewport
 var raiz: Node3D
@@ -61,6 +62,7 @@ func _ambiente() -> void:
 var _prox_raio := 4.0
 var _raio := 0.0
 func _process(delta: float) -> void:
+	if not TEMPESTADE and not args.has("raio"): return
 	_prox_raio -= delta
 	if _prox_raio <= 0.0:
 		_prox_raio = randf_range(7.0, 16.0); _raio = 1.0
@@ -85,7 +87,7 @@ var _ruido := FastNoiseLite.new()
 func altura(x: float, z: float) -> float:
 	var r := Vector2(x, z).length()
 	var h := 0.0016 * r * r + _ruido.get_noise_2d(x, z) * 5.0
-	if r > 95.0: h += pow(r - 95.0, 1.5) * 0.6                     # montanhas em volta
+	if r > 100.0: h += pow(r - 100.0, 1.5) * 0.22 * (0.7 + 0.6 * (_ruido.get_noise_2d(x * 0.4, z * 0.4) + 0.5))   # montanhas em volta
 	h = lerp(0.6, h, smoothstep(16.0, 30.0, r))                    # praça da vila plana
 	var de := _dist_estrada(Vector2(x, z))
 	h -= (1.0 - smoothstep(1.5, 4.0, de)) * 0.35                   # estrada um pouco afundada
@@ -105,8 +107,8 @@ func cor_chao(x: float, z: float, h: float, ny: float) -> Color:
 	var de := _dist_estrada(Vector2(x, z))
 	var r := Vector2(x, z).length()
 	if de < 2.6 or r < 17.0: c = Color(0.52, 0.38, 0.24) * (0.95 + n * 0.1)   # terra batida
-	if ny < 0.8: c = c.lerp(Color(0.5, 0.47, 0.5), smoothstep(0.8, 0.65, ny))  # encosta de pedra
-	if h > 42.0: c = c.lerp(Color(0.86, 0.87, 0.94), smoothstep(42.0, 55.0, h)) # neve no alto
+	if ny < 0.8: c = c.lerp(Color(0.46, 0.5, 0.6), smoothstep(0.8, 0.65, ny))  # encosta de pedra (azulada)
+	if h > 34.0: c = c.lerp(Color(0.86, 0.9, 0.98), smoothstep(34.0, 40.0, h)) # neve no alto
 	return c
 
 func _terreno() -> void:
@@ -257,7 +259,7 @@ func _arvores() -> void:
 		var p := Vector2(rng.randf_range(-118, 118), rng.randf_range(-118, 118))
 		if p.length() > 96.0 or not _livre(p, 1.5): continue
 		var h := altura(p.x, p.y)
-		if h > 46.0: continue
+		if h > 28.0: continue
 		var b := Vector3(p.x, h - 0.2, p.y)
 		var outono := _ruido.get_noise_2d(p.x * 0.5, p.y * 0.5 + 50.0) > 0.12 and h < 25.0
 		var s := rng.randf_range(0.8, 1.3)
@@ -308,7 +310,7 @@ func _grama() -> void:
 				var r := p.length()
 				if r > 105.0 or r < 17.0 or _dist_estrada(p) < 2.4: continue
 				var h := altura(p.x, p.y)
-				if h > 40.0: continue
+				if h > 26.0: continue
 				var c := cor_chao(p.x, p.y, h, 1.0)
 				var trigo := c.r > 0.66
 				var s := rng.randf_range(0.7, 1.3) * (1.6 if trigo else 1.0)

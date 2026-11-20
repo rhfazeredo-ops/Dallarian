@@ -6,12 +6,12 @@ uniform sampler2D tex : source_color, filter_nearest, repeat_enable;
 uniform bool usa_tex = true;
 uniform vec4 cor : source_color = vec4(1.0);
 uniform vec2 grade = vec2(320.0, 180.0);          // resolução da "grade" dos vértices
-uniform vec3 sol = vec3(0.45, 0.75, 0.35);        // direção da luz (mundo)
-uniform vec3 luz_sol : source_color = vec3(1.0, 0.86, 0.68);
-uniform vec3 luz_amb : source_color = vec3(0.42, 0.42, 0.62);
+uniform vec3 sol = vec3(0.45, 0.6, 0.35);        // direção da luz (mundo)
+uniform vec3 luz_sol : source_color = vec3(0.95, 0.88, 0.72);
+uniform vec3 luz_amb : source_color = vec3(0.5, 0.54, 0.64);
 uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
-uniform float neb_ini = 35.0;
-uniform float neb_fim = 320.0;
+uniform float neb_ini = 30.0;
+uniform float neb_fim = 190.0;
 uniform float escala_uv = 1.0;
 global uniform float relampago;
 varying vec3 luz;

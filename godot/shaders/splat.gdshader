@@ -6,8 +6,8 @@ render_mode unshaded, cull_disabled;
 uniform bool em_pe = false;
 uniform float corte = 0.3;
 uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
-uniform float neb_ini = 35.0;
-uniform float neb_fim = 320.0;
+uniform float neb_ini = 30.0;
+uniform float neb_fim = 190.0;
 uniform float balanco = 0.0;      // vento (grama/folhas)
 global uniform float relampago;
 varying float nb;
