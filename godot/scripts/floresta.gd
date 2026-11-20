@@ -9,7 +9,7 @@ class_name Floresta
 const PED := 64.0
 const VISTA := 300.0
 const COLIDE := 70.0
-const FOLHAS := 60.0     # até aqui as árvores ganham folhas de verdade (quadradinhos em tufos)
+const FOLHAS := 55.0     # até aqui as árvores ganham folhas de verdade (quadradinhos em tufos)
 var m
 var reg: Regiao
 var mats := {}
@@ -111,7 +111,7 @@ func _pedaco(k: Vector2i) -> void:
 			var it: Array = copas[i]; var e: float = it[2]
 			mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(e, e, 1)), it[0])); mm.set_instance_color(i, it[1])
 		var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = mats["copa"]
-		mi.visibility_range_begin = FOLHAS; mi.visibility_range_end = VISTA; no.add_child(mi)
+		mi.visibility_range_begin = FOLHAS - 8.0; mi.visibility_range_end = VISTA; no.add_child(mi)
 
 func _process(_d: float) -> void:
 	if m.jogador == null: return
@@ -121,9 +121,9 @@ func _process(_d: float) -> void:
 	for k in carvalhos.keys():
 		var cc := Vector2(k.x * PED - Regiao.LIM + PED * 0.5, k.y * PED - Regiao.LIM + PED * 0.5)
 		var d := cc.distance_to(p)
-		if d < FOLHAS and not folhas.has(k) and orc > 0:
+		if d < FOLHAS + 50.0 and not folhas.has(k) and orc > 0:
 			folhas[k] = _folhas(k); orc -= 1
-		elif d > FOLHAS + 40.0 and folhas.has(k):
+		elif d > FOLHAS + 90.0 and folhas.has(k):
 			if folhas[k]: folhas[k].queue_free()
 			folhas.erase(k)
 	for k in arvores.keys():
@@ -138,32 +138,37 @@ func _process(_d: float) -> void:
 		elif not perto and corpos.has(k) and centro.distance_to(p) > COLIDE + 30.0:
 			corpos[k].queue_free(); corpos.erase(k)
 
-# folhas de verdade de um pedaço: em cada árvore ~21 tufos pequenos (3 em volta da ponta de cada galho e 9
-# pela copa), cada tufo com 40 quadradinhos finos e pequenos virados para todos os lados
+# folhas de verdade de um pedaço: em cada árvore ~34 tufos pequenos (4 em volta da ponta de cada galho e 18
+# pela copa), cada tufo com 52 quadradinhos finos e pequenos virados para todos os lados, e um miolo escuro
+# de partículas por dentro (tapa os buracos: a copa parece cheia)
 func _folhas(k: Vector2i) -> Node3D:
 	var lista: Array = carvalhos[k]
 	if lista.is_empty(): return null
 	var rng := RandomNumberGenerator.new(); rng.seed = hash([k.x, k.y, 7])
 	var itens := []   # [Transform3D, cor, custom]
+	var miolo := []   # [posição, cor, tamanho]
 	for a in lista:
 		var tt: Transform3D = a[0]; var s: float = a[1]; var tom: Color = a[2]
 		# muitos tufos pequenos: alguns em volta da ponta de cada galho + vários espalhados pela copa
 		var centros := []
 		for pt in PONTAS:
 			var ponta: Vector3 = tt * pt + Vector3(0, 0.2 * s, 0)
-			for e in 3: centros.append(ponta + Vector3(rng.randfn(0, 0.45), rng.randfn(0, 0.3), rng.randfn(0, 0.45)) * s)
+			for e in 4: centros.append(ponta + Vector3(rng.randfn(0, 0.5), rng.randfn(0, 0.32), rng.randfn(0, 0.5)) * s)
 		var meio := tt.origin + Vector3(0, 4.8 * s, 0)
-		for e in 9:
-			var d := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.6), rng.randfn(0, 1)).normalized() * pow(rng.randf(), 0.5)
+		for e in 18:
+			var d := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.6), rng.randfn(0, 1)).normalized() * pow(rng.randf(), 0.45)
 			centros.append(meio + d * Vector3(1.9, 1.2, 1.9) * s)
+		for e in 12:
+			var d := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.55), rng.randfn(0, 1)).normalized() * pow(rng.randf(), 0.7)
+			miolo.append([meio + d * Vector3(1.4, 0.9, 1.4) * s, tom * rng.randf_range(0.45, 0.6), rng.randf_range(0.9, 1.3) * s])
 		for c in centros:
 			var raio := rng.randf_range(0.45, 0.7) * s
 			var ctom: Color = tom * rng.randf_range(0.85, 1.12)
-			for f in 56:
+			for f in 52:
 				var dir := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.75), rng.randfn(0, 1)).normalized()
 				var r := pow(rng.randf(), 0.55)
 				var pos: Vector3 = c + dir * r * raio
-				var tam := rng.randf_range(0.15, 0.21) * s
+				var tam := rng.randf_range(0.12, 0.17) * s
 				var b := Basis.from_euler(Vector3(rng.randf() * TAU, rng.randf() * TAU, rng.randf() * TAU)).scaled(Vector3(tam, tam, tam))
 				var cor: Color = ctom * (0.85 + 0.3 * clamp(dir.y * 0.5 + 0.5, 0.0, 1.0)) * rng.randf_range(0.9, 1.1)
 				itens.append([Transform3D(b, pos), cor, Color(c.x, c.y, c.z, 1.0 - r)])
@@ -173,4 +178,15 @@ func _folhas(k: Vector2i) -> Node3D:
 		mm.set_instance_transform(i, itens[i][0]); mm.set_instance_color(i, itens[i][1]); mm.set_instance_custom_data(i, itens[i][2])
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = mats["folha"]
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi); return mi
+	mi.visibility_range_end = FOLHAS + 8.0          # a mesma regra de distância da copa de longe (sem buraco)
+	add_child(mi)
+	var q := QuadMesh.new(); q.size = Vector2(1, 1)
+	var m2 := MultiMesh.new(); m2.transform_format = MultiMesh.TRANSFORM_3D; m2.use_colors = true; m2.mesh = q
+	m2.instance_count = miolo.size()
+	for i in miolo.size():
+		var e: float = miolo[i][2]
+		m2.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(e, e, 1)), miolo[i][0])); m2.set_instance_color(i, miolo[i][1])
+	var mo := MultiMeshInstance3D.new(); mo.multimesh = m2; mo.material_override = mats["copa"]
+	mo.visibility_range_end = FOLHAS + 8.0; mi.add_child(mo)
+	mo.top_level = true
+	return mi

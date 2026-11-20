@@ -19,8 +19,8 @@ func montar(mundo) -> void:
 	mat = ShaderMaterial.new(); mat.shader = load("res://shaders/grama.gdshader")
 	mat.set_shader_parameter("neblina", m.NEBLINA)
 	# folhas por tufo: perto mais folhas finas; longe menos folhas, um pouco mais largas
-	malhas = { "perto": [_malha_tufo(7, 0.022, false, 1), _malha_tufo(5, 0.016, true, 2)],
-		"longe": [_malha_tufo(4, 0.032, false, 3), _malha_tufo(4, 0.024, true, 4)] }
+	malhas = { "perto": [_malha_tufo(7, 0.018, false, 1), _malha_tufo(5, 0.014, true, 2)],
+		"longe": [_malha_tufo(4, 0.027, false, 3), _malha_tufo(4, 0.02, true, 4)] }
 
 # um tufo: folhas retangulares de ponta quadrada (estilo pixel), cada uma um retângulo só (2 triângulos),
 # inclinado para um lado. Bem mais leve que folha curva.
