@@ -42,6 +42,7 @@ func _ready() -> void:
 	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self)
 	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
 	var grama := Grama.new(); raiz.add_child(grama); grama.montar(self)
+	_moradores()
 	raiz.add_child(jogador)
 	jogador.position = Vector3(-4, altura(-4, 48) + 0.3, 48)
 	_ultima = jogador.position
@@ -51,6 +52,28 @@ func _ready() -> void:
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
 	if args.has("checar"): _checar_chao()
 	if args.has("shot"): _modo_teste()
+
+# moradores: o mesmo modelo com cores e alturas sorteadas, andando pela vila (e alguns no porto e nas fazendas)
+func _moradores() -> void:
+	var grupos := [[Vector2.ZERO, 42.0, 10], [Vector2(360, 60), 30.0, 3], [Vector2(-215, 60), 40.0, 3]]
+	var n := 0
+	for g in grupos:
+		for i in g[2]:
+			var mo := Morador.new(); raiz.add_child(mo)
+			var a := randf() * TAU; var p: Vector2 = g[0] + Vector2(cos(a), sin(a)) * randf_range(4.0, g[1] * 0.8)
+			for t in 20:
+				if not perto_de_casa(p.x, p.y, 1.5): break
+				a = randf() * TAU; p = g[0] + Vector2(cos(a), sin(a)) * randf_range(4.0, g[1] * 0.8)
+			mo.position = Vector3(p.x, altura(p.x, p.y) + 0.3, p.y)
+			mo.montar(self, 1000 + n, g[0], g[1]); n += 1
+
+# ponto dentro (ou perto) de uma casa?
+func perto_de_casa(x: float, z: float, folga: float) -> bool:
+	for c in casas:
+		var q := Vector2(x - c[0].x, z - c[0].z).rotated(c[1])
+		if abs(q.x) < c[2] * 0.5 + folga and abs(q.y) < c[3] * 0.5 + folga: return true
+	if Vector2(x, z).length() < 2.0: return true          # poço
+	return false
 
 # música de fundo ("Time Flows Ever Onward"), em volume bem baixo, repetindo
 func _musica() -> void:
@@ -655,6 +678,17 @@ func _modo_teste() -> void:
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
+	if args.has("npc"):          # teste: põe moradores parados em fila na frente do jogador
+		var fr := -jogador.global_transform.basis.z; var lado := jogador.global_transform.basis.x
+		var k := 0
+		for mo in raiz.get_children():
+			if mo is Morador and k < 5:
+				var q: Vector3 = jogador.global_position + fr * 4.5 + lado * (k - 2) * 1.3
+				mo.global_position = Vector3(q.x, altura(q.x, q.z) + 0.1, q.z); mo.rotation.y = jogador.rotation.y + PI
+				mo._espera = 100.0
+				if args.npc == "anda": mo._espera = 0.0; mo._alvo = Vector2(q.x, q.z) + Vector2(fr.x, fr.z) * -40.0
+				if args.npc == "lado": mo._espera = 0.0; mo._alvo = Vector2(q.x, q.z) + Vector2(lado.x, lado.z) * 40.0
+				k += 1
 	if args.has("andar"):        # teste de colisão: anda para a frente N segundos e diz onde parou
 		await get_tree().create_timer(2.0).timeout
 		var ini := jogador.global_position
