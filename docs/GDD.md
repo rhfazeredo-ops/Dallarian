@@ -1,0 +1,66 @@
+# Dallarian — Documento do jogo (GDD)
+
+> Documento vivo: cresce conforme o dono for contando a história. O que está marcado como **(proposta)**
+> é sugestão do Claude, ainda não decidida.
+
+## 1. Em uma frase
+Um humano comum tenta se tornar cavaleiro, e herói, num mundo medieval fantasioso caótico, cheio de raças,
+monstros, política e traição, onde ainda existem amor, amizade e gente boa pelo caminho.
+
+## 2. Gênero e formato
+- **3D, primeira pessoa, mundo aberto de exploração.**
+- **Um personagem só:** Dallarian. O jogador é ele o jogo inteiro.
+- **Plataforma principal: celular** (Android); também no navegador. Tudo pensado para rodar leve.
+- Motor: **Godot 4.5** (renderizador Compatibility).
+
+## 3. O protagonista: Dallarian
+- **Humano.** Não tem sangue nobre, magia nem destino escrito. Quer ser cavaleiro, tenta ser herói.
+- Começa fraco e inexperiente; cresce pelo que vive, aprende e escolhe.
+- Tema central: **o que faz alguém ser herói num mundo onde quase ninguém é?**
+- (proposta) Começa como escudeiro, ajudante ou aspirante e precisa provar seu valor para ser sagrado cavaleiro.
+
+## 4. O mundo
+- **Medieval fantasioso e caótico.**
+- **Muitas raças diferentes** convivendo e brigando. Humanos não estão no topo.
+- **Monstros** nas estradas, nas florestas, nas ruínas.
+- **Política e traição:** reinos, casas nobres, ordens de cavalaria, guildas e cultos disputando poder.
+  Alianças mudam; quem ajuda hoje pode trair amanhã.
+- **Mas ainda há luz:** vilas onde as pessoas se ajudam, amizades verdadeiras, amor, famílias, tavernas cheias.
+- **Vida social:** tramas entre os moradores (romances, rivalidades, dívidas, segredos) que o jogador
+  descobre e nas quais pode se envolver.
+- (a definir) Nome do mundo, reinos, raças, a grande ameaça/conflito, a história de fundo.
+
+## 5. Tom
+Épico e melancólico, sem perder o calor humano. Mundo duro, histórias pessoais. Escolhas com consequência.
+
+## 6. O que o jogador faz (pilares)
+1. **Explorar** um mundo aberto: estradas, vilas, florestas, montanhas, ruínas.
+2. **Conviver:** conversar, ajudar ou atrapalhar as pessoas, entrar nas tramas sociais.
+3. **Lutar:** espada e escudo, em primeira pessoa, contra monstros e gente.
+4. **Crescer:** de aspirante a cavaleiro, por feitos, treino, equipamentos e reputação.
+5. (proposta) **Escolher lados** na política, com consequências nas cidades e nas pessoas.
+
+## 7. Direção de arte
+- **3D com cara de PlayStation 1, mas com estilo pintado:** poucos polígonos, texturas pequenas e
+  pixeladas (sem suavização), vértices que "tremem", neblina na distância, resolução baixa, pontilhado.
+- **Pixel splats** (Gaussian splats em estilo pixel art) para o que é "fofo": grama, folhas, copas de árvores,
+  nuvens, neblina, fumaça, magia.
+- **Filtro geral** que une tudo: paleta reduzida (~32 cores), sombras em blocos, pixels grandes.
+- Referência de clima: vale com vila, campos dourados, pinheiros, céu de tempestade, poças refletindo o céu.
+- Orçamento (triângulos): objetos 300–800 · casas 800–2.000 · personagens 1.000–2.500 ·
+  texturas 128–256 px.
+- Arte: ChatGPT (folhas com 4 vistas) → Tripo 3D (Multiview, Low Poly, GLB) → redução no projeto.
+
+## 8. Primeiros passos de produção
+1. Base jogável: câmera em primeira pessoa, filtro PS1, chão e casas low poly, grama e árvores em splats,
+   céu de tempestade, espada e escudo provisórios.
+2. Primeira vila pequena com alguns moradores e uma conversa.
+3. Primeiro combate contra um monstro.
+4. Primeira missão curta que apresente o Dallarian e seu sonho de ser cavaleiro.
+
+## 9. Perguntas em aberto
+- Nome do mundo e dos reinos.
+- Quais raças existem e como se relacionam.
+- De onde vem o Dallarian (vila, família, passado) e por que quer ser cavaleiro.
+- Qual é o grande conflito da história.
+- Tem diálogos com escolhas? Romance? Companheiros?
