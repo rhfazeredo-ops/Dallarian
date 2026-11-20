@@ -24,14 +24,20 @@ const CABELOS := [Color(0.4, 0.24, 0.12), Color(0.12, 0.1, 0.09), Color(0.78, 0.
 const TUNICAS := [Color(0.86, 0.72, 0.52), Color(0.3, 0.4, 0.62), Color(0.55, 0.2, 0.2), Color(0.35, 0.5, 0.3), Color(0.55, 0.42, 0.3), Color(0.62, 0.6, 0.55), Color(0.72, 0.6, 0.25)]
 const CALCAS := [Color(0.45, 0.44, 0.47), Color(0.35, 0.28, 0.2), Color(0.28, 0.32, 0.25), Color(0.25, 0.26, 0.32), Color(0.5, 0.42, 0.32)]
 
+# skins: 1 = modelo base com cores sorteadas; 2 e 3 = skins desenhadas no Tripo (mesmo corpo, textura própria)
+const SKINS := ["res://assets/modelos/npc.glb", "res://assets/modelos/npc2.glb", "res://assets/modelos/npc3.glb"]
+var skin := 0
+
 func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	m = mundo; rng.seed = semente; area_centro = centro; area_raio = raio
+	var sorteio := rng.randf()
+	skin = 0 if sorteio < 0.4 else (1 if sorteio < 0.7 else 2)
 	var cs := CollisionShape3D.new(); var cap := CapsuleShape3D.new(); cap.radius = 0.3; cap.height = 1.7
 	cs.shape = cap; cs.position = Vector3(0, 0.85, 0); add_child(cs)
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING      # anda no plano; a altura vem do terreno
 	# modelo: 0,98 m no arquivo, de frente para -X → girado para frente = -Z e escalado
 	visual = Node3D.new(); add_child(visual)
-	var mod: Node3D = load("res://assets/modelos/npc.glb").instantiate(); visual.add_child(mod)
+	var mod: Node3D = load(SKINS[skin]).instantiate(); visual.add_child(mod)
 	var alt := rng.randf_range(1.62, 1.86); var larg := rng.randf_range(0.92, 1.12)
 	var k := alt / 0.981
 	mod.scale = Vector3(k * larg, k, k * larg); mod.rotation_degrees.y = 90     # o modelo olha para +X
@@ -44,6 +50,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 		_regioes(mi)
 		mi.material_override = sm
 	sm.set_shader_parameter("neblina", m.NEBLINA)
+	sm.set_shader_parameter("original", skin > 0)
 	sm.set_shader_parameter("cor_pele", PELES[rng.randi() % PELES.size()])
 	sm.set_shader_parameter("cor_couro", COUROS[rng.randi() % COUROS.size()])
 	sm.set_shader_parameter("cor_cabelo", CABELOS[rng.randi() % CABELOS.size()])
@@ -57,9 +64,9 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 
 # marca no vértice quanto ele pertence à cabeça (r) e às mãos (g), pelo peso dos ossos — para separar pele
 # de túnica e cabelo de couro, que têm a mesma cor na textura. Feito uma vez e reaproveitado.
-static var _malha_pronta: ArrayMesh
+static var _malhas_prontas := {}
 func _regioes(mi: MeshInstance3D) -> void:
-	if _malha_pronta: mi.mesh = _malha_pronta; return
+	if _malhas_prontas.has(skin): mi.mesh = _malhas_prontas[skin]; return
 	var arr := mi.mesh.surface_get_arrays(0)
 	var ossos = arr[Mesh.ARRAY_BONES]; var pesos = arr[Mesh.ARRAY_WEIGHTS]
 	var nomes := []
@@ -84,7 +91,7 @@ func _regioes(mi: MeshInstance3D) -> void:
 	if por == 8: flags = Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
 	nova.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, flags)
 	nova.surface_set_material(0, mi.mesh.surface_get_material(0))
-	_malha_pronta = nova; mi.mesh = nova
+	_malhas_prontas[skin] = nova; mi.mesh = nova
 
 func _novo_alvo() -> void:
 	for t in 30:
