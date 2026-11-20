@@ -23,20 +23,30 @@ var piv_e: Node3D              # mão esquerda (alça do escudo)
 var braco_d: MeshInstance3D
 var braco_e: MeshInstance3D
 
-# poses da mão direita no espaço da câmera (x direita, y cima, -z frente):
-# [posição do cabo, direção da lâmina, giro do fio em graus]
-const PD := {
-	"d_repouso": [Vector3(0.3, -0.36, -0.52), Vector3(-0.12, 0.8, -0.55), 0.0],
-	"d_correr": [Vector3(0.34, -0.52, -0.42), Vector3(0.1, 0.25, -0.95), 20.0],
-	"d_bloq": [Vector3(0.38, -0.52, -0.5), Vector3(0.2, 0.5, -0.85), 10.0],
-	"leve1_prep": [Vector3(0.36, -0.14, -0.5), Vector3(0.3, 0.85, 0.42), 0.0],
-	"leve1_fim": [Vector3(-0.12, -0.28, -0.56), Vector3(-0.95, -0.05, -0.3), 0.0],
-	"leve2_prep": [Vector3(-0.1, -0.16, -0.5), Vector3(-0.45, 0.8, 0.4), 180.0],
-	"leve2_fim": [Vector3(0.36, -0.3, -0.56), Vector3(0.95, -0.02, -0.3), 180.0],
-	"leve3_prep": [Vector3(0.16, 0.0, -0.5), Vector3(0.05, 0.62, 0.78), 90.0],
-	"leve3_fim": [Vector3(0.1, -0.24, -0.6), Vector3(0.2, -0.55, -0.8), 90.0],
-	"forte_prep": [Vector3(0.42, -0.04, -0.42), Vector3(0.45, 0.7, 0.55), 0.0],
-	"forte_fim": [Vector3(-0.18, -0.32, -0.6), Vector3(-0.9, -0.2, -0.35), 0.0],
+# MÃO DIREITA = [posição do cabo, direção da lâmina, normal da face da lâmina], no espaço da câmera
+# (x direita, y cima, -z frente). A espada é montada a partir disso: lâmina = direção, guarda = perpendicular.
+const MAO := {
+	"repouso": [Vector3(0.3, -0.36, -0.52), Vector3(-0.12, 0.8, -0.55), Vector3(0.35, 0.0, 1.0)],
+	"correr": [Vector3(0.34, -0.52, -0.42), Vector3(0.1, 0.3, -0.95), Vector3(0.9, 0.0, 0.3)],
+	"bloq": [Vector3(0.38, -0.52, -0.5), Vector3(0.2, 0.5, -0.85), Vector3(0.6, 0.0, 0.8)],
+}
+# GOLPES: a lâmina varre um arco limpo. a = cabo na preparação, da = lâmina na preparação, dm = lâmina no meio
+# do corte (apontando para a frente), b/db = fim do corte; c = ponto de controle do caminho da mão (à frente).
+# Durante o corte a face da lâmina fica perpendicular ao arco (o fio vai na frente): nada de espada torta.
+# tempos: preparação, corte, seguir (a lâmina continua um pouco), volta. tranco = câmera [pitch, roll, avanço].
+const GOLPES := {
+	"leve1": { "a": Vector3(0.38, 0.0, -0.5), "da": Vector3(0.35, 0.9, 0.15), "dm": Vector3(-0.2, 0.45, -0.85),
+		"b": Vector3(-0.2, -0.28, -0.56), "db": Vector3(-0.9, -0.25, -0.3), "c": Vector3(0.12, -0.02, -0.72),
+		"t": [0.17, 0.15, 0.07, 0.3], "tranco": Vector3(-2.0, 3.5, 0.06) },
+	"leve2": { "a": Vector3(-0.14, 0.0, -0.5), "da": Vector3(-0.4, 0.85, 0.25), "dm": Vector3(0.25, 0.4, -0.88),
+		"b": Vector3(0.36, -0.28, -0.56), "db": Vector3(0.9, -0.22, -0.35), "c": Vector3(0.08, -0.04, -0.72),
+		"t": [0.16, 0.15, 0.07, 0.3], "tranco": Vector3(-2.0, -3.5, 0.06) },
+	"leve3": { "a": Vector3(0.22, 0.04, -0.54), "da": Vector3(0.25, 0.9, 0.35), "dm": Vector3(0.05, 0.62, -0.78),
+		"b": Vector3(-0.02, -0.26, -0.6), "db": Vector3(-0.25, -0.55, -0.8), "c": Vector3(0.12, 0.02, -0.74),
+		"t": [0.19, 0.14, 0.07, 0.32], "tranco": Vector3(-4.5, 0.0, 0.08) },
+	"forte": { "a": Vector3(0.36, 0.02, -0.55), "da": Vector3(0.45, 0.85, 0.25), "dm": Vector3(-0.15, 0.4, -0.9),
+		"b": Vector3(-0.24, -0.3, -0.56), "db": Vector3(-0.9, -0.3, -0.3), "c": Vector3(0.1, -0.04, -0.8),
+		"t": [0.32, 0.17, 0.1, 0.45], "tranco": Vector3(-5.0, 6.0, 0.3) },
 }
 # poses da mão esquerda (escudo): [posição, rotação em graus]
 const PE := {
@@ -47,17 +57,14 @@ const PE := {
 	"bash_prep": [Vector3(-0.2, -0.24, -0.38), Vector3(88, 10, -10)],
 	"bash_fim": [Vector3(-0.06, -0.14, -0.78), Vector3(92, -5, 0)],
 }
-# sequências: [duração, pose da direita (ou ""), pose da esquerda (ou ""), tranco da câmera [pitch, roll, avanço]]
-const ACOES := {
-	"leve1": [[0.12, "leve1_prep", "e_golpe", Vector3.ZERO], [0.13, "leve1_fim", "e_golpe", Vector3(-2.5, 3, 0.06)], [0.3, "", "", Vector3.ZERO]],
-	"leve2": [[0.12, "leve2_prep", "e_golpe", Vector3.ZERO], [0.13, "leve2_fim", "e_golpe", Vector3(-2.5, -3, 0.06)], [0.3, "", "", Vector3.ZERO]],
-	"leve3": [[0.14, "leve3_prep", "e_golpe", Vector3(1.5, 0, 0)], [0.13, "leve3_fim", "e_golpe", Vector3(-4, 0, 0.08)], [0.32, "", "", Vector3.ZERO]],
-	"forte": [[0.32, "forte_prep", "e_golpe", Vector3(2, 2, -0.05)], [0.15, "forte_fim", "e_golpe", Vector3(-5, 5, 0.3)], [0.5, "", "", Vector3.ZERO]],
-	"bash": [[0.08, "", "bash_prep", Vector3.ZERO], [0.1, "", "bash_fim", Vector3(-2, 0, 0.12)], [0.28, "", "", Vector3.ZERO]],
-}
+# escudada: [duração, pose da esquerda (ou "" = volta), tranco]
+const BASH := [[0.08, "bash_prep", Vector3.ZERO], [0.1, "bash_fim", Vector3(-2, 0, 0.12)], [0.28, "", Vector3.ZERO]]
 
+# estado da mão direita (sempre: a espada é montada daqui)
+var _hp := Vector3(0.3, -0.36, -0.52); var _hd := Vector3(-0.12, 0.8, -0.55).normalized(); var _hn := Vector3(0.35, 0, 1).normalized()
+var _fase := 0; var _sp := Vector3.ZERO; var _sd := Vector3.UP; var _sn := Vector3.BACK
 var _acao := ""; var _passo_acao := 0; var _t_acao := 0.0
-var _ini_d: Transform3D; var _ini_e: Transform3D
+var _ini_e: Transform3D
 var _combo := 0; var _proximo := false; var _ultimo_golpe := 0.0
 var _segurando := 0.0; var _ataque_seg := false; var _forte_pronto := false
 var _passo := 0.0; var _tempo := 0.0
@@ -76,18 +83,27 @@ func _ready() -> void:
 	pescoco.add_child(cam); cam.current = true
 	mao = Node3D.new(); cam.add_child(mao)
 	_armas()
-	piv_d.transform = _pose("d_repouso"); piv_e.transform = _pose("e_repouso")
+	piv_d.transform = _mao_t(_hp, _hd, _hn); piv_e.transform = _pose("e_repouso")
 
 func _pose(n: String) -> Transform3D:
-	if PE.has(n):
-		var pe: Array = PE[n]
-		return Transform3D(Basis.from_euler(pe[1] * (PI / 180.0)), pe[0])
-	# espada: eixo Y = lâmina; X = guarda (girada em volta da lâmina pelo "giro do fio")
-	var p: Array = PD[n]
-	var y: Vector3 = p[1].normalized()
-	var ref := Vector3(0, 0, -1) if abs(y.z) < 0.9 else Vector3(0, 1, 0)
-	var x := ref.cross(y).normalized().rotated(y, deg_to_rad(p[2]))
-	return Transform3D(Basis(x, y, x.cross(y)), p[0])
+	var pe: Array = PE[n]
+	return Transform3D(Basis.from_euler(pe[1] * (PI / 180.0)), pe[0])
+
+# espada: eixo Y = lâmina, Z = normal da face, X = guarda (no plano do fio)
+func _mao_t(p: Vector3, d: Vector3, n: Vector3) -> Transform3D:
+	var y := d.normalized()
+	var z := (n - y * n.dot(y))
+	z = z.normalized() if z.length() > 0.001 else y.cross(Vector3.RIGHT).normalized()
+	return Transform3D(Basis(y.cross(z), y, z), p)
+
+func _normal_golpe(g: Dictionary) -> Vector3:
+	var da: Vector3 = g.da.normalized(); var dm: Vector3 = g.dm.normalized(); var db: Vector3 = g.db.normalized()
+	return (da.cross(dm).normalized() + dm.cross(db).normalized()).normalized()
+
+# arco da lâmina: duas interpolações esféricas encadeadas (passa pela frente, sem atalho torto)
+func _arco(da: Vector3, dm: Vector3, db: Vector3, u: float) -> Vector3:
+	var x := da.normalized().slerp(dm.normalized(), u); var y := dm.normalized().slerp(db.normalized(), u)
+	return x.slerp(y, u).normalized()
 
 # ---------- armas e braços ----------
 func _armas() -> void:
@@ -154,7 +170,12 @@ func mostrar_pose(txt: String) -> void:
 	pose_fixa = true
 	for parte in txt.split(","):
 		var kv := parte.split("=")
-		if kv[0] == "d": piv_d.transform = _pose(kv[1])
+		if kv[0] == "d":
+			var g := kv[1].split(":")                       # golpe:fase:u  (ou repouso/correr/bloq)
+			if MAO.has(g[0]):
+				var mm: Array = MAO[g[0]]; piv_d.transform = _mao_t(mm[0], mm[1], mm[2])
+			else:
+				iniciar(g[0]); _fase = int(g[1]); congelar = float(g[2]); _tocar_golpe(0.0); piv_d.transform = _mao_t(_hp, _hd, _hn)
 		else: piv_e.transform = _pose(kv[1])
 
 # ---------- entrada ----------
@@ -177,23 +198,21 @@ func _girar(d: Vector2) -> void:
 
 # ---------- ações ----------
 func iniciar(nome: String) -> void:
-	_acao = nome; _passo_acao = 0; _t_acao = 0.0
-	_ini_d = piv_d.transform; _ini_e = piv_e.transform
+	_acao = nome; _passo_acao = 0; _t_acao = 0.0; _fase = 0
+	_sp = _hp; _sd = _hd; _sn = _hn
+	_ini_e = piv_e.transform
 
 func _golpe_leve() -> void:
 	if _acao == "" or _acao == "bash":
-		if _tempo - _ultimo_golpe > 0.9: _combo = 0
+		if _tempo - _ultimo_golpe > 1.0: _combo = 0
 		iniciar(["leve1", "leve2", "leve3"][_combo % 3]); _combo += 1; _ultimo_golpe = _tempo
-	elif _acao.begins_with("leve") and _passo_acao >= 1:
-		_proximo = true                       # encadeia o próximo golpe do combo
+	elif _acao.begins_with("leve"):
+		_proximo = true                       # guarda o próximo golpe do combo
 
 func _ataque(segurando: bool, bloqueando: bool, delta: float) -> void:
 	if segurando and not _ataque_seg:          # apertou
 		_segurando = 0.0; _forte_pronto = false
-		if bloqueando:
-			if _acao == "": iniciar("bash")
-		elif _acao == "" or _acao.begins_with("leve"):
-			pass
+		if bloqueando and _acao == "": iniciar("bash")
 	if segurando:
 		_segurando += delta
 		if not bloqueando and _segurando > SEGURAR_FORTE and not _forte_pronto and _acao == "":
@@ -202,30 +221,52 @@ func _ataque(segurando: bool, bloqueando: bool, delta: float) -> void:
 		if not _forte_pronto and not bloqueando: _golpe_leve()
 	_ataque_seg = segurando
 
-func _tocar_acao(delta: float, base_d: Transform3D, base_e: Transform3D) -> void:
-	var seq: Array = ACOES[_acao]
-	var k: Array = seq[_passo_acao]
-	var dur: float = k[0]
-	# golpe forte: fica na preparação enquanto o botão estiver apertado (até 1,2 s)
-	var esperando := _acao == "forte" and _passo_acao == 0 and _t_acao >= dur and _ataque_seg and _segurando < 1.2
+# um golpe de espada: preparação → corte (arco) → seguir → volta
+func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
+	var g: Dictionary = GOLPES[_acao]; var tempos: Array = g.t
+	var dur: float = tempos[_fase]
+	var esperando := _acao == "forte" and _fase == 0 and _t_acao >= dur and _ataque_seg and _segurando < 1.4
 	if not esperando: _t_acao += delta
-	var u: float = clamp(_t_acao / dur, 0.0, 1.0)
-	if congelar >= 0.0:
-		u = congelar; _t_acao = dur * u
-	var e: float = u * u * (3.0 - 2.0 * u) if _passo_acao != 1 else 1.0 - pow(1.0 - u, 3.0)   # golpe: rápido no começo
-	var alvo_d: Transform3D = base_d if k[1] == "" else _pose(k[1])
-	var alvo_e: Transform3D = base_e if k[2] == "" else _pose(k[2])
-	piv_d.transform = _ini_d.interpolate_with(alvo_d, e)
-	piv_e.transform = _ini_e.interpolate_with(alvo_e, e)
-	if _passo_acao == 1 and u > 0.25: _tranco = _tranco.lerp(k[3], 0.5)
+	var u: float = clampf(_t_acao / dur, 0.0, 1.0)
+	if congelar >= 0.0: u = congelar
+	var ng := _normal_golpe(g)
+	match _fase:
+		0:   # preparação: levanta a espada para trás do ombro (devagar no fim = "carregando")
+			var e := u * u * (3.0 - 2.0 * u)
+			_hp = _sp.lerp(g.a, e); _hd = _sd.slerp(g.da.normalized(), e); _hn = _sn.slerp(ng, e).normalized()
+			if esperando: _hp += Vector3(0.006, 0.004, 0.004) * sin(_tempo * 30.0)     # tremidinha segurando
+		1:   # corte: rápido, a mão passa pela frente (curva) e a lâmina varre o arco
+			var e := 1.0 - pow(1.0 - u, 2.2)
+			var a: Vector3 = g.a; var c: Vector3 = g.c; var b: Vector3 = g.b
+			_hp = a.lerp(c, e).lerp(c.lerp(b, e), e)
+			_hd = _arco(g.da, g.dm, g.db, e); _hn = ng
+			if u > 0.3: _tranco = _tranco.lerp(g.tranco, 0.45)
+		2:   # seguir: a lâmina ainda anda um pouco depois do corte
+			var b: Vector3 = g.b; var c: Vector3 = g.c
+			_hp = b + (b - c).normalized() * 0.04 * u
+			_hd = g.db.normalized().slerp(_arco(g.da, g.dm, g.db, 1.0), 0.0); _hn = ng
+		3:   # volta para a guarda
+			var e := u * u * (3.0 - 2.0 * u)
+			_hp = _sp.lerp(base[0], e); _hd = _sd.slerp(base[1].normalized(), e); _hn = _sn.slerp(base[2].normalized(), e).normalized()
 	if congelar >= 0.0: return
+	if _t_acao >= dur and not esperando:
+		# combo: o próximo golpe já sai do fim deste (sem voltar para a guarda)
+		if _proximo and _fase >= 2:
+			_proximo = false; _acao = ""; _golpe_leve(); return
+		_fase += 1; _t_acao = 0.0; _sp = _hp; _sd = _hd; _sn = _hn
+		if _fase >= 4: _acao = ""; _proximo = false
+
+func _tocar_bash(delta: float, base_e: Transform3D) -> void:
+	var k: Array = BASH[_passo_acao]; var dur: float = k[0]
+	_t_acao += delta
+	var u: float = clampf(_t_acao / dur, 0.0, 1.0)
+	var e: float = u * u * (3.0 - 2.0 * u)
+	var alvo: Transform3D = base_e if k[1] == "" else _pose(k[1])
+	piv_e.transform = _ini_e.interpolate_with(alvo, e)
+	if _passo_acao == 1 and u > 0.25: _tranco = _tranco.lerp(k[2], 0.5)
 	if _t_acao >= dur:
-		_passo_acao += 1; _t_acao = 0.0
-		_ini_d = piv_d.transform; _ini_e = piv_e.transform
-		if _passo_acao >= seq.size() or (_proximo and _passo_acao == seq.size() - 1):
-			var encadear := _proximo
-			_acao = ""; _proximo = false
-			if encadear: _golpe_leve()
+		_passo_acao += 1; _t_acao = 0.0; _ini_e = piv_e.transform
+		if _passo_acao >= BASH.size(): _acao = ""
 
 # ---------- movimento e animação ----------
 func _physics_process(delta: float) -> void:
@@ -248,7 +289,7 @@ func _physics_process(delta: float) -> void:
 	_ataque(atacar, bloquear, delta)
 
 	# base (sem ação): repouso, correndo ou bloqueando
-	var base_d := _pose("d_bloq" if bloquear else ("d_correr" if correr else "d_repouso"))
+	var base_d: Array = MAO["bloq" if bloquear else ("correr" if correr else "repouso")]
 	var base_e := _pose("e_bloq" if bloquear else ("e_correr" if correr else "e_repouso"))
 	var anda: float = Vector2(velocity.x, velocity.z).length() / VEL if is_on_floor() else 0.0
 	_passo += delta * (12.0 if correr else 8.5) * min(anda, 1.0)
@@ -257,13 +298,17 @@ func _physics_process(delta: float) -> void:
 	var bob := Vector3(cos(_passo * 0.5) * amp, -abs(sin(_passo * 0.5)) * amp * 1.4 + sin(_tempo * 1.6) * 0.004, 0)
 	_balanco = _balanco.lerp(Vector2.ZERO, 1.0 - exp(-9.0 * delta)); _balanco = _balanco.limit_length(0.12)
 	var sway := Vector3(_balanco.x * 0.35, _balanco.y * 0.35, 0)
+	var f := 1.0 - exp(-12.0 * delta)
 	if pose_fixa: pass
-	elif _acao != "":
-		_tocar_acao(delta, base_d, base_e)
 	else:
-		var f := 1.0 - exp(-12.0 * delta)
-		piv_d.transform = piv_d.transform.interpolate_with(base_d, f)
-		piv_e.transform = piv_e.transform.interpolate_with(base_e, f)
+		if GOLPES.has(_acao):
+			_tocar_golpe(delta, base_d)
+			piv_e.transform = piv_e.transform.interpolate_with(_pose("e_golpe"), f)
+		else:
+			_hp = _hp.lerp(base_d[0], f); _hd = _hd.slerp(base_d[1].normalized(), f); _hn = _hn.slerp(base_d[2].normalized(), f).normalized()
+			if _acao == "bash": _tocar_bash(delta, base_e)
+			else: piv_e.transform = piv_e.transform.interpolate_with(base_e, f)
+		piv_d.transform = _mao_t(_hp, _hd, _hn)
 	mao.position = bob + sway
 	mao.rotation = Vector3(_balanco.y * 0.6, _balanco.x * 0.6, _balanco.x * 0.4)
 	# câmera: balanço da cabeça, queda, trancos dos golpes

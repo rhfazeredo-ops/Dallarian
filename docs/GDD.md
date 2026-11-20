@@ -81,6 +81,10 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 3. Primeiro combate contra um monstro.
 4. Primeira missão curta que apresente o Dallarian e seu sonho de ser cavaleiro.
 
+## 8.1 Ideias para depois
+- **Magia de cura** (referência: vídeo de primeira pessoa com conjuração): mão esquerda se estica com a palma
+  aberta para conjurar; ou mão fechada junto ao peito, brilhando, para se curar.
+
 ## 9. Perguntas em aberto
 - Nome do mundo e dos reinos.
 - Quais raças existem e como se relacionam.
