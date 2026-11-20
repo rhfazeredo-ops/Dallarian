@@ -1,4 +1,4 @@
-# Dallarian em primeira pessoa: anda, olha, pula; espada e escudo provisórios na mão (low poly PS1).
+# Dallarian em primeira pessoa: anda, olha, pula; espada do Tripo e escudo provisório na mão (low poly PS1).
 extends CharacterBody3D
 class_name Jogador
 
@@ -29,30 +29,26 @@ func _armas() -> void:
 	var m: Node = get_tree().current_scene
 	# espada: lâmina, guarda, cabo e pomo
 	espada = Node3D.new(); mao.add_child(espada)
-	espada.position = Vector3(0.38, -0.42, -0.62); espada.rotation_degrees = Vector3(-62, -8, -14); espada.scale = Vector3(0.8, 0.8, 0.8)
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	m._caixa(st, Vector3(0, 0.62, 0), Vector3(0.06, 1.0, 0.014))
-	var mesh := ArrayMesh.new(); st.set_material(m.mat("aco", 1.0, Color(0.7, 0.72, 0.8))); st.commit(mesh)
-	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	m._caixa(st, Vector3(0, 0.1, 0), Vector3(0.28, 0.05, 0.05))
-	m._caixa(st, Vector3(0, -0.07, 0), Vector3(0.05, 0.05, 0.05))
-	st.set_material(m.mat("", 1.0, Color(0.42, 0.36, 0.3))); st.commit(mesh)
-	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	m.cilindro(st, Vector3(0, -0.04, 0), 0.025, 0.025, 0.13, 5)
-	st.set_material(m.mat("madeira", 1.0, Color(0.6, 0.45, 0.4))); st.commit(mesh)
-	var mi := MeshInstance3D.new(); mi.mesh = mesh; espada.add_child(mi)
+	espada.position = Vector3(0.38, -0.42, -0.62); espada.rotation_degrees = Vector3(-40, -8, -14); espada.scale = Vector3(0.8, 0.8, 0.8)
+	# modelo do Tripo (assets/modelos/espada.glb, 498 triângulos): 0,51 m no arquivo → 1,0 m na mão.
+	# O cabo fica na origem do nó "espada" e a lâmina sobe em +Y; a guarda do modelo está no eixo Z → gira 90°.
+	var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada.glb")
+	var k := 1.0 / 0.51
+	mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
+	mod.position = Vector3(-0.131, -0.075, 0) * k
+	espada.add_child(mod)
 	# escudo redondo de madeira com borda de ferro
 	escudo = Node3D.new(); mao.add_child(escudo)
 	escudo.position = Vector3(-0.62, -0.56, -0.62); escudo.rotation_degrees = Vector3(80, 10, -25); escudo.scale = Vector3(0.75, 0.75, 0.75)
 	var e := ArrayMesh.new()
-	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	m.cilindro(st, Vector3(0, 0, 0), 0.4, 0.4, 0.04, 10, true); st.set_material(m.mat("madeira")); st.commit(e)
 	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	m.cilindro(st, Vector3(0, -0.005, 0), 0.43, 0.43, 0.035, 10)
 	m.cilindro(st, Vector3(0, 0.04, 0), 0.09, 0.05, 0.05, 6, true)
 	st.set_material(m.mat("", 1.0, Color(0.38, 0.38, 0.42))); st.commit(e)
 	var me := MeshInstance3D.new(); me.mesh = e; escudo.add_child(me)
-	for n in [mi, me]: n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for n in [me]: n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 func _unhandled_input(e: InputEvent) -> void:
 	if OS.has_feature("mobile") or DisplayServer.is_touchscreen_available(): return
@@ -91,5 +87,5 @@ func _physics_process(delta: float) -> void:
 		_golpe = max(0.0, _golpe - delta * 3.2)
 		var t := 1.0 - _golpe
 		var arco := sin(t * PI)
-		espada.rotation_degrees = Vector3(-62 + arco * 75, -8 + arco * 55, -14 - arco * 50)
+		espada.rotation_degrees = Vector3(-40 + arco * 65, -8 + arco * 55, -14 - arco * 50)
 		espada.position = Vector3(0.38 - arco * 0.3, -0.42 + arco * 0.05, -0.62 - arco * 0.1)

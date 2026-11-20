@@ -84,6 +84,20 @@ func mat(textura: String, escala := 1.0, cor := Color.WHITE) -> ShaderMaterial:
 	m.set_shader_parameter("neblina", NEBLINA)
 	_mats[k] = m; return m
 
+# modelo GLB (do Tripo) com o material PS1: mesma luz por vértice, textura sem suavização e neblina do mundo
+func modelo_ps1(caminho: String) -> Node3D:
+	var no: Node3D = load(caminho).instantiate()
+	for n in no.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = n
+		for i in mi.mesh.get_surface_count():
+			var orig: BaseMaterial3D = mi.mesh.surface_get_material(i)
+			var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/ps1.gdshader")
+			if orig and orig.albedo_texture: sm.set_shader_parameter("tex", orig.albedo_texture)
+			else: sm.set_shader_parameter("usa_tex", false)
+			sm.set_shader_parameter("neblina", NEBLINA)
+			mi.set_surface_override_material(i, sm)
+	return no
+
 # ---------- terreno ----------
 var _ruido := FastNoiseLite.new()
 func altura(x: float, z: float) -> float:
@@ -165,6 +179,13 @@ func _vila() -> void:
 		var ang := atan2(-p.x, -p.y)                     # porta virada para a praça
 		_casa(Vector3(p.x, altura(p.x, p.y) - 0.2, p.y), ang, rng.randf_range(4.5, 6.5), rng.randf_range(4.0, 5.0), rng.randf_range(2.6, 3.2))
 	_poco(Vector3(0, altura(0, 0), 0))
+	# a Dallarian (modelo do Tripo, 2.500 triângulos) em pé na praça, para ver como fica no mundo.
+	# No arquivo: 0,98 m de altura, de frente para +X, pés em y = -0,49 → 1,75 m, virada para a estrada.
+	var her := modelo_ps1("res://assets/modelos/dallarian.glb")
+	var k := 1.75 / 0.979
+	her.scale = Vector3(k, k, k); her.rotation_degrees.y = -90
+	her.position = Vector3(3.0, altura(3.0, 6.0) + 0.489 * k, 6.0)
+	raiz.add_child(her); _colisor_cilindro(Vector3(3.0, altura(3.0, 6.0), 6.0), 0.3, 1.75)
 	for b in [[3.5, 2.0], [4.2, 2.6], [-3.0, 3.6], [6.0, -9.0]]:
 		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
 

@@ -1,0 +1,13 @@
+{
+  "name": "dallarian-ferramentas",
+  "private": true,
+  "type": "module",
+  "description": "Ferramentas para preparar os modelos do Tripo (node tools/tripo-ps1.mjs ...)",
+  "dependencies": {
+    "@gltf-transform/core": "^4.0.0",
+    "@gltf-transform/extensions": "^4.0.0",
+    "@gltf-transform/functions": "^4.0.0",
+    "meshoptimizer": "^0.22.0",
+    "sharp": "^0.33.0"
+  }
+}
