@@ -52,6 +52,7 @@ var d_rio := PackedFloat32Array()
 var t_rio := PackedFloat32Array()            # posição ao longo do rio (0 nascente → 1 foz)
 var _rio_comp := PackedFloat32Array()
 var pontes := []                             # [posição Vector2, direção da estrada Vector2]
+var planos := []                             # chão aplanado embaixo das construções: [centro, meia medida, ângulo, altura, margem, raio²]
 
 func _init() -> void:
 	ruido.seed = 11; ruido.frequency = 0.018; ruido.fractal_octaves = 3
@@ -157,10 +158,34 @@ func altura(x: float, z: float) -> float:
 	if dw > 0.0: h += _serra(dw, 85.0) * var_m
 	var ds := z - (520.0 + n_borda)
 	if ds > 0.0: h += _serra(ds, 35.0) * var_m
+	if not planos.is_empty(): h = _planos(x, z, h)
 	return h
 
 # altura de uma serra a "d" metros da borda: sobe rápido no pé e para em "alto"
 func _serra(d: float, alto: float) -> float: return alto * (1.0 - exp(-d / 32.0))
+
+# aplana o chão embaixo de uma construção (retângulo girado) e devolve a altura do piso.
+# A altura é a média do chão nos cantos e no centro (corta um pouco e aterra um pouco), e a borda
+# volta suave para o terreno em "margem" metros. Tem que ser chamado ANTES de montar o terreno.
+func aplanar(c: Vector2, meia: Vector2, ang: float, margem := 4.0) -> float:
+	var soma := altura(c.x, c.y); var n := 1
+	for k in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		var q: Vector2 = c + (k * meia).rotated(ang); soma += altura(q.x, q.y); n += 1
+	var h := soma / n
+	meia += Vector2(1.0, 1.0)                  # a parte plana passa 1 m da construção (sem degrau na quina)
+	var r := meia.length() + margem
+	planos.append([c, meia, ang, h, margem, r * r])
+	return h
+
+func _planos(x: float, z: float, h: float) -> float:
+	for pl in planos:
+		var c: Vector2 = pl[0]
+		var dx := x - c.x; var dz := z - c.y
+		if dx * dx + dz * dz > pl[5]: continue
+		var q := Vector2(dx, dz).rotated(-pl[2]); var meia: Vector2 = pl[1]
+		var d: float = max(abs(q.x) - meia.x, abs(q.y) - meia.y)
+		h = lerp(pl[3], h, smoothstep(0.0, pl[4], d))
+	return h
 
 # ---------- água ----------
 # nível da água neste ponto (ou -1000 se não tem água): rio, lago, ou mar/pântano (nível 0)

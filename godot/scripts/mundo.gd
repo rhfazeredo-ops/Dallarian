@@ -34,9 +34,9 @@ func _ready() -> void:
 	_ambiente()
 	terreno = Terreno.new(); raiz.add_child(terreno)
 	jogador = Jogador.new()
+	_lugares()                      # antes do terreno: as construções aplanam o chão embaixo delas
 	terreno.montar(self)
 	_agua()
-	_lugares()
 	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self)
 	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
 	var grama := Grama.new(); raiz.add_child(grama); grama.montar(self)
@@ -45,6 +45,7 @@ func _ready() -> void:
 	_ultima = jogador.position
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
+	if args.has("checar"): _checar_chao()
 	if args.has("shot"): _modo_teste()
 
 # o jogador não sai da região nem entra em água funda (volta para o último lugar bom)
@@ -141,14 +142,15 @@ func _vila() -> void:
 	# igreja de pedra com torre
 	var ig := Vector2(18, -40); var ang_ig := atan2(-ig.x, -ig.y)
 	_casa(Vector3(ig.x, altura(ig.x, ig.y) - 0.2, ig.y), ang_ig, 7.5, 12.0, 5.0, mat("pedra"), mat("madeira", 1.0, Color(0.55, 0.5, 0.55)))
-	var torre := Vector3(ig.x, altura(ig.x, ig.y) - 0.2, ig.y) + Vector3(0, 0, -7.5).rotated(Vector3.UP, ang_ig)
+	var torre := Vector3(ig.x, 0, ig.y) + Vector3(0, 0, -7.5).rotated(Vector3.UP, ang_ig)
+	torre.y = reg.aplanar(Vector2(torre.x, torre.z), Vector2(2.4, 2.4), -ang_ig, 3.0) - 0.3
 	var mesh := ArrayMesh.new(); var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	_caixa(st, Vector3(0, 5.0, 0), Vector3(3.6, 10.0, 3.6)); st.set_material(mat("pedra")); st.commit(mesh)
 	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	cilindro(st, Vector3(0, 10.0, 0), 2.7, 0.0, 4.5, 4); st.set_material(mat("madeira", 1.0, Color(0.55, 0.5, 0.55))); st.commit(mesh)
 	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.position = torre; mi.rotation.y = ang_ig + PI / 4.0; raiz.add_child(mi)
 	_colisor_caixa(torre, Vector3(3.6, 10, 3.6), ang_ig)
-	_poco(Vector3(0, altura(0, 0), 0))
+	_poco(Vector3(0, reg.aplanar(Vector2.ZERO, Vector2(1.6, 1.6), 0.0, 2.0) - 0.1, 0))
 	for b in [[3.5, 2.0], [4.2, 2.6], [-3.0, 3.6], [6.0, -9.0], [-26, -16], [-25, -15.2]]:
 		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
 	lugares.append([Vector2.ZERO, 50.0])
@@ -279,7 +281,7 @@ func _fazendas() -> void:
 			if reg.dist_estrada(bp.x, bp.y) > 7.0:
 				_casa(Vector3(bp.x, altura(bp.x, bp.y) - 0.2, bp.y), ang + PI / 2, 8.0, 10.0, 4.2, mat("madeira", 1.0, Color(1.25, 0.62, 0.52)), mat("madeira", 1.0, Color(0.6, 0.55, 0.5)))
 	# moinho de vento entre as fazendas
-	var mp := Vector2(-244, 100); var y := altura(mp.x, mp.y)
+	var mp := Vector2(-244, 100); var y := reg.aplanar(mp, Vector2(3.6, 3.6), 0.0, 4.0)
 	var st := _st(); cilindro(st, Vector3.ZERO, 3.0, 2.2, 9.0, 8, true); _peca(st, mat("pedra"), Vector3(mp.x, y - 0.3, mp.y))
 	st = _st(); cilindro(st, Vector3(0, 8.7, 0), 2.6, 0.0, 3.2, 8); _peca(st, mat("palha"), Vector3(mp.x, y - 0.3, mp.y))
 	st = _st()
@@ -317,9 +319,9 @@ func _porto() -> void:
 	lugares.append([Vector2(xc - 20.0, z), 45.0])
 
 func _mosteiro() -> void:
-	var c := Vector2(Regiao.ILHA.x, Regiao.ILHA.y); var y := altura(c.x, c.y)
+	var c := Vector2(Regiao.ILHA.x, Regiao.ILHA.y); var y := reg.aplanar(c + Vector2(2.5, -1.5), Vector2(8.0, 6.0), 0.0, 3.0)
 	_casa(Vector3(c.x, y - 0.3, c.y), PI / 2, 8.0, 6.0, 4.0, mat("pedra"), mat("madeira", 1.0, Color(0.55, 0.5, 0.55)))
-	var tp := Vector3(c.x + 5.5, y - 0.3, c.y - 3.0)
+	var tp := Vector3(c.x + 5.5, y - 0.6, c.y - 3.0)
 	var st := _st(); cilindro(st, Vector3.ZERO, 2.0, 1.8, 11.0, 8, true); _peca(st, mat("pedra"), tp)
 	st = _st(); cilindro(st, Vector3(0, 11.0, 0), 2.6, 0.0, 4.0, 8); _peca(st, mat("madeira", 1.0, Color(0.55, 0.5, 0.55)), tp)
 	_colisor_cilindro(tp, 2.0, 11.0)
@@ -338,7 +340,7 @@ func _mosteiro() -> void:
 	lugares.append([c, 18.0])
 
 func _ruinas() -> void:
-	var c := Vector2(220, -260); var y := altura(c.x, c.y)
+	var c := Vector2(220, -260); var y := reg.aplanar(c, Vector2(5.0, 5.0), 0.0, 6.0)
 	var st := _st(); var rng := RandomNumberGenerator.new(); rng.seed = 3
 	for k in 10:                                         # torre quebrada: anel de pedras com alturas diferentes
 		var a0 := TAU * k / 10.0; var a1 := TAU * (k + 1) / 10.0; var h := rng.randf_range(2.5, 9.0)
@@ -350,12 +352,12 @@ func _ruinas() -> void:
 		var q := Vector3(rng.randf_range(-14, 14), 0, rng.randf_range(-14, 14))
 		if q.length() < 5.0: continue
 		_caixa(st, q + Vector3(0, 0.3, 0), Vector3(rng.randf_range(1, 5), rng.randf_range(0.6, 2.2), rng.randf_range(0.6, 1.2)))
-	_peca(st, mat("pedra"), Vector3(c.x, y - 0.4, c.y))
-	_colisor_cilindro(Vector3(c.x, y - 0.4, c.y), 3.5, 6.0)
+	_peca(st, mat("pedra"), Vector3(c.x, y - 0.8, c.y))
+	_colisor_cilindro(Vector3(c.x, y - 0.8, c.y), 3.5, 6.0)
 	lugares.append([c, 18.0])
 
 func _serraria() -> void:
-	var c := Vector2(282, -152); var y := altura(c.x, c.y)
+	var c := Vector2(282, -152); var y := reg.aplanar(c, Vector2(14.0, 12.0), 0.0, 5.0)
 	_casa(Vector3(c.x, y - 0.2, c.y), 0.4, 7.0, 5.0, 2.8, mat("madeira"), mat("madeira", 1.0, Color(0.6, 0.55, 0.5)))
 	var st := _st()
 	for pilha in [[8.0, 4.0], [9.0, -5.0], [-8.0, 6.0]]:
@@ -366,20 +368,21 @@ func _serraria() -> void:
 			var mi := _peca(tmp, mat("casca"), Vector3(c.x, 0, c.y) + q); mi.rotation = Vector3(0, 0, PI / 2)
 	for k in 5:
 		var q := Vector2(c.x + randf_range(-14, 14), c.y + randf_range(-14, 14))
-		cilindro(st, Vector3(q.x, altura(q.x, q.y) - 0.1, q.y), 0.4, 0.38, 0.5, 6, true)
+		cilindro(st, Vector3(q.x, altura(q.x, q.y) - 0.4, q.y), 0.4, 0.38, 0.8, 6, true)
 	_peca(st, mat("casca"), Vector3.ZERO)
 	lugares.append([c, 16.0])
 
 func _bandidos() -> void:
 	var c := Vector2(-330, 300)
+	var yb := reg.aplanar(c, Vector2(11.0, 11.0), 0.0, 5.0)        # clareira plana do acampamento
 	var st := _st()
 	for k in 3:
-		var a := TAU * k / 3.0 + 0.4; var q := c + Vector2(cos(a), sin(a)) * 7.0; var y := altura(q.x, q.y)
-		cilindro(st, Vector3(q.x, y - 0.1, q.y), 2.4, 0.0, 2.6, 4)
+		var a := TAU * k / 3.0 + 0.4; var q := c + Vector2(cos(a), sin(a)) * 7.0; var y := yb
+		cilindro(st, Vector3(q.x, y - 0.3, q.y), 2.4, 0.0, 2.8, 4)
 		_colisor_cilindro(Vector3(q.x, y - 0.1, q.y), 1.8, 2.4)
 	_peca(st, mat("", 1.0, Color(0.55, 0.28, 0.22)), Vector3.ZERO)
 	# fogueira: pedras + lenha + chamas em splats
-	var y0 := altura(c.x, c.y)
+	var y0 := yb
 	st = _st(); cilindro(st, Vector3(c.x, y0 - 0.1, c.y), 0.9, 0.9, 0.25, 8); _peca(st, mat("pedra"), Vector3.ZERO)
 	var chamas := []
 	for k in 14:
@@ -387,7 +390,8 @@ func _bandidos() -> void:
 			[Color(1.0, 0.75, 0.3), Color(0.98, 0.45, 0.15), Color(1.0, 0.9, 0.55)][k % 3], randf_range(0.25, 0.45)])
 	_splats(chamas, Vector2(1, 1), false, 0.6)
 	st = _st()
-	for k in 4: _caixa(st, Vector3(c.x + 5 + k * 0.9, altura(c.x + 5, c.y - 6) + 0.4, c.y - 6.0), Vector3(0.8, 0.8, 0.8))
+	var yc := yb
+	for k in 4: _caixa(st, Vector3(c.x + 5 + k * 0.9, yc + 0.3, c.y - 6.0), Vector3(0.8, 1.0, 0.8))
 	_peca(st, mat("madeira"), Vector3.ZERO)
 	lugares.append([c, 14.0])
 
@@ -395,9 +399,9 @@ func _caverna() -> void:
 	# boca de caverna no pé das montanhas a oeste
 	var z := -200.0; var x := -420.0
 	while x > -560.0 and altura(x, z) < base_vale(z) + 9.0: x -= 2.0
-	var y := altura(x + 6.0, z)
+	var y := reg.aplanar(Vector2(x + 7.0, z), Vector2(4.0, 5.0), 0.0, 4.0)
 	var st := _st()
-	_caixa(st, Vector3(0, 2.2, -3.2), Vector3(3.0, 4.4, 2.0)); _caixa(st, Vector3(0, 2.2, 3.2), Vector3(3.0, 4.4, 2.0))
+	_caixa(st, Vector3(0, 1.4, -3.2), Vector3(3.0, 6.0, 2.0)); _caixa(st, Vector3(0, 1.4, 3.2), Vector3(3.0, 6.0, 2.0))
 	_caixa(st, Vector3(0, 5.0, 0), Vector3(3.4, 1.6, 8.6))
 	_peca(st, mat("pedra"), Vector3(x + 5.0, y - 0.5, z))
 	st = _st(); _quad(st, Vector3(0, 0, 2.2), Vector3(0, 0, -2.2), Vector3(0, 4.3, -2.2), Vector3(0, 4.3, 2.2), 1, 1)
@@ -434,6 +438,7 @@ func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, uw: float, vh: fl
 
 func _casa(pos: Vector3, ang: float, w: float, d: float, h: float, parede: Material = null, telhado: Material = null) -> void:
 	var x := w / 2.0; var z := d / 2.0; var cume := h + w * 0.55; var beiral := 0.45
+	pos.y = reg.aplanar(Vector2(pos.x, pos.z), Vector2(x + 0.8, z + 0.8), -ang, 4.0) - 0.05
 	var mesh := ArrayMesh.new()
 	# paredes (com as empenas triangulares) — textura enxaimel a cada 2 m
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -455,7 +460,7 @@ func _casa(pos: Vector3, ang: float, w: float, d: float, h: float, parede: Mater
 	var e := 0.06
 	for k in 4:
 		var a: Vector3 = p[k] * Vector3(1 + e / x, 1, 1 + e / z); var b: Vector3 = p[(k + 1) % 4] * Vector3(1 + e / x, 1, 1 + e / z)
-		_quad(st, a + Vector3(0, -0.4, 0), b + Vector3(0, -0.4, 0), b + Vector3(0, 0.6, 0), a + Vector3(0, 0.6, 0), a.distance_to(b) / 2.0, 0.5)
+		_quad(st, a + Vector3(0, -1.2, 0), b + Vector3(0, -1.2, 0), b + Vector3(0, 0.6, 0), a + Vector3(0, 0.6, 0), a.distance_to(b) / 2.0, 0.9)
 	_caixa(st, Vector3(x * 0.45, cume - 0.6, -z * 0.3), Vector3(0.7, 2.2, 0.7))
 	st.set_material(mat("pedra")); st.commit(mesh)
 	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -502,7 +507,7 @@ func _poco(pos: Vector3) -> void:
 
 func _barril(pos: Vector3) -> void:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	cilindro(st, Vector3.ZERO, 0.32, 0.38, 0.45, 8); cilindro(st, Vector3(0, 0.45, 0), 0.38, 0.32, 0.45, 8, true)
+	cilindro(st, Vector3(0, -0.15, 0), 0.32, 0.38, 0.6, 8); cilindro(st, Vector3(0, 0.45, 0), 0.38, 0.32, 0.45, 8, true)
 	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = mat("madeira"); mi.position = pos
 	raiz.add_child(mi); _colisor_cilindro(pos, 0.38, 0.9)
 
@@ -526,6 +531,20 @@ func _splats(itens: Array, tam: Vector2, em_pe: bool, balanco: float, ate := 0.0
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = sm
 	if ate > 0.0: mi.visibility_range_end = ate; mi.visibility_range_end_margin = 4.0
 	raiz.add_child(mi); return mi
+
+# teste: mede o vão entre o piso de cada construção e o terreno de verdade (cantos e meio das bordas)
+func _checar_chao() -> void:
+	var pior := 0.0; var ruins := 0
+	for pl in reg.planos:
+		var c: Vector2 = pl[0]; var meia: Vector2 = pl[1] - Vector2(1.0, 1.0)
+		for k in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1), Vector2(0, 1), Vector2(0, -1), Vector2(1, 0), Vector2(-1, 0)]:
+			var q: Vector2 = c + (k * meia).rotated(pl[2])
+			var vao: float = pl[3] - terreno.altura_malha(q.x, q.y)
+			if abs(vao) > 0.25:
+				ruins += 1; print("VÃO %.2f m em %s" % [vao, q])
+			pior = max(pior, abs(vao))
+	print("planos: %d  pior vão: %.2f m  pontos ruins: %d" % [reg.planos.size(), pior, ruins])
+	get_tree().quit()
 
 # ---------- modo de teste: --shot=arquivo.png --espera=2 --pos=x,z --olhar=graus ----------
 func _modo_teste() -> void:

@@ -1,4 +1,4 @@
-# Grama de verdade: tufos de folhas finas e curvadas (shaders/grama.gdshader), montados em volta do jogador
+# Grama: tufos de folhas retangulares de ponta quadrada (estilo pixel, leves) (shaders/grama.gdshader), montados em volta do jogador
 # enquanto ele anda (blocos com sorteio fixo, poucos por quadro), como o chão de splats.
 #  - perto (até ~24 m): tufos densos e finos
 #  - longe (até ~55 m): tufos mais espaçados e um pouco maiores (de longe parecem iguais)
@@ -19,10 +19,11 @@ func montar(mundo) -> void:
 	mat = ShaderMaterial.new(); mat.shader = load("res://shaders/grama.gdshader")
 	mat.set_shader_parameter("neblina", m.NEBLINA)
 	# folhas por tufo: perto mais folhas finas; longe menos folhas, um pouco mais largas
-	malhas = { "perto": [_malha_tufo(7, 0.016, false, 1), _malha_tufo(5, 0.013, true, 2)],
-		"longe": [_malha_tufo(4, 0.024, false, 3), _malha_tufo(4, 0.02, true, 4)] }
+	malhas = { "perto": [_malha_tufo(7, 0.022, false, 1), _malha_tufo(5, 0.016, true, 2)],
+		"longe": [_malha_tufo(4, 0.032, false, 3), _malha_tufo(4, 0.024, true, 4)] }
 
-# um tufo: folhas finas saindo do mesmo ponto, cada uma inclinada e curvada para um lado
+# um tufo: folhas retangulares de ponta quadrada (estilo pixel), cada uma um retângulo só (2 triângulos),
+# inclinado para um lado. Bem mais leve que folha curva.
 func _malha_tufo(n: int, larg: float, trigo: bool, seed: int) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -30,28 +31,21 @@ func _malha_tufo(n: int, larg: float, trigo: bool, seed: int) -> ArrayMesh:
 		var ang := TAU * i / n + rng.randf_range(-0.4, 0.4)
 		var dirc := Vector3(cos(ang), 0, sin(ang))
 		var lado := Vector3(-dirc.z, 0, dirc.x)
-		var alt := rng.randf_range(0.55, 1.0)
-		var incl := rng.randf_range(0.12, 0.38) * (0.4 if trigo else 1.0)
-		var base := dirc * rng.randf_range(0.0, 0.05)
-		# 4 alturas: largura afina até a ponta; curva cresce com a altura
-		var pts := []
-		for j in 3:
-			var t := j / 2.0
-			var c := base + dirc * incl * alt * t * t * 1.6 + Vector3(0, alt * t, 0)
-			var w := larg * (1.0 - t * 0.85)
-			if trigo and j == 2: w = larg * 1.6               # espiga
-			pts.append([c - lado * w, c + lado * w, t])
-		for j in 2:
-			var a: Array = pts[j]; var b: Array = pts[j + 1]
-			var quad := [a[0], a[1], b[1], b[0]]
-			var uvs := [Vector2(0, a[2]), Vector2(1, a[2]), Vector2(1, b[2]), Vector2(0, b[2])]
-			for q in [0, 1, 2, 0, 2, 3]:
-				st.set_normal(Vector3.UP); st.set_uv(uvs[q]); st.set_color(Color.WHITE); st.add_vertex(quad[q])
-		# ponta fina (triângulo)
-		var ul: Array = pts[2]
-		var tip: Vector3 = (ul[0] + ul[1]) * 0.5 + dirc * incl * alt * 0.25 + Vector3(0, alt * (0.12 if trigo else 0.08), 0)
-		for v in [[ul[0], Vector2(0, 1)], [ul[1], Vector2(1, 1)], [tip, Vector2(0.5, 1)]]:
-			st.set_normal(Vector3.UP); st.set_uv(v[1]); st.set_color(Color.WHITE); st.add_vertex(v[0])
+		var alt := rng.randf_range(0.6, 1.0)
+		var incl := rng.randf_range(0.08, 0.28) * (0.4 if trigo else 1.0)
+		var base := dirc * rng.randf_range(0.0, 0.06)
+		var topo := base + dirc * incl * alt + Vector3(0, alt, 0)
+		var w := larg * rng.randf_range(0.85, 1.2)
+		var q := [base - lado * w, base + lado * w, topo + lado * w, topo - lado * w]
+		var uvs := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
+		for k in [0, 1, 2, 0, 2, 3]:
+			st.set_normal(Vector3.UP); st.set_uv(uvs[k]); st.set_color(Color.WHITE); st.add_vertex(q[k])
+		if trigo:                                  # espiga: um retângulo mais largo na ponta
+			var e0 := topo - Vector3(0, alt * 0.22, 0)
+			var qe := [e0 - lado * w * 1.8, e0 + lado * w * 1.8, topo + lado * w * 1.8, topo - lado * w * 1.8]
+			var ue := [Vector2(0, 0.95), Vector2(1, 0.95), Vector2(1, 1), Vector2(0, 1)]
+			for k in [0, 1, 2, 0, 2, 3]:
+				st.set_normal(Vector3.UP); st.set_uv(ue[k]); st.set_color(Color.WHITE); st.add_vertex(qe[k])
 	return st.commit()
 
 var _primeira := true

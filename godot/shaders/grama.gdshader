@@ -1,5 +1,4 @@
-// Grama de verdade: tufos de folhas finas (malha), cada folha mais escura na base e clara na ponta,
-// curvada, balançando com o vento (mais na ponta) e se abrindo quando o jogador passa.
+// Grama: tufos de folhas retangulares de ponta quadrada (malha), escuras na base e claras na ponta em degraus, balançando com o vento (mais na ponta) e se abrindo quando o jogador passa.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
@@ -32,7 +31,8 @@ void vertex() {
   POSITION = PROJECTION_MATRIX * vp;
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);
   // cor: base escura (sombra entre as folhas), ponta clara e quente
-  vec3 c = COLOR.rgb * mix(0.48, 1.18, pow(h, 0.8));
+  float hq = floor(h * 4.0 + 0.5) / 4.0;            // tons em degraus, sem degradê
+  vec3 c = COLOR.rgb * mix(0.5, 1.18, hq);
   c = mix(c, c * vec3(1.08, 1.06, 0.86), smoothstep(0.75, 1.0, h));
   cor = c * (1.0 + raj * 0.12) * (1.0 + relampago * 0.7);
 }

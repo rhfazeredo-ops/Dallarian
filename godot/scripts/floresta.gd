@@ -20,7 +20,7 @@ func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
 	malhas = { "pinho": _malha_pinho(), "tronco": _malha_tronco(false), "morta": _malha_tronco(true) }
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/splat.gdshader")
-	sm.set_shader_parameter("balanco", 0.25); sm.set_shader_parameter("neblina", m.NEBLINA)
+	sm.set_shader_parameter("balanco", 0.25); sm.set_shader_parameter("quadrado", true); sm.set_shader_parameter("neblina", m.NEBLINA)
 	mats["copa"] = sm
 	var n := int(ceil(2.0 * Regiao.LIM / PED))
 	for j in n: for i in n: _pedaco(Vector2i(i, j))
@@ -80,10 +80,10 @@ func _pedaco(k: Vector2i) -> void:
 				var tom: Color = [Color(0.36, 0.55, 0.22), Color(0.45, 0.62, 0.25), Color(0.3, 0.48, 0.2), Color(0.5, 0.6, 0.24)][rng.randi() % 4]
 				if outono: tom = [Color(0.9, 0.6, 0.22), Color(0.82, 0.4, 0.18), Color(0.92, 0.75, 0.3)][rng.randi() % 3]
 				var copa := base + Vector3(0, 4.6 * s, 0)
-				for c in 42:
+				for c in 46:
 					var dv := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.7), rng.randfn(0, 1)).normalized() * pow(rng.randf(), 0.6) * 2.2 * s
 					var luz: float = 0.6 + 0.45 * clamp(dv.y / (2.4 * s) * 0.5 + 0.5, 0.0, 1.0)
-					copas.append([copa + dv, tom * luz * rng.randf_range(0.88, 1.12), rng.randf_range(1.0, 1.45) * s])
+					copas.append([copa + dv, tom * luz * rng.randf_range(0.88, 1.12), rng.randf_range(0.75, 1.1) * s])
 	arvores[k] = lista
 	var no := Node3D.new(); add_child(no)
 	for par in [["pinho", pinhos], ["tronco", troncos], ["morta", mortas]]:
