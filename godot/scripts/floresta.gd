@@ -26,7 +26,7 @@ func montar(mundo) -> void:
 	_mat_cartao = {
 		"folhagem": _material(_tex_folhagem(192, 11)),
 		"folhagem2": _material(_tex_folhagem(192, 21)),
-		"agulhas": _material(_tex_agulhas(128, 64, 12)),
+		"agulhas": _material(_tex_agulhas(128, 80, 12)),
 		"arbusto": _material(_tex_folhagem(128, 13, true)),
 	}
 	if OS.get_cmdline_user_args().has("--desenhos"):
@@ -139,15 +139,21 @@ func _folha(im: Image, c: Vector2, ang: float, comp: float, larg: float, l: floa
 func _tex_agulhas(w: int, h: int, seed: int) -> ImageTexture:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var im := Image.create(w, h, true, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
-	_linha(im, Vector2(0, h * 0.5), Vector2(w - 4, h * 0.5), 0.3, 2)
-	for i in 900:
-		var u := rng.randf()
-		var x := u * (w - 4)
-		var larg := h * 0.48 * (1.0 - u * 0.75)                 # mais largo perto do tronco
-		var lado := 1.0 if rng.randf() < 0.5 else -1.0
-		var comp := rng.randf_range(0.3, 1.0) * larg
-		var a := Vector2(x, h * 0.5); var b := a + Vector2(comp * 0.45, lado * comp)
-		_linha(im, a, b, clampf(0.62 + rng.randf_range(-0.12, 0.3) + (0.15 if lado < 0 else 0.0), 0.35, 1.1), 1)
+	# raminhos laterais saindo do galho central, cada um coberto de agulhas apontando para a frente
+	for r in 34:
+		var u := float(r) / 34.0
+		var x := u * (w - 6)
+		var larg := h * 0.5 * (1.0 - u * 0.7)
+		for lado in [-1.0, 1.0]:
+			var a := Vector2(x, h * 0.5)
+			var b := a + Vector2(larg * 0.75, lado * larg * 0.95)
+			for i in 18:
+				var q := a.lerp(b, i / 18.0)
+				var comp := rng.randf_range(5.0, 9.0)
+				var dir := (b - a).normalized().rotated(lado * rng.randf_range(-0.7, 0.2))
+				var l := clampf(0.6 + rng.randf_range(-0.12, 0.25) + (0.18 if lado < 0 else -0.05) + (1.0 - u) * -0.08, 0.35, 1.1)
+				_linha(im, q, q + dir * comp, l, 2)
+	_linha(im, Vector2(0, h * 0.5), Vector2(w - 6, h * 0.5), 0.28, 2)
 	im.generate_mipmaps()
 	return ImageTexture.create_from_image(im)
 
@@ -200,33 +206,57 @@ func _cartoes_copa(seed: int, tex := "folhagem") -> ArrayMesh:
 func _tronco_pinho() -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	m.cilindro(st, Vector3(0, -0.4, 0), 0.42, 0.24, 0.9, 6)
-	m.cilindro(st, Vector3(0, 0.5, 0), 0.24, 0.05, 7.4, 6)
+	m.cilindro(st, Vector3(0, 0.5, 0), 0.24, 0.05, 7.8, 6)
 	var mesh := ArrayMesh.new(); st.set_material(m.mat("casca")); st.commit(mesh)
 	return mesh
 
+# pinheiro: andares de galhos em volta do tronco; cada galho é um cartão dobrado em "telhado" (as duas metades
+# caem para os lados) e curvado para baixo (a ponta cai mais que a base), como galho de pinheiro pesado.
 func _cartoes_pinho(seed: int) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var andares := 7
+	var andares := 11
 	for a in andares:
 		var t := float(a) / (andares - 1)
-		var y: float = lerp(1.5, 7.2, t); var comp: float = lerp(2.5, 0.7, t)
-		var n := 6 if t < 0.6 else 4
+		var y: float = lerp(1.6, 7.6, t) + rng.randf_range(-0.12, 0.12)
+		var comp: float = lerp(2.7, 0.55, pow(t, 0.9)) * rng.randf_range(0.9, 1.1)
+		var n := 7 if t < 0.5 else (6 if t < 0.8 else 4)
 		var giro := rng.randf() * TAU
 		for k in n:
-			var ang := giro + TAU * k / n + rng.randf_range(-0.2, 0.2)
+			var ang := giro + TAU * k / n + rng.randf_range(-0.25, 0.25)
 			var fora := Vector3(cos(ang), 0, sin(ang))
-			var cai := fora.rotated(fora.cross(Vector3.UP).normalized(), deg_to_rad(rng.randf_range(18, 32)))   # caído para baixo
 			var lado := fora.cross(Vector3.UP).normalized()
-			var c := Vector3(0, y, 0) + cai * comp * 0.5
-			var tom: float = lerp(0.72, 1.0, t) * rng.randf_range(0.92, 1.05)
-			_cartao(st, c, cai, lado.rotated(cai, deg_to_rad(rng.randf_range(-20, 20))), Vector2(comp * 0.5, comp * 0.3), tom)
+			var desce := deg_to_rad(rng.randf_range(12, 24) + t * 8.0)       # o galho sai inclinado para baixo
+			var tom: float = lerp(0.7, 1.02, t) * rng.randf_range(0.9, 1.06)
+			_galho_pinho(st, Vector3(0, y, 0), fora, lado, desce, comp, comp * 0.42, tom)
 	# ponta: dois cartões em pé, cruzados
 	for k in 2:
 		var lado := Vector3(cos(k * PI / 2), 0, sin(k * PI / 2))
-		_cartao(st, Vector3(0, 7.9, 0), Vector3.UP, lado, Vector2(0.8, 0.28), 1.05)
+		_cartao(st, Vector3(0, 8.1, 0), Vector3.UP, lado, Vector2(0.75, 0.25), 1.05)
 	var mesh := ArrayMesh.new(); st.set_material(_mat_cartao["agulhas"]); st.commit(mesh)
 	return mesh
+
+func _galho_pinho(st: SurfaceTool, base: Vector3, fora: Vector3, lado: Vector3, desce: float, comp: float, larg: float, tom: float) -> void:
+	# 3 pontos ao longo do galho; a ponta cai mais (curva); as bordas laterais ficam mais baixas (telhado)
+	var meio := []
+	for i in 3:
+		var u := i / 2.0
+		var d := fora * comp * u
+		var queda := comp * u * tan(desce) + comp * 0.22 * u * u           # curva para baixo
+		meio.append(base + d - Vector3(0, queda, 0))
+	for i in 2:
+		var u0 := i / 2.0; var u1 := (i + 1) / 2.0
+		var c0: Vector3 = meio[i]; var c1: Vector3 = meio[i + 1]
+		var w0 := larg * (1.0 - u0 * 0.55); var w1 := larg * (1.0 - u1 * 0.55)
+		var cai0 := Vector3(0, -w0 * 0.55, 0); var cai1 := Vector3(0, -w1 * 0.55, 0)
+		for lad in [-1.0, 1.0]:
+			var e0: Vector3 = c0 + lado * w0 * lad + cai0; var e1: Vector3 = c1 + lado * w1 * lad + cai1
+			var v := 0.0 if lad < 0 else 1.0
+			var vs := [c0, c1, e1, e0]
+			var uvs := [Vector2(u0, 0.5), Vector2(u1, 0.5), Vector2(u1, v), Vector2(u0, v)]
+			var n := (c1 - c0).cross(e0 - c0).normalized()
+			for k in [0, 1, 2, 0, 2, 3]:
+				st.set_normal(n); st.set_color(Color(tom, tom, tom)); st.set_uv(uvs[k]); st.add_vertex(vs[k])
 
 func _cartoes_arbusto(seed: int) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
