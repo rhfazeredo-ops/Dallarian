@@ -553,6 +553,17 @@ func _modo_teste() -> void:
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
+	if args.has("golpe"):        # filma um golpe: --golpe=leve1 (ou combo) → varios PNGs a cada 1/30 s
+		await get_tree().create_timer(float(args.get("espera", "2"))).timeout
+		Engine.time_scale = float(args.get("lento", "0.16"))     # o jogo anda devagar: cada quadro ≈ 1/30 s de jogo
+		var nomes := ["leve1", "leve2", "leve3"] if args.golpe == "combo" else [args.golpe]
+		var q := 0
+		for nm in nomes:
+			jogador.iniciar(nm)
+			for f in 20:
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(String(args.shot).replace(".png", "-%02d.png" % q)); q += 1
+		get_tree().quit(); return
 	await get_tree().create_timer(float(args.get("espera", "2"))).timeout
 	get_viewport().get_texture().get_image().save_png(args.shot)
 	get_tree().quit()

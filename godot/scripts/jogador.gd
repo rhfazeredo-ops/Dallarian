@@ -26,7 +26,7 @@ var braco_e: MeshInstance3D
 # MÃO DIREITA = [posição do cabo, direção da lâmina, normal da face da lâmina], no espaço da câmera
 # (x direita, y cima, -z frente). A espada é montada a partir disso: lâmina = direção, guarda = perpendicular.
 const MAO := {
-	"repouso": [Vector3(0.3, -0.36, -0.52), Vector3(-0.12, 0.8, -0.55), Vector3(0.35, 0.0, 1.0)],
+	"repouso": [Vector3(0.3, -0.4, -0.5), Vector3(-0.3, 0.78, -0.55), Vector3(0.45, 0.1, 1.0)],
 	"correr": [Vector3(0.34, -0.52, -0.42), Vector3(0.1, 0.3, -0.95), Vector3(0.9, 0.0, 0.3)],
 	"bloq": [Vector3(0.38, -0.52, -0.5), Vector3(0.2, 0.5, -0.85), Vector3(0.6, 0.0, 0.8)],
 }
@@ -35,23 +35,27 @@ const MAO := {
 # Durante o corte a face da lâmina fica perpendicular ao arco (o fio vai na frente): nada de espada torta.
 # tempos: preparação, corte, seguir (a lâmina continua um pouco), volta. tranco = câmera [pitch, roll, avanço].
 const GOLPES := {
-	"leve1": { "a": Vector3(0.38, 0.0, -0.5), "da": Vector3(0.35, 0.9, 0.15), "dm": Vector3(-0.2, 0.45, -0.85),
-		"b": Vector3(-0.2, -0.28, -0.56), "db": Vector3(-0.9, -0.25, -0.3), "c": Vector3(0.12, -0.02, -0.72),
-		"t": [0.17, 0.15, 0.07, 0.3], "tranco": Vector3(-2.0, 3.5, 0.06) },
-	"leve2": { "a": Vector3(-0.14, 0.0, -0.5), "da": Vector3(-0.4, 0.85, 0.25), "dm": Vector3(0.25, 0.4, -0.88),
-		"b": Vector3(0.36, -0.28, -0.56), "db": Vector3(0.9, -0.22, -0.35), "c": Vector3(0.08, -0.04, -0.72),
-		"t": [0.16, 0.15, 0.07, 0.3], "tranco": Vector3(-2.0, -3.5, 0.06) },
-	"leve3": { "a": Vector3(0.22, 0.04, -0.54), "da": Vector3(0.25, 0.9, 0.35), "dm": Vector3(0.05, 0.62, -0.78),
-		"b": Vector3(-0.02, -0.26, -0.6), "db": Vector3(-0.25, -0.55, -0.8), "c": Vector3(0.12, 0.02, -0.74),
-		"t": [0.19, 0.14, 0.07, 0.32], "tranco": Vector3(-4.5, 0.0, 0.08) },
-	"forte": { "a": Vector3(0.36, 0.02, -0.55), "da": Vector3(0.45, 0.85, 0.25), "dm": Vector3(-0.15, 0.4, -0.9),
-		"b": Vector3(-0.24, -0.3, -0.56), "db": Vector3(-0.9, -0.3, -0.3), "c": Vector3(0.1, -0.04, -0.8),
-		"t": [0.32, 0.17, 0.1, 0.45], "tranco": Vector3(-5.0, 6.0, 0.3) },
+	# 1: corte quase horizontal da direita para a esquerda, na altura do peito (o ataque padrão)
+	"leve1": { "a": Vector3(0.38, -0.1, -0.52), "da": Vector3(0.62, 0.62, 0.45), "dm": Vector3(-0.55, 0.25, -0.8),
+		"b": Vector3(-0.12, -0.3, -0.56), "db": Vector3(-0.88, -0.02, -0.47), "c": Vector3(0.18, -0.1, -0.8),
+		"t": [0.14, 0.12, 0.05, 0.24], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
+	# 2: corte de volta, da esquerda para a direita, um pouco de baixo para cima
+	"leve2": { "a": Vector3(-0.14, -0.22, -0.52), "da": Vector3(-0.75, 0.4, 0.5), "dm": Vector3(0.5, 0.32, -0.8),
+		"b": Vector3(0.38, -0.22, -0.54), "db": Vector3(0.9, 0.12, -0.42), "c": Vector3(0.1, -0.14, -0.8),
+		"t": [0.12, 0.12, 0.05, 0.24], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 2.5 },
+	# 3: diagonal de cima, do ombro direito até embaixo à esquerda (fecha o combo)
+	"leve3": { "a": Vector3(0.32, 0.02, -0.52), "da": Vector3(0.35, 0.88, 0.3), "dm": Vector3(-0.3, 0.45, -0.84),
+		"b": Vector3(-0.16, -0.34, -0.55), "db": Vector3(-0.7, -0.55, -0.45), "c": Vector3(0.16, -0.02, -0.78),
+		"t": [0.16, 0.12, 0.06, 0.26], "tranco": Vector3(-4.0, 2.0, 0.08), "giro": -1.5 },
+	# forte: a espada vai bem para trás do ombro, segura, e desce em diagonal com o corpo indo junto
+	"forte": { "a": Vector3(0.38, 0.04, -0.5), "da": Vector3(0.55, 0.78, 0.3), "dm": Vector3(-0.35, 0.35, -0.87),
+		"b": Vector3(-0.26, -0.34, -0.55), "db": Vector3(-0.85, -0.42, -0.32), "c": Vector3(0.12, -0.04, -0.84),
+		"t": [0.3, 0.15, 0.1, 0.45], "tranco": Vector3(-5.0, 6.0, 0.32), "giro": -5.0 },
 }
 # poses da mão esquerda (escudo): [posição, rotação em graus]
 const PE := {
 	"e_repouso": [Vector3(-0.5, -0.5, -0.6), Vector3(80, 10, -25)],
-	"e_golpe": [Vector3(-0.6, -0.7, -0.55), Vector3(70, 15, -35)],
+	"e_golpe": [Vector3(-0.56, -0.6, -0.58), Vector3(74, 12, -30)],
 	"e_correr": [Vector3(-0.52, -0.64, -0.5), Vector3(70, 20, -40)],
 	"e_bloq": [Vector3(-0.12, -0.2, -0.46), Vector3(88, 0, -5)],
 	"bash_prep": [Vector3(-0.2, -0.24, -0.38), Vector3(88, 10, -10)],
@@ -61,7 +65,7 @@ const PE := {
 const BASH := [[0.08, "bash_prep", Vector3.ZERO], [0.1, "bash_fim", Vector3(-2, 0, 0.12)], [0.28, "", Vector3.ZERO]]
 
 # estado da mão direita (sempre: a espada é montada daqui)
-var _hp := Vector3(0.3, -0.36, -0.52); var _hd := Vector3(-0.12, 0.8, -0.55).normalized(); var _hn := Vector3(0.35, 0, 1).normalized()
+var _hp := Vector3(0.3, -0.4, -0.5); var _hd := Vector3(-0.3, 0.78, -0.55).normalized(); var _hn := Vector3(0.35, 0, 1).normalized()
 var _fase := 0; var _sp := Vector3.ZERO; var _sd := Vector3.UP; var _sn := Vector3.BACK
 var _acao := ""; var _passo_acao := 0; var _t_acao := 0.0
 var _ini_e: Transform3D
@@ -70,6 +74,7 @@ var _segurando := 0.0; var _ataque_seg := false; var _forte_pronto := false
 var _passo := 0.0; var _tempo := 0.0
 var _balanco := Vector2.ZERO     # armas atrasam ao girar
 var _tranco := Vector3.ZERO      # câmera: pitch, roll, avanço
+var _giro := 0.0                 # câmera: vira um pouco junto com o golpe (graus)
 var _queda := 0.0; var _no_chao := true
 var congelar := -1.0             # teste: para a ação nesse ponto (0..1)
 var pose_fixa := false           # teste: mãos paradas numa pose (mostrar_pose)
@@ -178,6 +183,35 @@ func mostrar_pose(txt: String) -> void:
 				iniciar(g[0]); _fase = int(g[1]); congelar = float(g[2]); _tocar_golpe(0.0); piv_d.transform = _mao_t(_hp, _hd, _hn)
 		else: piv_e.transform = _pose(kv[1])
 
+# rastro da lâmina no corte (faixa clara que some rápido): deixa o movimento legível mesmo em FPS baixo
+var _rastro: ImmediateMesh
+var _rastro_pts := []          # [base, ponta, idade] no espaço de "mao"
+func _rastro_criar() -> void:
+	_rastro = ImmediateMesh.new()
+	var mi := MeshInstance3D.new(); mi.mesh = _rastro
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mt.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; mt.vertex_color_use_as_albedo = true
+	mt.cull_mode = BaseMaterial3D.CULL_DISABLED; mt.no_depth_test = false
+	mi.material_override = mt; mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mao.add_child(mi)
+
+func _rastro_atualizar(delta: float) -> void:
+	if _rastro == null: _rastro_criar()
+	for p in _rastro_pts: p[2] += delta
+	while not _rastro_pts.is_empty() and _rastro_pts[0][2] > 0.11: _rastro_pts.pop_front()
+	var cortando := GOLPES.has(_acao) and (_fase == 1 or (_fase == 2 and _t_acao < 0.03))
+	if cortando:
+		var t := piv_d.transform
+		_rastro_pts.append([t * Vector3(0, 0.55, 0), t * Vector3(0, 0.84, 0), 0.0])
+	_rastro.clear_surfaces()
+	if _rastro_pts.size() < 2: return
+	_rastro.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+	for p in _rastro_pts:
+		var a := clampf(1.0 - p[2] / 0.11, 0.0, 1.0) * 0.6
+		_rastro.surface_set_color(Color(0.95, 0.97, 1.0, 0.0)); _rastro.surface_add_vertex(p[0])
+		_rastro.surface_set_color(Color(0.95, 0.97, 1.0, a)); _rastro.surface_add_vertex(p[1])
+	_rastro.surface_end()
+
 # ---------- entrada ----------
 func _unhandled_input(e: InputEvent) -> void:
 	if OS.has_feature("mobile") or DisplayServer.is_touchscreen_available(): return
@@ -241,6 +275,7 @@ func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
 			_hp = a.lerp(c, e).lerp(c.lerp(b, e), e)
 			_hd = _arco(g.da, g.dm, g.db, e); _hn = ng
 			if u > 0.3: _tranco = _tranco.lerp(g.tranco, 0.45)
+			_giro = lerp(_giro, float(g.get("giro", 0.0)), 0.35)
 		2:   # seguir: a lâmina ainda anda um pouco depois do corte
 			var b: Vector3 = g.b; var c: Vector3 = g.c
 			_hp = b + (b - c).normalized() * 0.04 * u
@@ -314,8 +349,10 @@ func _physics_process(delta: float) -> void:
 	# câmera: balanço da cabeça, queda, trancos dos golpes
 	_queda = lerp(_queda, 0.0, 1.0 - exp(-7.0 * delta))
 	_tranco = _tranco.lerp(Vector3.ZERO, 1.0 - exp(-10.0 * delta))
+	_giro = lerp(_giro, 0.0, 1.0 - exp(-6.0 * delta))
 	cam.position = Vector3(0, -abs(sin(_passo * 0.5)) * amp * 0.9 - _queda, -_tranco.z)
-	cam.rotation = Vector3(deg_to_rad(_tranco.x), 0, deg_to_rad(_tranco.y) + cos(_passo * 0.5) * amp * 0.25)
+	cam.rotation = Vector3(deg_to_rad(_tranco.x), deg_to_rad(_giro), deg_to_rad(_tranco.y) + cos(_passo * 0.5) * amp * 0.25)
+	_rastro_atualizar(delta)
 	# braços: da mão até o ombro, fora da tela
 	_ajustar_braco(braco_d, piv_d.position, Vector3(0.32, -0.62, 0.15))
 	_ajustar_braco(braco_e, piv_e.transform * Vector3(0, -0.07, 0), Vector3(-0.34, -0.66, 0.15))
