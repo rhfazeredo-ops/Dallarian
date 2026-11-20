@@ -31,7 +31,7 @@ func _ready() -> void:
 	_vila()
 	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
 	_arvores()
-	_grama()
+	var grama := Grama.new(); raiz.add_child(grama); grama.montar(self)
 	jogador = Jogador.new(); raiz.add_child(jogador)
 	jogador.position = Vector3(10, altura(10, 74) + 0.2, 74)
 	jogador.rotation.y = deg_to_rad(8)
