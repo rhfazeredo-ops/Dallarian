@@ -9,7 +9,7 @@ class_name Floresta
 const PED := 64.0
 const VISTA := 300.0
 const COLIDE := 70.0
-const FOLHAS := 75.0     # até aqui as árvores ganham folhas de verdade (quadradinhos em tufos)
+const FOLHAS := 60.0     # até aqui as árvores ganham folhas de verdade (quadradinhos em tufos)
 var m
 var reg: Regiao
 var mats := {}
@@ -138,8 +138,8 @@ func _process(_d: float) -> void:
 		elif not perto and corpos.has(k) and centro.distance_to(p) > COLIDE + 30.0:
 			corpos[k].queue_free(); corpos.erase(k)
 
-# folhas de verdade de um pedaço: em cada árvore, tufos nas pontas dos galhos (e alguns a mais), cada tufo
-# com dezenas de quadradinhos finos virados para todos os lados
+# folhas de verdade de um pedaço: em cada árvore ~21 tufos pequenos (3 em volta da ponta de cada galho e 9
+# pela copa), cada tufo com 40 quadradinhos finos e pequenos virados para todos os lados
 func _folhas(k: Vector2i) -> Node3D:
 	var lista: Array = carvalhos[k]
 	if lista.is_empty(): return null
@@ -147,18 +147,23 @@ func _folhas(k: Vector2i) -> Node3D:
 	var itens := []   # [Transform3D, cor, custom]
 	for a in lista:
 		var tt: Transform3D = a[0]; var s: float = a[1]; var tom: Color = a[2]
+		# muitos tufos pequenos: alguns em volta da ponta de cada galho + vários espalhados pela copa
 		var centros := []
-		for pt in PONTAS: centros.append(tt * pt + Vector3(0, 0.3 * s, 0))
-		for e in 3:
-			centros.append(tt.origin + Vector3(rng.randf_range(-1.6, 1.6) * s, rng.randf_range(4.2, 5.6) * s, rng.randf_range(-1.6, 1.6) * s))
+		for pt in PONTAS:
+			var ponta: Vector3 = tt * pt + Vector3(0, 0.2 * s, 0)
+			for e in 3: centros.append(ponta + Vector3(rng.randfn(0, 0.45), rng.randfn(0, 0.3), rng.randfn(0, 0.45)) * s)
+		var meio := tt.origin + Vector3(0, 4.8 * s, 0)
+		for e in 9:
+			var d := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.6), rng.randfn(0, 1)).normalized() * pow(rng.randf(), 0.5)
+			centros.append(meio + d * Vector3(1.9, 1.2, 1.9) * s)
 		for c in centros:
-			var raio := rng.randf_range(0.9, 1.3) * s
-			var ctom: Color = tom * rng.randf_range(0.88, 1.1)
-			for f in 50:
+			var raio := rng.randf_range(0.45, 0.7) * s
+			var ctom: Color = tom * rng.randf_range(0.85, 1.12)
+			for f in 56:
 				var dir := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.75), rng.randfn(0, 1)).normalized()
-				var r := pow(rng.randf(), 0.4)
+				var r := pow(rng.randf(), 0.55)
 				var pos: Vector3 = c + dir * r * raio
-				var tam := rng.randf_range(0.3, 0.44) * s
+				var tam := rng.randf_range(0.15, 0.21) * s
 				var b := Basis.from_euler(Vector3(rng.randf() * TAU, rng.randf() * TAU, rng.randf() * TAU)).scaled(Vector3(tam, tam, tam))
 				var cor: Color = ctom * (0.85 + 0.3 * clamp(dir.y * 0.5 + 0.5, 0.0, 1.0)) * rng.randf_range(0.9, 1.1)
 				itens.append([Transform3D(b, pos), cor, Color(c.x, c.y, c.z, 1.0 - r)])
