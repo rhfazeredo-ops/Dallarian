@@ -9,12 +9,18 @@ class_name Floresta
 const PED := 64.0
 const VISTA := 300.0
 const COLIDE := 70.0
+const FOLHAS := 75.0     # até aqui as árvores ganham folhas de verdade (quadradinhos em tufos)
 var m
 var reg: Regiao
 var mats := {}
 var malhas := {}
 var arvores := {}        # Vector2i → [[pos, raio], ...]
 var corpos := {}
+var carvalhos := {}      # Vector2i → [[transform do tronco, escala, cor], ...]
+var folhas := {}         # Vector2i → nó com as folhas (montado perto do jogador)
+var _primeira := true
+# pontas dos galhos na malha do tronco (onde nascem os tufos) + o topo
+const PONTAS := [Vector3(1.4, 4.2, 0.3), Vector3(-1.2, 4.7, -0.5), Vector3(0.2, 4.9, 1.2), Vector3(0, 4.4, 0)]
 
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
@@ -22,6 +28,9 @@ func montar(mundo) -> void:
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/splat.gdshader")
 	sm.set_shader_parameter("balanco", 0.25); sm.set_shader_parameter("quadrado", true); sm.set_shader_parameter("neblina", m.NEBLINA)
 	mats["copa"] = sm
+	var fm := ShaderMaterial.new(); fm.shader = load("res://shaders/folha.gdshader"); fm.set_shader_parameter("neblina", m.NEBLINA)
+	mats["folha"] = fm
+	var q := QuadMesh.new(); q.size = Vector2(1, 1); malhas["folha"] = q
 	var n := int(ceil(2.0 * Regiao.LIM / PED))
 	for j in n: for i in n: _pedaco(Vector2i(i, j))
 
@@ -51,7 +60,7 @@ func _malha_tronco(morta: bool) -> ArrayMesh:
 func _pedaco(k: Vector2i) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash([k.x, k.y, 99])
 	var o := Vector2(k.x * PED - Regiao.LIM, k.y * PED - Regiao.LIM)
-	var pinhos := []; var troncos := []; var mortas := []; var copas := []; var lista := []
+	var pinhos := []; var troncos := []; var mortas := []; var copas := []; var lista := []; var cv := []
 	var passo := 6.5
 	for jj in int(PED / passo):
 		for ii in int(PED / passo):
@@ -74,17 +83,19 @@ func _pedaco(k: Vector2i) -> void:
 			elif h > 18.0 or reg.ruido.get_noise_2d(x * 0.9, z * 0.9) > 0.25:
 				pinhos.append(Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(1.0, 1.4), s)), base)); lista.append([base, 0.28 * s])
 			else:
-				troncos.append(Transform3D(giro.scaled(Vector3(s, s, s)), base)); lista.append([base, 0.32 * s])
+				var tt := Transform3D(giro.scaled(Vector3(s, s, s)), base)
+				troncos.append(tt); lista.append([base, 0.32 * s])
 				# copa: verde de verão; algumas douradas/avermelhadas
 				var outono := reg.ruido_grande.get_noise_2d(x * 3.0, z * 3.0) > 0.38
 				var tom: Color = [Color(0.36, 0.55, 0.22), Color(0.45, 0.62, 0.25), Color(0.3, 0.48, 0.2), Color(0.5, 0.6, 0.24)][rng.randi() % 4]
 				if outono: tom = [Color(0.9, 0.6, 0.22), Color(0.82, 0.4, 0.18), Color(0.92, 0.75, 0.3)][rng.randi() % 3]
+				cv.append([tt, s, tom])
 				var copa := base + Vector3(0, 4.6 * s, 0)
 				for c in 46:
 					var dv := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.7), rng.randfn(0, 1)).normalized() * pow(rng.randf(), 0.6) * 2.2 * s
 					var luz: float = 0.6 + 0.45 * clamp(dv.y / (2.4 * s) * 0.5 + 0.5, 0.0, 1.0)
 					copas.append([copa + dv, tom * luz * rng.randf_range(0.88, 1.12), rng.randf_range(0.75, 1.1) * s])
-	arvores[k] = lista
+	arvores[k] = lista; carvalhos[k] = cv
 	var no := Node3D.new(); add_child(no)
 	for par in [["pinho", pinhos], ["tronco", troncos], ["morta", mortas]]:
 		if par[1].is_empty(): continue
@@ -100,11 +111,21 @@ func _pedaco(k: Vector2i) -> void:
 			var it: Array = copas[i]; var e: float = it[2]
 			mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(e, e, 1)), it[0])); mm.set_instance_color(i, it[1])
 		var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = mats["copa"]
-		mi.visibility_range_end = VISTA; no.add_child(mi)
+		mi.visibility_range_begin = FOLHAS; mi.visibility_range_end = VISTA; no.add_child(mi)
 
 func _process(_d: float) -> void:
 	if m.jogador == null: return
 	var jp: Vector3 = m.jogador.global_position; var p := Vector2(jp.x, jp.z)
+	var orc := 1000 if _primeira else 1
+	_primeira = false
+	for k in carvalhos.keys():
+		var cc := Vector2(k.x * PED - Regiao.LIM + PED * 0.5, k.y * PED - Regiao.LIM + PED * 0.5)
+		var d := cc.distance_to(p)
+		if d < FOLHAS and not folhas.has(k) and orc > 0:
+			folhas[k] = _folhas(k); orc -= 1
+		elif d > FOLHAS + 40.0 and folhas.has(k):
+			if folhas[k]: folhas[k].queue_free()
+			folhas.erase(k)
 	for k in arvores.keys():
 		var centro := Vector2(k.x * PED - Regiao.LIM + PED * 0.5, k.y * PED - Regiao.LIM + PED * 0.5)
 		var perto := centro.distance_to(p) < COLIDE
@@ -116,3 +137,35 @@ func _process(_d: float) -> void:
 			add_child(corpo); corpos[k] = corpo
 		elif not perto and corpos.has(k) and centro.distance_to(p) > COLIDE + 30.0:
 			corpos[k].queue_free(); corpos.erase(k)
+
+# folhas de verdade de um pedaço: em cada árvore, tufos nas pontas dos galhos (e alguns a mais), cada tufo
+# com dezenas de quadradinhos finos virados para todos os lados
+func _folhas(k: Vector2i) -> Node3D:
+	var lista: Array = carvalhos[k]
+	if lista.is_empty(): return null
+	var rng := RandomNumberGenerator.new(); rng.seed = hash([k.x, k.y, 7])
+	var itens := []   # [Transform3D, cor, custom]
+	for a in lista:
+		var tt: Transform3D = a[0]; var s: float = a[1]; var tom: Color = a[2]
+		var centros := []
+		for pt in PONTAS: centros.append(tt * pt + Vector3(0, 0.3 * s, 0))
+		for e in 3:
+			centros.append(tt.origin + Vector3(rng.randf_range(-1.6, 1.6) * s, rng.randf_range(4.2, 5.6) * s, rng.randf_range(-1.6, 1.6) * s))
+		for c in centros:
+			var raio := rng.randf_range(0.9, 1.3) * s
+			var ctom: Color = tom * rng.randf_range(0.88, 1.1)
+			for f in 50:
+				var dir := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.75), rng.randfn(0, 1)).normalized()
+				var r := pow(rng.randf(), 0.4)
+				var pos: Vector3 = c + dir * r * raio
+				var tam := rng.randf_range(0.3, 0.44) * s
+				var b := Basis.from_euler(Vector3(rng.randf() * TAU, rng.randf() * TAU, rng.randf() * TAU)).scaled(Vector3(tam, tam, tam))
+				var cor: Color = ctom * (0.85 + 0.3 * clamp(dir.y * 0.5 + 0.5, 0.0, 1.0)) * rng.randf_range(0.9, 1.1)
+				itens.append([Transform3D(b, pos), cor, Color(c.x, c.y, c.z, 1.0 - r)])
+	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = true; mm.use_custom_data = true
+	mm.mesh = malhas["folha"]; mm.instance_count = itens.size()
+	for i in itens.size():
+		mm.set_instance_transform(i, itens[i][0]); mm.set_instance_color(i, itens[i][1]); mm.set_instance_custom_data(i, itens[i][2])
+	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = mats["folha"]
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi); return mi
