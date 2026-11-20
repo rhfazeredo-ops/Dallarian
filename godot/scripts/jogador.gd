@@ -38,19 +38,19 @@ const MAO := {
 # a/da = cabo e lâmina na preparação; dm = lâmina no meio do corte; b/db = fim; c = controle do caminho da mão.
 const GOLPES := {
 	# 1: diagonal de cima à direita até embaixo à esquerda
-	"leve1": { "a": Vector3(0.72, 0.18, -0.3), "da": Vector3(0.55, 0.72, 0.42), "dm": Vector3(-0.55, 0.2, -0.82),
+	"leve1": { "a": Vector3(0.5, 0.06, -0.46), "da": Vector3(0.5, 0.78, 0.36), "dm": Vector3(-0.55, 0.2, -0.82),
 		"b": Vector3(-0.78, -0.58, -0.42), "db": Vector3(-0.82, -0.45, -0.35), "c": Vector3(0.12, -0.08, -0.78),
 		"t": [0.32, 0.22, 0.12, 0.65], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
 	# 2: horizontal da esquerda para a direita, na altura da cintura/peito
-	"leve2": { "a": Vector3(-0.78, -0.28, -0.3), "da": Vector3(-0.85, 0.15, 0.5), "dm": Vector3(0.78, 0.06, -0.62),
+	"leve2": { "a": Vector3(-0.5, -0.22, -0.46), "da": Vector3(-0.8, 0.25, 0.5), "dm": Vector3(0.78, 0.06, -0.62),
 		"b": Vector3(0.82, -0.3, -0.36), "db": Vector3(0.88, 0.0, 0.45), "c": Vector3(-0.05, -0.28, -0.74),
 		"t": [0.32, 0.22, 0.12, 0.65], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 3.0 },
 	# 3: de cima para baixo pelo meio (fecha o combo)
-	"leve3": { "a": Vector3(0.24, 0.62, -0.22), "da": Vector3(0.1, 0.6, 0.8), "dm": Vector3(0.04, 0.55, -0.83),
+	"leve3": { "a": Vector3(0.22, 0.3, -0.42), "da": Vector3(0.1, 0.62, 0.78), "dm": Vector3(0.04, 0.55, -0.83),
 		"b": Vector3(0.06, -0.8, -0.48), "db": Vector3(0.0, -0.8, -0.6), "c": Vector3(0.12, 0.16, -0.78),
 		"t": [0.34, 0.22, 0.13, 0.68], "tranco": Vector3(-5.0, 0.5, 0.08), "giro": 0.0 },
 	# forte: a diagonal com preparação longa (segurando) e o corpo indo junto
-	"forte": { "a": Vector3(0.75, 0.24, -0.22), "da": Vector3(0.55, 0.7, 0.45), "dm": Vector3(-0.5, 0.25, -0.83),
+	"forte": { "a": Vector3(0.55, 0.1, -0.4), "da": Vector3(0.55, 0.72, 0.42), "dm": Vector3(-0.5, 0.25, -0.83),
 		"b": Vector3(-0.8, -0.62, -0.4), "db": Vector3(-0.85, -0.45, -0.3), "c": Vector3(0.1, -0.06, -0.84),
 		"t": [0.45, 0.24, 0.16, 0.75], "tranco": Vector3(-5.0, 6.0, 0.32), "giro": -5.0 },
 }
@@ -257,31 +257,45 @@ func _ataque(segurando: bool, bloqueando: bool, delta: float) -> void:
 		if not _forte_pronto and not bloqueando: _golpe_leve()
 	_ataque_seg = segurando
 
+# impacto: congela o golpe por um instante e treme a câmera (dá peso)
+var _pausa := 0.0
+var _tremor := 0.0
+func impacto(seg: float) -> void:
+	_pausa = seg; _tremor = max(_tremor, 0.8 if seg < 0.1 else 1.3)
+
 # um golpe de espada: preparação → corte (arco) → seguir → volta
 func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
 	var g: Dictionary = GOLPES[_acao]; var tempos: Array = g.t
 	var dur: float = tempos[_fase]
 	var esperando := _acao == "forte" and _fase == 0 and _t_acao >= dur and _ataque_seg and _segurando < 1.4
+	if _pausa > 0.0:
+		_pausa -= delta; delta = 0.0               # instante de impacto: tudo para
 	if not esperando: _t_acao += delta
 	var u: float = clampf(_t_acao / dur, 0.0, 1.0)
 	if congelar >= 0.0: u = congelar
 	var ng := _normal_golpe(g)
 	match _fase:
-		0:   # preparação: começa devagar e acelera para fora da tela
-			var e := u * u * (2.0 - u)
+		0:   # preparação: o peso do corpo vai para trás — sobe rápido e DESACELERA no alto (carregando o golpe)
+			var e := 1.0 - pow(1.0 - u, 2.6)
 			_hp = _sp.lerp(g.a, e); _hd = _sd.slerp(g.da.normalized(), e); _hn = _sn.slerp(ng, e).normalized()
+			_tranco = _tranco.lerp(Vector3(-g.tranco.x * 0.35, -g.tranco.y * 0.4, -0.05), 0.12)   # corpo inclina para trás
+			_giro = lerp(_giro, -float(g.get("giro", 0.0)) * 0.6, 0.1)
 			if esperando: _hp += Vector3(0.006, 0.004, 0.004) * sin(_tempo * 30.0)     # tremidinha segurando
-		1:   # corte: rápido, a mão passa pela frente (curva) e a lâmina varre o arco
-			var e := 1.0 - pow(1.0 - u, 1.6)                           # rápido, freando só no fim
+		1:   # corte: começa pesado (devagar) e ACELERA até o fim — massa ganhando velocidade
+			var e := pow(u, 2.2)
 			var a: Vector3 = g.a; var c: Vector3 = g.c; var b: Vector3 = g.b
 			_hp = a.lerp(c, e).lerp(c.lerp(b, e), e)
 			_hd = _arco(g.da, g.dm, g.db, e); _hn = ng
-			if u > 0.3: _tranco = _tranco.lerp(g.tranco, 0.45)
-			_giro = lerp(_giro, float(g.get("giro", 0.0)), 0.35)
-		2:   # seguir: a lâmina ainda anda um pouco depois do corte
+			# o corpo vai junto: câmera avança e gira com a lâmina
+			_tranco = _tranco.lerp(g.tranco * Vector3(0.6, 0.8, 1.0) * e, 0.35)
+			_giro = lerp(_giro, float(g.get("giro", 0.0)) * e * 1.4, 0.35)
+			if _t_acao + delta >= dur and congelar < 0.0: impacto(0.07 if _acao != "forte" else 0.12)
+		2:   # seguir: o embalo leva a lâmina além do corte e ela para devagar (peso)
 			var b: Vector3 = g.b; var c: Vector3 = g.c
-			_hp = b + (b - c).normalized() * 0.04 * u
-			_hd = g.db.normalized().slerp(_arco(g.da, g.dm, g.db, 1.0), 0.0); _hn = ng
+			var e := 1.0 - pow(1.0 - u, 3.0)
+			_hp = b + (b - c).normalized() * 0.12 * e + Vector3(0, -0.06, 0) * e
+			_hd = g.db.normalized().rotated(ng, 0.25 * e); _hn = ng
+			_tranco = _tranco.lerp(g.tranco, 0.2)
 		3:   # volta: desce para baixo da tela e SOBE em pé até a guarda (como no vídeo de referência)
 			var baixo: Vector3 = base[0] + Vector3(0.02, -0.42, 0.06)
 			if u < 0.45:
@@ -322,6 +336,8 @@ func _physics_process(delta: float) -> void:
 		correr = controles.correndo(); bloquear = controles.bloqueando(); atacar = controles.atacando()
 	correr = correr and dir.y < -0.3 and not bloquear
 	var vel := VEL_CORRER if correr else (VEL * 0.55 if bloquear else VEL)
+	if GOLPES.has(_acao): vel *= 0.45                # atacando: o corpo pesa, anda devagar
+	correr = correr and not GOLPES.has(_acao)
 	var mov := transform.basis * Vector3(dir.x, 0, dir.y); mov.y = 0
 	velocity.x = mov.x * vel; velocity.z = mov.z * vel
 	if not is_on_floor(): velocity.y -= GRAV * delta
@@ -358,7 +374,9 @@ func _physics_process(delta: float) -> void:
 	_queda = lerp(_queda, 0.0, 1.0 - exp(-7.0 * delta))
 	_tranco = _tranco.lerp(Vector3.ZERO, 1.0 - exp(-10.0 * delta))
 	_giro = lerp(_giro, 0.0, 1.0 - exp(-6.0 * delta))
-	cam.position = Vector3(0, -abs(sin(_passo * 0.5)) * amp * 0.9 - _queda, -_tranco.z)
+	_tremor = max(0.0, _tremor - delta * 6.0)
+	var tr := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * _tremor * _tremor * 0.012
+	cam.position = Vector3(0, -abs(sin(_passo * 0.5)) * amp * 0.9 - _queda, -_tranco.z) + tr
 	cam.rotation = Vector3(deg_to_rad(_tranco.x), deg_to_rad(_giro), deg_to_rad(_tranco.y) + cos(_passo * 0.5) * amp * 0.25)
 	_rastro_atualizar(delta)
 	# braços: da mão até o ombro, fora da tela
