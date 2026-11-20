@@ -217,6 +217,7 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	var c := grama.lerp(Color(0.56, 0.62, 0.3), smoothstep(-0.2, 0.4, n))     # verde mais claro e amarelado
 	var f := floresta(x, z)
 	c = c.lerp(Color(0.3, 0.42, 0.2), f * 0.6)                                 # chão de mata mais escuro
+	c = c.lerp(Color(0.46, 0.33, 0.18), smoothstep(0.45, 0.8, f) * 0.75)     # mata fechada: chão de folhas caídas
 	var campo := campo_em(x, z)
 	if campo == 0: c = Color(0.82, 0.68, 0.3) * (0.95 + n * 0.1)
 	elif campo == 1:
@@ -242,6 +243,6 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	var campo := campo_em(x, z)
 	if campo == 1: return 0.0
 	if campo == 0: return 1.0
-	return 1.0 - floresta(x, z) * 0.6
+	return 1.0 - smoothstep(0.2, 0.75, floresta(x, z)) * 0.85          # na mata fechada quase não tem grama
 
 func dentro(x: float, z: float) -> bool: return abs(x) < LIM and abs(z) < LIM

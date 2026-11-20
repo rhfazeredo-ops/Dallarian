@@ -62,6 +62,11 @@ func pincel(rng: RandomNumberGenerator, x: float, z: float, h: float, ny: float)
 	var t: Color = tons[rng.randi() % tons.size()]
 	c = Color(c.r * t.r, c.g * t.g, c.b * t.b)
 	c *= 1.0 + clamp(_luz.get_noise_2d(x, z) * 0.8, -0.22, 0.16)
+	# mata fechada: o chão é coberto de folhas caídas (marrons, ocres, laranjas e algumas verdes)
+	var f: float = m.reg.floresta(x, z)
+	if f > 0.4 and rng.randf() < smoothstep(0.4, 0.8, f) * 0.9:
+		var folhas := [Color(0.5, 0.32, 0.16), Color(0.62, 0.42, 0.18), Color(0.72, 0.5, 0.2), Color(0.78, 0.38, 0.16), Color(0.42, 0.28, 0.16), Color(0.46, 0.5, 0.22)]
+		c = folhas[rng.randi() % folhas.size()] * (1.0 + clamp(_luz.get_noise_2d(x, z) * 0.8, -0.22, 0.16))
 	return c * rng.randf_range(0.93, 1.06)
 
 func _transf(p: Vector3, n: Vector3, sx: float, sz: float, ang: float) -> Transform3D:

@@ -9,7 +9,7 @@ class_name Floresta
 const PED := 64.0
 const VISTA := 300.0
 const COLIDE := 70.0
-const FOLHAS := 55.0     # até aqui as árvores ganham folhas de verdade (quadradinhos em tufos)
+const FOLHAS := 50.0     # até aqui as árvores ganham folhas de verdade (quadradinhos em tufos)
 var m
 var reg: Regiao
 var mats := {}
@@ -61,12 +61,12 @@ func _pedaco(k: Vector2i) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash([k.x, k.y, 99])
 	var o := Vector2(k.x * PED - Regiao.LIM, k.y * PED - Regiao.LIM)
 	var pinhos := []; var troncos := []; var mortas := []; var copas := []; var lista := []; var cv := []
-	var passo := 6.5
+	var passo := 5.2
 	for jj in int(PED / passo):
 		for ii in int(PED / passo):
 			var x := o.x + (ii + rng.randf()) * passo; var z := o.y + (jj + rng.randf()) * passo
 			var f := reg.floresta(x, z); var pnt := reg.zona_pantano(z)
-			var prob := f * 0.85 + 0.025
+			var prob := f * 0.95 + 0.02
 			if pnt > 0.5: prob = 0.06
 			if rng.randf() > prob: continue
 			if not reg.dentro(x, z) or reg.dist_estrada(x, z) < 5.0 or Vector2(x, z).length() < 45.0: continue
@@ -138,8 +138,8 @@ func _process(_d: float) -> void:
 		elif not perto and corpos.has(k) and centro.distance_to(p) > COLIDE + 30.0:
 			corpos[k].queue_free(); corpos.erase(k)
 
-# folhas de verdade de um pedaço: em cada árvore ~34 tufos pequenos (4 em volta da ponta de cada galho e 18
-# pela copa), cada tufo com 52 quadradinhos finos e pequenos virados para todos os lados, e um miolo escuro
+# folhas de verdade de um pedaço: em cada árvore 62 tufos pequenos (4 em volta da ponta de cada galho e 46
+# pela copa), cada tufo com 36 quadradinhos finos e pequenos virados para todos os lados, e um miolo escuro
 # de partículas por dentro (tapa os buracos: a copa parece cheia)
 func _folhas(k: Vector2i) -> Node3D:
 	var lista: Array = carvalhos[k]
@@ -155,7 +155,7 @@ func _folhas(k: Vector2i) -> Node3D:
 			var ponta: Vector3 = tt * pt + Vector3(0, 0.2 * s, 0)
 			for e in 4: centros.append(ponta + Vector3(rng.randfn(0, 0.5), rng.randfn(0, 0.32), rng.randfn(0, 0.5)) * s)
 		var meio := tt.origin + Vector3(0, 4.8 * s, 0)
-		for e in 18:
+		for e in 46:
 			var d := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.6), rng.randfn(0, 1)).normalized() * pow(rng.randf(), 0.45)
 			centros.append(meio + d * Vector3(1.9, 1.2, 1.9) * s)
 		for e in 12:
@@ -164,7 +164,7 @@ func _folhas(k: Vector2i) -> Node3D:
 		for c in centros:
 			var raio := rng.randf_range(0.45, 0.7) * s
 			var ctom: Color = tom * rng.randf_range(0.85, 1.12)
-			for f in 52:
+			for f in 36:
 				var dir := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.75), rng.randfn(0, 1)).normalized()
 				var r := pow(rng.randf(), 0.55)
 				var pos: Vector3 = c + dir * r * raio
