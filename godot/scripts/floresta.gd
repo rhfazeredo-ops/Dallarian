@@ -3,7 +3,8 @@
 #  - a copa é feita de ~25 retângulos planos ("cartões") cruzados em ângulos diferentes, cada um com o desenho
 #    de um galho com cachos de folhas (formato de folha de verdade) e fundo transparente, gerado aqui;
 #  - pinheiros: andares de cartões de agulhas caídos para baixo em volta do tronco;
-#  - arbustos: 5 cartões cruzados.
+#  - arbustos: 5 cartões cruzados (verde, com flores/frutinhas e samambaias na mata);
+#  - taboas e juncos na beira do rio e do lago (cartões altos com folhas compridas e a espiga marrom).
 # A mesma árvore serve de perto e de longe (não precisa trocar), poucas centenas de triângulos cada.
 # Árvores em pedaços de 128 m (MultiMesh por tipo), desenhadas até ~320 m. Colisão só perto do jogador.
 extends Node3D
@@ -28,6 +29,11 @@ func montar(mundo) -> void:
 		"folhagem2": _material(_tex_folhagem(192, 21)),
 		"agulhas": _material(_tex_agulhas(128, 80, 12)),
 		"arbusto": _material(_tex_folhagem(128, 13, true)),
+		"flor_a": _material(_tex_florido(17, [Color(0.95, 0.95, 0.88), Color(1.0, 0.86, 0.35)])),     # flores brancas/amarelas
+		"flor_b": _material(_tex_florido(23, [Color(0.78, 0.12, 0.12), Color(0.55, 0.08, 0.15)])),    # frutinhas vermelhas
+		"flor_c": _material(_tex_florido(29, [Color(0.72, 0.5, 0.88), Color(0.9, 0.62, 0.8)])),       # flores lilás
+		"samambaia": _material(_tex_samambaia(96, 160, 31)),
+		"junco": _material(_tex_junco(128, 192, 37)),
 	}
 	if OS.get_cmdline_user_args().has("--desenhos"):
 		for k in _mat_cartao.keys():
@@ -39,10 +45,16 @@ func montar(mundo) -> void:
 		"copa_d": [null, _cartoes_copa(6, "folhagem2")],
 		"pinho": [_tronco_pinho(), _cartoes_pinho(3)],
 		"arbusto": [null, _cartoes_arbusto(4)],
+		"flor_a": [null, _cartoes_arbusto(7, "flor_a")],
+		"flor_b": [null, _cartoes_arbusto(8, "flor_b")],
+		"flor_c": [null, _cartoes_arbusto(9, "flor_c")],
+		"samambaia": [null, _cartoes_samambaia(10)],
 		"morta": [_tronco_copa(Color(0.55, 0.52, 0.48)), null],
 	}
 	var n := int(ceil(2.0 * Regiao.LIM / PED))
 	for j in n: for i in n: _pedaco(Vector2i(i, j))
+	_beira_agua()
+	_jardins()
 
 func _material(t: ImageTexture) -> ShaderMaterial:
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/cartao.gdshader")
@@ -258,7 +270,7 @@ func _galho_pinho(st: SurfaceTool, base: Vector3, fora: Vector3, lado: Vector3, 
 			for k in [0, 1, 2, 0, 2, 3]:
 				st.set_normal(n); st.set_color(Color(tom, tom, tom)); st.set_uv(uvs[k]); st.add_vertex(vs[k])
 
-func _cartoes_arbusto(seed: int) -> ArrayMesh:
+func _cartoes_arbusto(seed: int, mat := "arbusto") -> ArrayMesh:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for k in 5:
@@ -267,8 +279,151 @@ func _cartoes_arbusto(seed: int) -> ArrayMesh:
 		var cima := Vector3(0, 1, 0).rotated(lado, rng.randf_range(-0.35, 0.35))
 		_cartao(st, Vector3(0, 0.5, 0), lado, cima, Vector2(0.75, 0.62), rng.randf_range(0.85, 1.05))
 	_cartao(st, Vector3(0, 0.75, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(0.6, 0.6), 1.05)   # tampa de cima
-	var mesh := ArrayMesh.new(); st.set_material(_mat_cartao["arbusto"]); st.commit(mesh)
+	var mesh := ArrayMesh.new(); st.set_material(_mat_cartao[mat]); st.commit(mesh)
 	return mesh
+
+# samambaia: 7 folhas (frondes) saindo do centro e caindo para fora
+func _cartoes_samambaia(seed: int) -> ArrayMesh:
+	var rng := RandomNumberGenerator.new(); rng.seed = seed
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in 7:
+		var ang := TAU * k / 7.0 + rng.randf_range(-0.25, 0.25)
+		var fora := Vector3(cos(ang), 0, sin(ang))
+		var sobe := (fora * rng.randf_range(0.6, 1.0) + Vector3.UP).normalized()
+		_cartao(st, fora * 0.3 + Vector3(0, 0.36, 0), fora.cross(Vector3.UP), sobe, Vector2(0.24, 0.45), rng.randf_range(0.85, 1.05))
+	var mesh := ArrayMesh.new(); st.set_material(_mat_cartao["samambaia"]); st.commit(mesh)
+	return mesh
+
+# touceira de taboa/junco: 4 cartões altos cruzados (1,6 m)
+func _cartoes_junco(seed: int) -> ArrayMesh:
+	var rng := RandomNumberGenerator.new(); rng.seed = seed
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in 4:
+		var ang := PI * k / 4.0 + rng.randf_range(-0.2, 0.2)
+		var lado := Vector3(cos(ang), 0, sin(ang))
+		_cartao(st, Vector3(rng.randf_range(-0.15, 0.15), 0.8, rng.randf_range(-0.15, 0.15)), lado, Vector3.UP, Vector2(0.55, 0.8), 1.0)
+	var mesh := ArrayMesh.new(); st.set_material(_mat_cartao["junco"]); st.commit(mesh)
+	return mesh
+
+# ---------- desenhos novos (estes já vêm coloridos: a cor da instância só varia o tom) ----------
+func _pix(im: Image, x: int, y: int, c: Color) -> void:
+	if x >= 0 and y >= 0 and x < im.get_width() and y < im.get_height(): im.set_pixel(x, y, Color(c.r, c.g, c.b, 1.0))
+
+# arbusto com flores ou frutinhas: a folhagem redonda pintada de verde + pontinhos coloridos por cima
+func _tex_florido(seed: int, cores: Array) -> ImageTexture:
+	var base: Image = _tex_folhagem(128, seed, true).get_image()
+	var im := Image.create(128, 128, true, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
+	var rng := RandomNumberGenerator.new(); rng.seed = seed * 7
+	for y in 128:
+		for x in 128:
+			var c := base.get_pixel(x, y)
+			if c.a > 0.5: im.set_pixel(x, y, Color(c.r * 0.42, c.r * 0.62, c.r * 0.24, 1.0))
+	for k in 160:
+		var x := rng.randi_range(4, 122); var y := rng.randi_range(4, 105)
+		if base.get_pixel(x, y).a < 0.5: continue
+		var c: Color = cores[rng.randi() % cores.size()] * rng.randf_range(0.85, 1.1)
+		for dy in 3: for dx in 3: if not (dx != 1 and dy != 1): _pix(im, x + dx, y + dy, c * (0.8 if dy == 2 else 1.0))
+	im.generate_mipmaps()
+	return ImageTexture.create_from_image(im)
+
+# fronde de samambaia (em pé no cartão): talo do meio curvado e folhinhas dos dois lados, menores na ponta
+func _tex_samambaia(w: int, h: int, seed: int) -> ImageTexture:
+	var rng := RandomNumberGenerator.new(); rng.seed = seed
+	var im := Image.create(w, h, true, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
+	var pts := []
+	for i in 41:
+		var u := i / 40.0
+		pts.append(Vector2(w * 0.5 + sin(u * 2.2) * w * 0.12, h * (0.98 - u * 0.94)))
+	for i in range(2, pts.size() - 1):
+		var u := float(i) / pts.size()
+		var p: Vector2 = pts[i]; var d: Vector2 = (pts[i + 1] - p).normalized()
+		var comp := w * 0.36 * (1.0 - u) * (0.6 + 0.4 * sin(u * PI)) + 3.0
+		for lado in [-1.0, 1.0]:
+			if i % 2 == 0:
+				var dir := d.rotated(lado * 1.15)
+				_folha(im, p + dir * comp * 0.5, dir.angle(), comp * 0.5, 2.6, 0.62 + 0.3 * u + rng.randf_range(-0.06, 0.06))
+	for i in pts.size() - 1: _traco(im, pts[i], pts[i + 1], 2.0, 0.45)
+	im.generate_mipmaps()
+	return ImageTexture.create_from_image(im)
+
+# taboas e juncos: folhas compridas e finas que curvam no alto, algumas com a espiga marrom
+func _tex_junco(w: int, h: int, seed: int) -> ImageTexture:
+	var rng := RandomNumberGenerator.new(); rng.seed = seed
+	var im := Image.create(w, h, true, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
+	for i in 30:
+		var x0 := rng.randf_range(6, w - 6); var topo := rng.randf_range(h * 0.08, h * 0.5)
+		var curva := rng.randf_range(-16, 16)
+		var cor := Color(0.32, 0.52, 0.2).lerp(Color(0.6, 0.66, 0.3), rng.randf()) * rng.randf_range(0.8, 1.1)
+		var larg := rng.randi_range(2, 3)
+		for y in range(int(topo), h):
+			var u := (y - topo) / (h - topo)
+			var x := x0 + curva * pow(1.0 - u, 2.0)
+			var ww: int = max(1, int(larg * (0.35 + u * 0.65) + 0.5))
+			for dx in ww: _pix(im, int(x) + dx, y, cor * (0.75 + 0.3 * (1.0 - u)) * (1.1 if dx == 0 else 0.9))
+	for i in 6:                                   # taboas: talo reto e a espiga marrom
+		var x := int(rng.randf_range(10, w - 10)); var topo := int(rng.randf_range(h * 0.04, h * 0.2))
+		for y in range(topo, h): _pix(im, x, y, Color(0.34, 0.46, 0.2))
+		for y in range(topo - 6, topo): _pix(im, x, y, Color(0.5, 0.45, 0.3))
+		for y in range(topo + 3, topo + 19):
+			for dx in range(-2, 3): _pix(im, x + dx, y, Color(0.42, 0.26, 0.14) * (1.15 if dx < 0 else 0.85))
+	im.generate_mipmaps()
+	return ImageTexture.create_from_image(im)
+
+# ---------- beira d'água: taboas e juncos em touceiras ao longo do rio e em volta do lago ----------
+func _beira_agua() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 555
+	var junco := _cartoes_junco(41)
+	var por_ped := {}                 # Vector2i → itens
+	var pontos := []                  # [posição, meia largura da água]
+	for i in reg.rio.size() - 1:
+		var a: Vector2 = reg.rio[i]; var b: Vector2 = reg.rio[i + 1]
+		var n := int(a.distance_to(b) / 1.3)
+		for k in n:
+			var u := float(k) / n; var p := a.lerp(b, u)
+			var t := (float(i) + u) / (reg.rio.size() - 1)
+			var nrm := Vector2(-(b - a).normalized().y, (b - a).normalized().x)
+			for lado in [-1.0, 1.0]: pontos.append([p, nrm * lado, reg.largura_rio(t) * 0.5])
+	var lc := Vector2(Regiao.LAGO.x, Regiao.LAGO.y)
+	for k in 300:
+		var a := TAU * k / 300.0; var d := Vector2(cos(a), sin(a))
+		pontos.append([lc, d, Regiao.LAGO.z])
+		pontos.append([lc, d, Regiao.ILHA.z + 1.0])       # beira da ilha também
+	for pt in pontos:
+		var c: Vector2 = pt[0]; var d: Vector2 = pt[1]; var meia: float = pt[2]
+		# touceiras com falhas (ruído): umas partes cheias, outras com margem limpa
+		var q0 := c + d * meia
+		if reg.ruido.get_noise_2d(q0.x * 1.7, q0.y * 1.7) < -0.12 or rng.randf() < 0.25: continue
+		for e in rng.randi_range(1, 2):
+			var q := c + d * (meia + rng.randf_range(-0.3, 2.2)) + Vector2(rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6))
+			if reg.dist_estrada(q.x, q.y) < 5.0 or m.perto_de_lugar(q.x, q.y, 1.0) or not reg.dentro(q.x, q.y): continue
+			var h := reg.altura(q.x, q.y)
+			var s := rng.randf_range(0.7, 1.25)
+			var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.85, 1.2), s)), Vector3(q.x, h - 0.1, q.y))
+			var kk := Vector2i(int((q.x + Regiao.LIM) / PED), int((q.y + Regiao.LIM) / PED))
+			if not por_ped.has(kk): por_ped[kk] = []
+			por_ped[kk].append([t, Color(1, 1, 1) * rng.randf_range(0.85, 1.08)])
+	for kk in por_ped.keys():
+		var mi := _mm(junco, por_ped[kk], true); mi.visibility_range_end = 200.0; add_child(mi)
+
+# arbustos floridos e moitas perto das casas (jardins), sem encostar na rua
+func _jardins() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 808
+	var itens := {"flor_a": [], "flor_b": [], "flor_c": [], "arbusto": []}
+	for c in m.casas:
+		if rng.randf() < 0.35: continue
+		var p: Vector3 = c[0]; var ang: float = c[1]; var w: float = c[2]; var dd: float = c[3]
+		for k in rng.randi_range(1, 3):
+			var lado := 1.0 if rng.randf() < 0.5 else -1.0
+			var loc := Vector2(lado * (w * 0.5 + rng.randf_range(0.7, 1.2)), rng.randf_range(-dd * 0.45, dd * 0.45))
+			if rng.randf() < 0.4: loc = Vector2(rng.randf_range(-w * 0.45, w * 0.45), -(dd * 0.5 + rng.randf_range(0.7, 1.1)))   # fundos
+			var q := Vector2(p.x, p.z) + loc.rotated(-ang)
+			if reg.folga_caminho(q.x, q.y) < 0.6 or m.perto_de_casa(q.x, q.y, 0.3): continue
+			var nome: String = ["flor_a", "flor_b", "flor_c", "arbusto"][rng.randi() % 4]
+			var s := rng.randf_range(0.95, 1.4)
+			var cor := Color(1, 1, 1) * rng.randf_range(0.9, 1.08) if nome != "arbusto" else _verde(rng, 0.0)
+			itens[nome].append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(q.x, reg.altura(q.x, q.y) - 0.05, q.y)), cor])
+	for nome in itens.keys():
+		if not itens[nome].is_empty(): add_child(_mm(malhas[nome][1], itens[nome], true))
 
 # ---------- distribuição ----------
 func _pedaco(k: Vector2i) -> void:
@@ -287,7 +442,7 @@ func _pedaco(k: Vector2i) -> void:
 			var arbusto := false
 			if rng.randf() > prob:
 				# arbustos: na beira da mata e espalhados pelo campo
-				if rng.randf() < 0.05 + smoothstep(0.1, 0.5, f) * 0.25: arbusto = true
+				if rng.randf() < 0.08 + smoothstep(0.1, 0.5, f) * 0.35: arbusto = true
 				else: continue
 			if not reg.dentro(x, z) or reg.dist_estrada(x, z) < (3.0 if arbusto else 5.0) or Vector2(x, z).length() < (30.0 if arbusto else 45.0): continue
 			if reg.campo_em(x, z) >= 0 or reg.dist_rio(x, z) < (9.0 if arbusto else 12.0): continue
@@ -297,8 +452,12 @@ func _pedaco(k: Vector2i) -> void:
 			if m.perto_de_lugar(x, z, 4.0 if arbusto else 8.0): continue
 			var giro := Basis(Vector3.UP, rng.randf() * TAU)
 			if arbusto:
-				var s := rng.randf_range(0.7, 1.5)
-				grupos["arbusto"].append([Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(0.8, 1.2), s)), Vector3(x, h - 0.05, z)), _verde(rng, f) * 0.9])
+				var s := rng.randf_range(0.95, 1.8)
+				var tipo := "arbusto"; var cor := _verde(rng, f) * 0.9
+				var r := rng.randf()
+				if f > 0.45 and r < 0.45: tipo = "samambaia"; s *= 1.1
+				elif r < 0.2: tipo = ["flor_a", "flor_b", "flor_c"][rng.randi() % 3]; cor = Color(1, 1, 1) * rng.randf_range(0.88, 1.06)
+				grupos[tipo].append([Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(0.8, 1.2), s)), Vector3(x, h - 0.05, z)), cor])
 				continue
 			var sorteio := rng.randf()
 			var s := rng.randf_range(0.42, 0.65) if sorteio < 0.15 else (rng.randf_range(0.7, 1.25) if sorteio < 0.8 else rng.randf_range(1.4, 2.1))

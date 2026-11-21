@@ -1234,11 +1234,16 @@ func _modo_teste() -> void:
 					controles._seg["atacar"] = true; await get_tree().create_timer(0.12).timeout; controles._seg["atacar"] = false
 				await get_tree().create_timer(0.9).timeout
 				print("t=%d alerta=%s atac=%s " % [t, g.alerta, g.atacante != null], g.membros.map(func(l): return "%s %.1f" % [l.estado, Vector2(l.global_position.x - jogador.global_position.x, l.global_position.z - jogador.global_position.z).length()] if is_instance_valid(l) else "-"))
+	if args.has("casa"):           # teste: olha uma casa de lado, a 8 m (--casa=N)
+		var c: Array = casas[int(args.casa) % casas.size()]
+		var cp := Vector2(c[0].x, c[0].z); var pj := cp + Vector2(c[2] * 0.5 + 8.0, 2.0).rotated(-c[1])
+		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y); _ultima = jogador.global_position
+		var dl := cp - pj; jogador.rotation.y = atan2(-dl.x, -dl.y)
 	if args.has("rio"):            # teste: na beira do rio olhando a água (--rio=metros ao longo do rio)
 		var r: Array = fauna._no_rio(float(args.rio))
 		var nrm := Vector2(-r[1].y, r[1].x); var pj: Vector2 = r[0] + nrm * (reg.largura_rio(r[2]) * 0.5 + 1.5)
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y); _ultima = jogador.global_position
-		var dl: Vector2 = r[0] - pj; jogador.rotation.y = atan2(-dl.x, -dl.y); jogador.pescoco.rotation.x = -0.45
+		var dl: Vector2 = r[0] - pj; jogador.rotation.y = atan2(-dl.x, -dl.y) + float(args.get("giro", "0")); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.45"))
 		jogador.set_physics_process(false); jogador.mao.visible = false
 	if args.has("ceu"):            # teste: olhando para cima (pássaros)
 		jogador.pescoco.rotation.x = 0.45; jogador.set_physics_process(false); jogador.mao.visible = false

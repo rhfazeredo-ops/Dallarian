@@ -87,6 +87,9 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 ## 7.1.1b Vida no mundo
 - **Peixes** no rio e no lago (silhuetas escuras embaixo d'água): um grande e lento sozinho, ou cardumes de 4 a 6
   pequenos e rápidos que dão arrancadas (às vezes um pequeno sozinho).
+- **Vegetação extra:** arbustos verdes, com flores brancas/amarelas, lilás ou frutinhas vermelhas (no campo, na
+  beira da mata e nos jardins das casas), samambaias dentro da mata e **taboas/juncos** em touceiras na beira do
+  rio, do lago e da ilha.
 - **Pássaros** grandes voando alto (26–40 m), sozinhos, em dupla ou em trio em V; batem as asas e planam.
 
 ## 7.1.2 Inimigos: lobos
