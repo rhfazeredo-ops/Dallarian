@@ -7,8 +7,8 @@ uniform int modo = 0;
 uniform float velocidade = 1.0;
 uniform float forca = 1.0;
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
-uniform float neb_ini = 40.0;
-uniform float neb_fim = 270.0;
+global uniform float neb_ini;
+global uniform float neb_fim;
 global uniform vec3 luz_ambiente;
 varying vec3 wpos;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }

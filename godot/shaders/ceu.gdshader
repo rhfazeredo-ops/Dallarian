@@ -8,7 +8,8 @@ uniform vec3 nuvem_clara : source_color = vec3(1.0, 1.0, 1.0);
 uniform vec3 nuvem_base : source_color = vec3(0.82, 0.87, 0.96);
 uniform vec3 dir_sol = vec3(0.45, 0.6, 0.35);
 global uniform float relampago;
-global uniform float chuva;         // 0 = tempo bom, 1 = chovendo
+global uniform float chuva;
+global uniform float neblina_ceu;   // distância de visão curta: o horizonte some na névoa branca         // 0 = tempo bom, 1 = chovendo
 global uniform float noite;          // 0 = dia, 1 = noite
 global uniform vec3 luz_ambiente;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -47,5 +48,7 @@ void sky() {
   c = mix(c, mix(c, vec3(1.0, 0.95, 0.8), 0.35), step(0.992, s));
   c = mix(c, vec3(1.0, 0.98, 0.88), step(0.9985, s));
   c = mix(c, vec3(0.9, 0.9, 1.0), relampago * 0.6);
+  vec3 nevoa = vec3(0.74, 0.83, 0.94) * luz_ambiente;
+  c = mix(c, nevoa, neblina_ceu * (1.0 - smoothstep(0.0, 0.32, y)));
   COLOR = c;
 }

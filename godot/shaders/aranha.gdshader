@@ -10,8 +10,8 @@ uniform vec2 grade = vec2(320.0, 180.0);
 uniform vec3 sol = vec3(0.45, 0.6, 0.35);
 uniform vec3 luz_sol : source_color = vec3(0.95, 0.88, 0.72);
 uniform vec3 luz_amb : source_color = vec3(0.5, 0.54, 0.64);
-uniform float neb_ini = 40.0;
-uniform float neb_fim = 270.0;
+global uniform float neb_ini;
+global uniform float neb_fim;
 uniform float fase = 0.0;          // passo
 uniform float anda = 0.0;          // 0..1
 uniform float ataque = 0.0;        // 0..1: patas da frente levantadas

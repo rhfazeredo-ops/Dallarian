@@ -169,7 +169,7 @@ func _desenhar_aviso_golpe() -> void:
 	var p := cam.unproject_position(topo) * escala_3d
 	var w := 300.0 if pancada else 220.0; var h := 24.0 if pancada else 18.0
 	var r := Rect2(p.x - w * 0.5, p.y - h, w, h)
-	var cor := Color(1.0, 0.18, 0.1) if pancada else Color(1.0, 0.7, 0.15)
+	var cor := Color(0.2, 1.0, 0.25) if pancada else Color(0.55, 0.95, 0.3)       # verde carregando
 	if f >= 1.0: cor = Color(1, 1, 1)
 	draw_rect(r.grow(4), Color(0, 0, 0, 0.85))
 	draw_rect(r, Color(0.15, 0.05, 0.03, 0.9))

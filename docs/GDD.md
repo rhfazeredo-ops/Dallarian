@@ -124,9 +124,9 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
   para cima. Drop: presa de aranha-musgo (40%).
 - **Lodosos**: 9 grupos de 3 (um grande nível 3–4 e dois jovens nível 2–3) na beira do rio, do lago e da praia, com
   acampamento (cabaninha de juncos, varal de peixes, fogueirinha). Lança de osso de peixe, estocada. Drop: escama (40%).
-- **Chefe: Grumo, o Guardião do Vale** (golem de terra, 4 m, nível 8): dá a volta no mapa inteiro, longe da vila,
-  sem parar; o chão treme perto dele. Soco e PANCADA com as duas mãos no chão (dano em área de 5,5 m, mais forte
-  perto). Barra do golpe em cima da cabeça (enche até o instante do golpe) e barra de vida grande no alto da tela.
+- **Chefe: Grumo, o Guardião do Vale** (golem de terra, 9 m — do tamanho das árvores, nível 8): dá a volta no mapa inteiro, longe da vila,
+  sem parar; o chão treme perto dele. Soco e PANCADA com as duas mãos no chão (dano em área de 9 m, mais forte
+  perto). Barra verde do golpe em cima da cabeça (enche até o instante do golpe) e barra de vida grande no alto da tela.
   Drops: Coração de barro do Grumo (sempre), dinheiro, chance de espada de ferro e bolsa de 16.
 
 ## 7.1.3 Progresso, dinheiro e loja
@@ -164,6 +164,10 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 
 - **Mapa** (botão ao lado do inventário; PC: tecla M): o vale inteiro desenhado a partir do terreno, sem lugares marcados
   (eles só aparecem na bússola); a Rachel é uma setinha dourada apontando para onde olha.
+
+- **Menu** (botão no canto de cima à esquerda; PC: Esc): CONTINUAR e CONFIGURAÇÕES → Gráfico → **distância de visão**
+  (60 m até "Tudo"); o resto some numa névoa branca e o jogo fica mais leve. Salvo no aparelho. Monstros novos
+  (aranhas, Lodosos) só a partir de ~160 m da vila.
 
 ## 8. Primeiros passos de produção
 1. Base jogável: câmera em primeira pessoa, filtro PS1, chão e casas low poly, grama e árvores em splats,

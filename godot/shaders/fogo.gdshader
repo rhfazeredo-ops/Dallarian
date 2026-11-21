@@ -4,8 +4,8 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled, shadows_disabled;
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
-uniform float neb_ini = 40.0;
-uniform float neb_fim = 270.0;
+global uniform float neb_ini;
+global uniform float neb_fim;
 uniform float pixels = 16.0;
 varying float nb;
 varying float fase;

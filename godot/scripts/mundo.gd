@@ -65,6 +65,7 @@ func _ready() -> void:
 	inventario = Inventario.new(); cl.add_child(inventario); inventario.montar(self)
 	loja_ui = Loja.new(); cl.add_child(loja_ui); loja_ui.montar(self)
 	mapa = Mapa.new(); cl.add_child(mapa); mapa.montar(self)
+	menu = Menu.new(); cl.add_child(menu); menu.montar(self)
 	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
 	var bus := Bussola.new(); cl.add_child(bus)
 	bus.descobriu.connect(func(_n): hud.ganhar_xp(roundf(40.0 + 20.0 * hud.nivel)))      # descobrir um local dá XP
@@ -127,6 +128,7 @@ var interacao: Interacao
 var inventario: Inventario
 var loja_ui: Loja
 var mapa: Mapa
+var menu: Menu
 func _lobos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
@@ -261,7 +263,7 @@ func _aranhas() -> void:
 	for i in 5000:
 		if feitos.size() >= 14: break
 		var q := Vector2(rng.randf_range(-540, 540), rng.randf_range(-540, 540))
-		if q.length() < 140.0 or reg.floresta(q.x, q.y) < 0.6 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if q.length() < 170.0 or reg.floresta(q.x, q.y) < 0.6 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if perto_de_lugar(q.x, q.y, 25.0) or reg.altura(q.x, q.y) - reg.base(q.y) > 6.0: continue
 		var ok := true
 		for f in feitos: if q.distance_to(f) < 90.0: ok = false
@@ -295,7 +297,7 @@ func _lodosos() -> void:
 	var feitos: Array[Vector2] = []
 	for q in cands:
 		if feitos.size() >= 9: break
-		if q.length() < 110.0 or reg.dist_estrada(q.x, q.y) < 12.0 or perto_de_lugar(q.x, q.y, 18.0) or perto_de_casa(q.x, q.y, 10.0): continue
+		if q.length() < 160.0 or reg.dist_estrada(q.x, q.y) < 12.0 or perto_de_lugar(q.x, q.y, 18.0) or perto_de_casa(q.x, q.y, 10.0): continue
 		if reg.agua(q.x, q.y) != 0.0 and altura(q.x, q.y) < reg.agua(q.x, q.y): continue
 		var ok := true
 		for f in feitos: if q.distance_to(f) < 70.0: ok = false
@@ -1750,8 +1752,11 @@ func _modo_teste() -> void:
 				P.get_monitor(P.RENDER_TOTAL_PRIMITIVES_IN_FRAME), P.get_monitor(P.TIME_PROCESS) * 1000.0,
 				P.get_monitor(P.TIME_PHYSICS_PROCESS) * 1000.0, P.get_monitor(P.OBJECT_NODE_COUNT)]))
 	if args.has("mapa"): get_tree().create_timer(1.5).timeout.connect(func(): mapa.alternar())
+	if args.has("vista"): menu.aplicar_distancia(float(args.vista))
+	if args.has("menu"): get_tree().create_timer(1.5).timeout.connect(func(): menu._abrir_config() if args.menu == "config" else menu._abrir_principal())
 	if args.has("monstro"):        # teste: um monstro parado na frente da câmera numa animação (--monstro=golem --manim=soco:0.6)
 		var pj := Vector2(-30, 62); var tp: String = args.monstro
+		if args.has("mpos"): var mp := String(args.mpos).split(","); pj = Vector2(float(mp[0]), float(mp[1]))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y + float(args.get("dist", "6")))
 		jogador.rotation.y = 0.0; jogador.mao.visible = false; jogador.set_physics_process(false)
 		jogador.pescoco.rotation.x = float(args.get("inclina", "0"))

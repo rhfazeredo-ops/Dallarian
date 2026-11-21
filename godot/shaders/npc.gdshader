@@ -17,8 +17,8 @@ uniform vec3 sol = vec3(0.45, 0.6, 0.35);
 uniform vec3 luz_sol : source_color = vec3(0.95, 0.88, 0.72);
 uniform vec3 luz_amb : source_color = vec3(0.5, 0.54, 0.64);
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
-uniform float neb_ini = 40.0;
-uniform float neb_fim = 270.0;
+global uniform float neb_ini;
+global uniform float neb_fim;
 varying vec3 luz;
 varying vec2 regiao;     // COLOR.r = cabeça, COLOR.g = mãos (pelo peso dos ossos)
 varying float nb;

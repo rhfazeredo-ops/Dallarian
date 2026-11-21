@@ -20,6 +20,18 @@ textures/vram_compression/import_etc2_astc=true
 textures/canvas_textures/default_texture_filter=0
 
 [shader_globals]
+neb_ini={
+"type": "float",
+"value": 40.0
+}
+neb_fim={
+"type": "float",
+"value": 270.0
+}
+neblina_ceu={
+"type": "float",
+"value": 0.0
+}
 luz_ambiente={
 "type": "vec3",
 "value": Vector3(1, 1, 1)

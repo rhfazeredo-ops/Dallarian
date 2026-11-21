@@ -11,8 +11,8 @@ const TIPOS := {
 		"dano": Vector2(2.5, 4.5), "dano_nv": 1.5, "andar": 1.3, "correr": 4.6, "alcance": 2.6, "xp": 1.0, "lanca": true},
 	"lodoso_j": {"arq": "res://assets/modelos/lodoso_jovem.glb", "alt": 0.95, "vida": 24.0, "vida_nv": 10.0,
 		"dano": Vector2(1.5, 3.0), "dano_nv": 1.2, "andar": 1.5, "correr": 5.0, "alcance": 2.3, "xp": 0.8, "lanca": true},
-	"golem": {"arq": "res://assets/modelos/golem.glb", "alt": 4.0, "vida": 420.0, "vida_nv": 60.0,
-		"dano": Vector2(14.0, 20.0), "dano_nv": 2.0, "andar": 1.6, "correr": 3.6, "alcance": 3.6, "xp": 4.0, "lanca": false},
+	"golem": {"arq": "res://assets/modelos/golem.glb", "alt": 9.0, "vida": 520.0, "vida_nv": 70.0,
+		"dano": Vector2(14.0, 20.0), "dano_nv": 2.0, "andar": 2.2, "correr": 4.4, "alcance": 6.0, "xp": 4.0, "lanca": false},
 }
 const OSSOS := ["Hip", "Spine01", "Spine02", "L_Thigh", "R_Thigh", "L_Calf", "R_Calf", "L_Upperarm", "R_Upperarm",
 	"L_Forearm", "R_Forearm", "Head"]
@@ -145,7 +145,7 @@ func _physics_process(delta: float) -> void:
 			if _t > 7.0: visual.position.y -= delta * 0.3
 			if _t > 10.0: queue_free()
 			_animar(delta, 0.0); return
-	var raio_ver := 18.0 if tipo != "golem" else 22.0
+	var raio_ver := 18.0 if tipo != "golem" else 30.0
 	if not grupo.alerta and (estado == "vagar" or estado == "parado") and dist < raio_ver and not m.heroina_desmaiada:
 		grupo.alerta = true
 		if tipo != "golem": m.hud.numero(global_position + Vector3(0, k * 1.1, 0), "!", Color(1, 0.3, 0.2), 60)
@@ -165,8 +165,8 @@ func _physics_process(delta: float) -> void:
 	if (foco - p).length() > 0.05:
 		var dl := foco - p
 		rotation.y = lerp_angle(rotation.y, atan2(-dl.x, -dl.y), 1.0 - exp(-(3.0 if tipo == "golem" else 8.0) * delta))
-	if tipo == "golem" and estado == "vagar" and dist < 30.0:      # o chão treme com os passos
-		m.jogador._tranco += Vector3(sin(_fase * 2.0) * 0.15 * (1.0 - dist / 30.0), 0, 0)
+	if tipo == "golem" and estado == "vagar" and dist < 45.0:      # o chão treme com os passos
+		m.jogador._tranco += Vector3(sin(_fase * 2.0) * 0.25 * (1.0 - dist / 45.0), 0, 0)
 	_anim_acum += delta; _anim_q += 1
 	var passo := 1 if dist < 30.0 else (2 if dist < 60.0 else 4)
 	if _anim_q % passo == 0:
@@ -175,7 +175,7 @@ func _physics_process(delta: float) -> void:
 
 func _atacar(dist: float) -> void:
 	_acertou = false
-	if tipo == "golem": _golpe = "pancada" if (rng.randf() < 0.4 or dist < 2.2) else "soco"
+	if tipo == "golem": _golpe = "pancada" if (rng.randf() < 0.4 or dist < 3.5) else "soco"
 	else: _golpe = "estocada"
 	_mudar("atacar")
 
@@ -193,9 +193,9 @@ func _tocar_golpe(ppj: Vector2, dist: float) -> void:
 		var p := Vector2(global_position.x, global_position.z)
 		var fr := Vector2(-sin(rotation.y), -cos(rotation.y))
 		if _golpe == "pancada":
-			m.pancada_no_chao(global_position + Vector3(fr.x, 0, fr.y) * k * 0.4, 5.5)
-			if dist < 5.5:
-				var dano := _dano() * (2.2 - dist / 5.5)
+			m.pancada_no_chao(global_position + Vector3(fr.x, 0, fr.y) * k * 0.4, 9.0)
+			if dist < 9.0:
+				var dano := _dano() * (2.2 - dist / 9.0)
 				m.ferir_heroina(dano, global_position, nivel)
 		else:
 			var ok: bool = dist < cfg.alcance + 0.4 and fr.dot((ppj - p).normalized()) > 0.4
@@ -213,7 +213,7 @@ func heroina_atacou(_pos: Vector3, _frente: Vector3) -> void:
 func golpe_da_heroina(pos: Vector3, frente: Vector3, mult: float) -> bool:
 	if estado == "morto": return false
 	var d := Vector3(global_position.x - pos.x, 0, global_position.z - pos.z)
-	var alcance := 2.5 + (1.4 if tipo == "golem" else 0.0)
+	var alcance := 2.5 + (3.2 if tipo == "golem" else 0.0)
 	if d.length() > alcance or frente.dot(d.normalized()) < 0.3: return false
 	var r: Array = m.rolar_dano(mult)
 	vida -= r[0]; _flash = 1.0
