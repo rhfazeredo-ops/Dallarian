@@ -45,6 +45,7 @@ func _ready() -> void:
 	for f in _depois: f.call()        # cercas, muros e blocos: assentados na malha final do terreno
 	_agua_feita = false
 	_agua()
+	_espuma()
 	_juntar_estaticos()
 	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self)
 	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
@@ -891,6 +892,61 @@ func _agua() -> void:
 		var a0 := TAU * k / 40.0; var a1 := TAU * (k + 1) / 40.0
 		_tri(st, c, c + Vector3(cos(a1) * rl, 0, sin(a1) * rl), c + Vector3(cos(a0) * rl, 0, sin(a0) * rl), 1, 1)
 	_peca(st, am, Vector3.ZERO)
+
+# espuma nas beiradas: ondas na praia do mar, correnteza nas margens do rio, marolinhas no lago e na ilha
+func _espuma() -> void:
+	var faixa := func(pts_agua: Array, pts_margem: Array, ys: Array, modo: int, vel: float, forca: float) -> void:
+		var st := _st(); var dist := 0.0
+		for i in pts_agua.size() - 1:
+			var a0: Vector2 = pts_agua[i]; var a1: Vector2 = pts_agua[i + 1]
+			var m0: Vector2 = pts_margem[i]; var m1: Vector2 = pts_margem[i + 1]
+			var d1 := dist + m0.distance_to(m1)
+			var y0: float = ys[i]; var y1: float = ys[i + 1]
+			var v := [Vector3(a0.x, y0, a0.y), Vector3(a1.x, y1, a1.y), Vector3(m1.x, y1, m1.y), Vector3(m0.x, y0, m0.y)]
+			var uv := [Vector2(dist, 0), Vector2(d1, 0), Vector2(d1, 1), Vector2(dist, 1)]
+			for k in [0, 1, 2, 0, 2, 3]:
+				st.set_normal(Vector3.UP); st.set_uv(uv[k]); st.add_vertex(v[k])
+			dist = d1
+		var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/espuma.gdshader"); sm.render_priority = 1
+		sm.set_shader_parameter("modo", modo); sm.set_shader_parameter("velocidade", vel); sm.set_shader_parameter("forca", forca)
+		sm.set_shader_parameter("neblina", NEBLINA)
+		var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = sm; mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(mi)
+	# mar: acha a linha da praia (onde o chão desce abaixo do nível 0) de norte a sul, até o pântano
+	var agua := []; var margem := []; var ys := []
+	var z := -560.0
+	while z < 370.0:
+		var x := 380.0
+		while x < 600.0 and reg.altura(x, z) > 0.05: x += 1.0
+		if x < 600.0:
+			agua.append(Vector2(x + 16.0, z)); margem.append(Vector2(x - 1.2, z)); ys.append(0.05)
+		z += 4.0
+	if agua.size() > 1: faixa.call(agua, margem, ys, 0, 1.0, 1.0)
+	# rio: uma faixa por margem, a correnteza descendo (UV.x cresce rio abaixo)
+	var pts := []
+	for i in reg.rio.size() - 1:
+		var a: Vector2 = reg.rio[i]; var b: Vector2 = reg.rio[i + 1]
+		var n := int(ceil(a.distance_to(b) / 3.0))
+		for k in n: pts.append(a.lerp(b, float(k) / n))
+	pts.append(reg.rio[reg.rio.size() - 1])
+	var tot := 0.0; var ts := [0.0]
+	for i in range(1, pts.size()): tot += pts[i].distance_to(pts[i - 1]); ts.append(tot)
+	for lado in [-1.0, 1.0]:
+		var ag := []; var mg := []; var yy := []
+		for i in pts.size():
+			var t: float = ts[i] / tot
+			var d: Vector2 = (pts[min(i + 1, pts.size() - 1)] - pts[max(i - 1, 0)]).normalized()
+			var nrm: Vector2 = Vector2(-d.y, d.x) * float(lado); var meia: float = reg.largura_rio(t) * 0.5
+			ag.append(pts[i] + nrm * (meia - 2.2)); mg.append(pts[i] + nrm * (meia + 0.4)); yy.append(reg.nivel_rio(t) - 0.09)
+		faixa.call(ag, mg, yy, 1, 1.0, 1.0)
+	# lago e ilha: anéis com marolinhas lentas
+	var lc := Vector2(Regiao.LAGO.x, Regiao.LAGO.y); var yl := reg.nivel_lago() - 0.09
+	for anel in [[Regiao.LAGO.z - 5.0, Regiao.LAGO.z + 0.6], [Regiao.ILHA.z + 4.5, Regiao.ILHA.z - 0.6]]:
+		var ag := []; var mg := []; var yy := []
+		for k in 81:
+			var ang := TAU * k / 80.0; var q := Vector2(cos(ang), sin(ang))
+			ag.append(lc + q * anel[0]); mg.append(lc + q * anel[1]); yy.append(yl)
+		faixa.call(ag, mg, yy, 0, 0.55, 0.85)
 
 # ---------- lugares da região ----------
 func _lugares() -> void:

@@ -86,6 +86,7 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 
 - **Vento** leve com rajadas: grama e árvores balançam mais, folhinhas voam, som de vento (mais forte na chuva).
 - **Relógio** embaixo da bússola (sol de dia, lua de noite).
+- **Beiradas da água:** ondas com espuma chegando na praia do mar, correnteza nas margens do rio, marolinhas no lago e na ilha.
 - **Chuva:** de vez em quando (tempo bom 4–9 min, chuva 2–4 min): céu fecha, luz cinza-azulada, gotas e som de chuva.
 
 ## 7.1.1b Vida no mundo
