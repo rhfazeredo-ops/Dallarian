@@ -270,10 +270,10 @@ func _aranhas() -> void:
 		for g in matilhas: if q.distance_to(g.casa) < 40.0: ok = false
 		if not ok: continue
 		feitos.append(q)
-		var a := Aranha.new(); a.grupo = {"casa": q, "membros": [a], "alerta": false}
+		var a := Aranha.new(); a.grupo = {"casa": q, "membros": [a], "alerta": false, "tipo": "aranha"}
 		raiz.add_child(a); a.position = Vector3(q.x, altura_malha(q.x, q.y), q.y)
 		a.montar(self, rng.randi_range(3, 5), rng.randi()); a.rotation.y = rng.randf() * TAU
-		matilhas.append({"casa": q, "tipo": "aranha", "membros": [a], "alerta": false})
+		matilhas.append(a.grupo)
 
 # Lodosos: grupos de 3 (um grande e dois jovens) em trechos da beira do rio, do lago e da praia
 func _lodosos() -> void:
@@ -379,8 +379,71 @@ func _tick_veneno(delta: float) -> void:
 		hud.vida = maxf(0.0, hud.vida - d); hud.numero_heroi("-%d" % d, Color(0.45, 1.0, 0.35))
 		if hud.vida <= 0.0: _desmaiar()
 
+# ---------- os monstros voltam: os normais 5 min depois de morrer, o chefe 1 hora depois ----------
+# (no mesmo lugar, com o mesmo nível; se a Rachel estiver por perto, espera ela se afastar para não "brotar" na cara)
+const VOLTA_NORMAL := 300.0
+const VOLTA_CHEFE := 3600.0
+var _voltas := []                     # [segundos que faltam, Callable]
+func _agendar_volta(mo: Node) -> void:
+	var g: Dictionary = mo.grupo
+	var casa: Vector2 = g.casa
+	var f: Callable
+	if mo is Lobo:
+		var tp: String = mo.tipo; var ld: bool = mo.lider; var nv: int = mo.nivel; var vg: float = mo.vaga
+		f = func() -> Node3D:
+			var l := Lobo.new(); l.grupo = g; l.nivel = nv; l.vaga = vg
+			var a := randf() * TAU; var p := casa + Vector2(cos(a), sin(a)) * (0.0 if ld else randf_range(2.0, 5.0))
+			raiz.add_child(l); l.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
+			l.montar(self, tp, ld, randi()); return l
+	elif mo is Aranha:
+		var nv: int = mo.nivel
+		f = func() -> Node3D:
+			var a := Aranha.new(); a.grupo = g
+			raiz.add_child(a); a.position = Vector3(casa.x, altura_malha(casa.x, casa.y), casa.y)
+			a.montar(self, nv, randi()); return a
+	elif mo is Monstro and mo.tipo == "golem":
+		var rota: Array = mo.rota; var nm: String = mo.nome; var nv: int = mo.nivel
+		f = func() -> Node3D:
+			var gm := Monstro.new(); gm.rota = rota; gm.nome = nm; gm.grupo = g; g.alerta = false
+			# nasce no ponto da volta mais longe da Rachel
+			var pj := Vector2(jogador.global_position.x, jogador.global_position.z)
+			var melhor := 0
+			for i in rota.size(): if rota[i].distance_to(pj) > rota[melhor].distance_to(pj): melhor = i
+			gm._rota_i = (melhor + 1) % rota.size()
+			var p: Vector2 = rota[melhor]
+			raiz.add_child(gm); gm.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
+			gm.montar(self, "golem", nv, randi()); golem = gm; return gm
+	elif mo is Monstro:
+		var tp: String = mo.tipo; var nv: int = mo.nivel
+		f = func() -> Node3D:
+			var lm := Monstro.new(); lm.grupo = g
+			var a := randf() * TAU; var p := casa + Vector2(cos(a), sin(a)) * randf_range(0.0, 2.5)
+			raiz.add_child(lm); lm.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
+			lm.montar(self, tp, nv, randi()); return lm
+	else: return
+	var espera := VOLTA_CHEFE if (mo is Monstro and mo.tipo == "golem") else VOLTA_NORMAL
+	if args.has("volta_rapida"): espera = float(args.volta_rapida)
+	_voltas.append([espera, f, g])
+
+func _tick_voltas(delta: float) -> void:
+	for i in range(_voltas.size() - 1, -1, -1):
+		var v: Array = _voltas[i]
+		v[0] -= delta
+		if v[0] > 0.0: continue
+		var g: Dictionary = v[2]
+		var casa: Vector2 = g.casa
+		var longe := 0.0 if (g.get("tipo", "") == "golem" or args.has("volta_rapida")) else 45.0
+		if Vector2(jogador.global_position.x, jogador.global_position.z).distance_to(casa) < longe:
+			v[0] = 10.0; continue                         # a Rachel está ali: tenta de novo daqui a pouco
+		var novo: Node3D = v[1].call()
+		g.membros = g.membros.filter(func(o): return is_instance_valid(o) and o.estado != "morto")
+		g.membros.append(novo)
+		_voltas.remove_at(i)
+		if args.has("volta_rapida"): print("VOLTOU: ", novo.get_script().resource_path.get_file(), " em ", casa)
+
 # morte de aranha, Lodoso ou golem: XP (o chefe vale muito mais), dinheiro e drops
 func monstro_morreu(mo: Node) -> void:
+	_agendar_volta(mo)
 	var ganho := Hud.xp_por_matar(mo.nivel, hud.nivel)
 	var mult := 1.0
 	if mo is Monstro: mult = mo.cfg.xp
@@ -403,6 +466,7 @@ func monstro_morreu(mo: Node) -> void:
 		if sobra > 0: hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3))
 
 func lobo_morreu(l: Lobo) -> void:
+	_agendar_volta(l)
 	var ganho := Hud.xp_por_matar(l.nivel, hud.nivel)
 	if ganho > 0.0: hud.ganhar_xp(ganho)
 	if randf() > 0.4: return                                  # deixa dentes e garras em ~40% das vezes
@@ -648,6 +712,7 @@ func _process(delta: float) -> void:
 	Audio.atualizar(delta)
 	_dia_noite(delta)
 	_tick_veneno(delta)
+	if jogador: _tick_voltas(delta)
 	if hud and golem and is_instance_valid(golem):
 		hud.chefe = golem if (golem.grupo.alerta and golem.estado != "morto" and golem.global_position.distance_to(jogador.global_position) < 60.0) else null
 	if _salvar_em > 0.0:
@@ -1770,6 +1835,10 @@ func _modo_teste() -> void:
 		mo.rotation.y = deg_to_rad(float(args.get("giro_m", "90")))
 		mo.anim_fixa = String(args.get("manim", "andar"))
 		if tp == "golem": golem = mo; mo.grupo.alerta = true
+	if args.has("matar_golem") and golem:
+		var gp := golem.global_position
+		golem.vida = 0.0; golem._mudar("morto"); golem.remove_from_group("lobos"); monstro_morreu(golem)
+		print("GOLEM morreu em ", gp)
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

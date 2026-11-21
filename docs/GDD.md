@@ -128,6 +128,8 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
   sem parar; o chão treme perto dele. Soco e PANCADA com as duas mãos no chão (dano em área de 9 m, mais forte
   perto). Barra verde do golpe em cima da cabeça (enche até o instante do golpe) e barra de vida grande no alto da tela.
   Drops: Coração de barro do Grumo (sempre), dinheiro, chance de espada de ferro e bolsa de 16.
+- **Renascer:** monstros normais voltam 5 min depois de morrer, no mesmo lugar (esperam a Rachel se afastar 45 m);
+  o Grumo volta 1 hora depois, no ponto da volta mais longe da Rachel.
 
 ## 7.1.3 Progresso, dinheiro e loja
 - **Níveis 1 a 30** (máximo por enquanto) com a **tabela de XP do WoW Classic** (400, 900, 1.400, 2.100… 44.300;
