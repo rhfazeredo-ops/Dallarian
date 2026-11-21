@@ -71,6 +71,7 @@ func _ready() -> void:
 		["Caverna do Oeste", caverna_pos, "caverna", 18.0],
 		["Desfiladeiro do Norte", Vector2(0, -468), "montanhas", 40.0],
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
+	fauna.montar(self)
 	_musica()
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
 	if args.has("checar"): _checar_chao()
@@ -92,6 +93,7 @@ func _moradores() -> void:
 	_profissionais()
 	_criancas()
 	_lobos()
+	fauna = Fauna.new(); raiz.add_child(fauna)
 	# já começam algumas conversas na vila
 	var vila := []
 	for mo in raiz.get_children():
@@ -104,6 +106,7 @@ var hud: Hud
 var heroina_desmaiada := false
 var _tela_dano: ColorRect
 var matilhas := []
+var fauna: Fauna
 func _lobos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
@@ -1231,6 +1234,18 @@ func _modo_teste() -> void:
 					controles._seg["atacar"] = true; await get_tree().create_timer(0.12).timeout; controles._seg["atacar"] = false
 				await get_tree().create_timer(0.9).timeout
 				print("t=%d alerta=%s atac=%s " % [t, g.alerta, g.atacante != null], g.membros.map(func(l): return "%s %.1f" % [l.estado, Vector2(l.global_position.x - jogador.global_position.x, l.global_position.z - jogador.global_position.z).length()] if is_instance_valid(l) else "-"))
+	if args.has("rio"):            # teste: na beira do rio olhando a água (--rio=metros ao longo do rio)
+		var r: Array = fauna._no_rio(float(args.rio))
+		var nrm := Vector2(-r[1].y, r[1].x); var pj: Vector2 = r[0] + nrm * (reg.largura_rio(r[2]) * 0.5 + 1.5)
+		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y); _ultima = jogador.global_position
+		var dl: Vector2 = r[0] - pj; jogador.rotation.y = atan2(-dl.x, -dl.y); jogador.pescoco.rotation.x = -0.45
+		jogador.set_physics_process(false); jogador.mao.visible = false
+	if args.has("ceu"):            # teste: olhando para cima (pássaros)
+		jogador.pescoco.rotation.x = 0.45; jogador.set_physics_process(false); jogador.mao.visible = false
+		get_tree().create_timer(0.5).timeout.connect(func():
+			for b in fauna.bandos:
+				var a: float = randf() * TAU
+				b.pos = jogador.global_position + Vector3(-sin(jogador.rotation.y) * 45.0 + cos(a) * 8.0, 0, -cos(jogador.rotation.y) * 45.0 + sin(a) * 8.0); b.pos.y = 0.0)
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

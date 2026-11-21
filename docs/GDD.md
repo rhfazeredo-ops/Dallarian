@@ -84,6 +84,11 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - **Moradores**: homens e mulheres de vários corpos (gorda, forte/alto, idosos que andam devagar) e duas crianças
   brincando de pega-pega perto da praça.
 
+## 7.1.1b Vida no mundo
+- **Peixes** no rio e no lago (silhuetas escuras embaixo d'água): um grande e lento sozinho, ou cardumes de 4 a 6
+  pequenos e rápidos que dão arrancadas (às vezes um pequeno sozinho).
+- **Pássaros** grandes voando alto (26–40 m), sozinhos, em dupla ou em trio em V; batem as asas e planam.
+
 ## 7.1.2 Inimigos: lobos
 - Matilhas de 4 a 6 lobos (8 matilhas na região): **líder preto** (maior, 6 de vida, morde mais forte), **brancos só
   nas montanhas/morros** e **marrons só nas florestas**; longe da vila, das estradas e dos acampamentos.
