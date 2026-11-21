@@ -132,6 +132,17 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
   as de 40 e 50 ficam para mercadores de cidade.
 - O progresso (nível, XP, dinheiro, itens) fica salvo no aparelho.
 
+## 7.1.4 Itens e combate (estilo WoW Classic)
+- **Armas:** dano mín–máx, velocidade e dano por segundo. Espada de treino de madeira 2–4 (vel. 1,80; 1,7 DPS);
+  Espada de ferro 6–11 (vel. 2,20; 3,9 DPS; requer nível 3; o Bram vende por 1 prata e 50 cobre).
+- **Golpe:** dano da arma + bônus de força (4 + nível); golpe forte ×1,6; 5% de crítico (dobro, número amarelo).
+- **Escudo de madeira:** 30 de armadura (redução Classic: armadura / (armadura + 400 + 85×nível do atacante) — uns 5%
+  contra lobos de nível 2), 5 de bloqueio; só equipado tem 5% de chance de bloquear sozinho (tira 5 do dano).
+  Segurando o escudo de frente: o 1º ataque depois de levantar é bloqueado inteiro; os seguintes perdem 60% + 5.
+- **Lobos:** vida 30 + 12×nível (líder +15%); mordida (2 + 1,5×nível) a (4 + 2×nível).
+- Números de combate sobem dos bichos (branco; crítico amarelo) e o dano levado aparece em vermelho no meio.
+- Inventário: arma e escudo equipados na barra de baixo; dica com os status e EQUIPAR (troca com o equipado).
+
 ## 7.2 Interface
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados
   quando ainda não descobertos (até 140 m), acesos depois de descobertos (até 400 m), com o aviso "LOCAL

@@ -9,6 +9,17 @@ const MAX_BOLSAS := 3
 const CORES := {"lixo": Color(0.62, 0.62, 0.62), "comum": Color(1, 1, 1), "incomum": Color(0.12, 1.0, 0.0), "raro": Color(0.0, 0.44, 0.87)}
 # itens: id → nome, venda (cobre), compra (cobre, 0 = não se compra), pilha, qualidade, espaços (bolsas), descrição
 const ITENS := {
+	# armas (como no Classic): dano mín–máx, velocidade (s por golpe), nível exigido
+	"espada_treino": {"nome": "Espada de treino de madeira", "venda": 5, "compra": 0, "pilha": 1, "qual": "comum",
+		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 2, "dano_max": 4, "velocidade": 1.8, "nivel": 1,
+		"modelo": "madeira", "desc": "Madeira dura e farpas. Serve para aprender."},
+	"espada_ferro": {"nome": "Espada de ferro", "venda": 38, "compra": 150, "pilha": 1, "qual": "comum",
+		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 6, "dano_max": 11, "velocidade": 2.2, "nivel": 3,
+		"modelo": "ferro", "desc": "Ferro batido na bigorna do Bram."},
+	# escudos: armadura (reduz todo dano), valor de bloqueio (tirado quando bloqueia) e quanto o bloqueio ativo segura
+	"escudo_madeira": {"nome": "Escudo de madeira", "venda": 5, "compra": 0, "pilha": 1, "qual": "comum",
+		"tipo": "escudo", "subtipo": "Escudo", "armadura": 30, "bloqueio": 5, "bloqueio_ativo": 0.6, "nivel": 1,
+		"modelo": "madeira", "desc": "Tábuas presas com tiras de couro."},
 	"dentes_garras": {"nome": "Dentes e garras de lobo", "venda": 12, "compra": 0, "pilha": 20, "qual": "lixo",
 		"desc": "Um punhado de presas e garras amarradas. O ferreiro paga uns cobres."},
 	"bolsa_10": {"nome": "Bolsa de couro pequena", "venda": 20, "compra": 80, "pilha": 1, "qual": "comum", "espacos": 10,
@@ -29,6 +40,8 @@ signal mudou
 var bolsas := []                  # [{id, slots: [null ou [id, qtd]]}, ou null] — 3 lugares
 var cobre := 0
 var recompra := []                # últimos vendidos: [id, qtd, preço total]
+var equip := {"arma": "espada_treino", "escudo": "escudo_madeira"}
+signal equipou(lugar: String, id: String)
 
 func _init() -> void:
 	bolsas = [_bolsa_nova("bolsa_10"), null, null]
@@ -39,6 +52,20 @@ static func _bolsa_nova(id: String) -> Dictionary:
 
 static func info(id: String) -> Dictionary: return ITENS[id]
 static func eh_bolsa(id: String) -> bool: return ITENS[id].has("espacos")
+static func lugar_equip(id: String) -> String: return String(ITENS[id].get("tipo", ""))   # "arma", "escudo" ou ""
+
+# equipa a arma/escudo do espaço (b, i); o que estava equipado volta para esse espaço
+func equipar_item(b: int, i: int, nivel_heroi: int) -> String:
+	var s = slot(b, i)
+	if s == null: return ""
+	var lugar := lugar_equip(s[0])
+	if lugar == "": return ""
+	if int(ITENS[s[0]].get("nivel", 1)) > nivel_heroi: return "Requer nível %d." % ITENS[s[0]].nivel
+	var antigo = equip.get(lugar, "")
+	equip[lugar] = s[0]
+	bolsas[b].slots[i] = [antigo, 1] if antigo != "" else null
+	equipou.emit(lugar, s[0]); mudou.emit()
+	return ""
 
 func espacos_total() -> int:
 	var t := 0
@@ -141,13 +168,15 @@ static func moedas(c: int) -> Array: return [c / 10000, (c / 100) % 100, c % 100
 
 func salvar(nivel: int, xp: float) -> void:
 	var f := FileAccess.open(ARQUIVO, FileAccess.WRITE)
-	if f: f.store_string(JSON.stringify({"nivel": nivel, "xp": xp, "cobre": cobre, "bolsas": bolsas}))
+	if f: f.store_string(JSON.stringify({"nivel": nivel, "xp": xp, "cobre": cobre, "bolsas": bolsas, "equip": equip}))
 
 func carregar() -> Dictionary:
 	if not FileAccess.file_exists(ARQUIVO): return {}
 	var d = JSON.parse_string(FileAccess.get_file_as_string(ARQUIVO))
 	if typeof(d) != TYPE_DICTIONARY: return {}
 	cobre = int(d.get("cobre", 0))
+	var eq: Dictionary = d.get("equip", {})
+	for k in ["arma", "escudo"]: if ITENS.has(eq.get(k, "")): equip[k] = eq[k]
 	if d.has("bolsas"):
 		var bs: Array = d.bolsas
 		for k in MAX_BOLSAS:

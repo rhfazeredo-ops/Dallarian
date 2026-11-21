@@ -56,7 +56,8 @@ func _ready() -> void:
 	_ultima = jogador.position
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
-	hud = Hud.new(); cl.add_child(hud); hud.montar()
+	bolsa.equipou.connect(func(lugar: String, id: String): jogador.trocar_equip(lugar, id))
+	hud = Hud.new(); cl.add_child(hud); hud.montar(); hud.escala_3d = REDUCAO
 	_carregar_progresso()
 	_tela_dano = ColorRect.new(); _tela_dano.color = Color(0.7, 0.0, 0.0, 1.0); _tela_dano.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_tela_dano.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tela_dano.modulate.a = 0.0; cl.add_child(_tela_dano)
@@ -166,12 +167,45 @@ func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator) -> void:
 		g.membros.append(lobo)
 	matilhas.append(g)
 
-# mordida do lobo: com o escudo levantado e de frente, bloqueia (devolve true)
-func ferir_heroina(dano: float, de: Vector3) -> bool:
+# ---------- status de combate (como no WoW Classic) ----------
+# dano do golpe = dano da arma (mín–máx) + bônus de força pelo nível; 5% de crítico (dobro).
+func bonus_dano() -> float: return 4.0 + hud.nivel * 1.0
+func rolar_dano(mult: float) -> Array:
+	var a: Dictionary = Bolsa.ITENS[bolsa.equip.arma]
+	var d := randf_range(a.dano_min, a.dano_max) + bonus_dano()
+	var crit := randf() < 0.05
+	return [maxf(1.0, roundf(d * mult * (2.0 if crit else 1.0))), crit]
+
+func armadura() -> int:
+	var e: String = bolsa.equip.get("escudo", "")
+	return int(Bolsa.ITENS[e].armadura) if e != "" else 0
+
+# mordida: a armadura tira um pouco de todo dano (fórmula do Classic); com o escudo só equipado há 5% de chance
+# de bloquear sozinho (tira o valor de bloqueio). Segurando o escudo de frente: o 1º ataque depois de levantar
+# é bloqueado inteiro e os seguintes perdem boa parte do dano. Devolve true quando bloqueou inteiro.
+func ferir_heroina(dano: float, de: Vector3, nivel_atacante := 1) -> bool:
 	if heroina_desmaiada: return false
 	var fr := -jogador.global_transform.basis.z; var d := de - jogador.global_position; d.y = 0.0
-	if jogador.bloqueando and fr.dot(d.normalized()) > 0.3:
-		jogador.impacto(0.05); return true
+	var de_frente := fr.dot(d.normalized()) > 0.3
+	var e: String = bolsa.equip.get("escudo", "")
+	var esc: Dictionary = Bolsa.ITENS[e] if e != "" else {}
+	var bloqueado := 0.0
+	if not esc.is_empty() and de_frente and jogador.bloqueando:
+		if jogador.bloqueios_desde_erguer == 0:
+			jogador.bloqueios_desde_erguer += 1; jogador.impacto(0.05)
+			hud.numero_heroi("Bloqueado", Color(0.85, 0.85, 0.85)); return true
+		jogador.bloqueios_desde_erguer += 1; jogador.impacto(0.03)
+		var antes := dano
+		dano = dano * (1.0 - float(esc.bloqueio_ativo)) - float(esc.bloqueio)
+		bloqueado = antes - maxf(dano, 0.0)
+	elif not esc.is_empty() and de_frente and randf() < 0.05:
+		bloqueado = minf(dano, float(esc.bloqueio)); dano -= bloqueado
+	var arm := armadura()
+	dano *= 1.0 - float(arm) / (arm + 400.0 + 85.0 * nivel_atacante)
+	dano = maxf(0.0, roundf(dano))
+	if dano <= 0.0:
+		hud.numero_heroi("Bloqueado", Color(0.85, 0.85, 0.85)); return false
+	hud.numero_heroi("-%d" % dano + ("  (%d bloqueado)" % bloqueado if bloqueado >= 1.0 else ""), Color(1.0, 0.3, 0.25))
 	hud.vida = maxf(0.0, hud.vida - dano)
 	if args.has("lobos"): print("MORDIDA: vida %d  t=%.2f  fps=%d" % [hud.vida, Lobo._relogio(), Engine.get_frames_per_second()])
 	jogador._tranco += Vector3(-2.5, randf_range(-3.0, 3.0), 0.0)
@@ -211,6 +245,7 @@ func _carregar_progresso() -> void:
 	if args.has("shot") and not args.has("progresso"): return
 	var d := bolsa.carregar()
 	if not d.is_empty(): hud.definir_nivel(int(d.get("nivel", 1)), float(d.get("xp", 0.0)))
+	jogador.trocar_equip("arma", bolsa.equip.arma); jogador.trocar_equip("escudo", bolsa.equip.escudo)
 	var pedir := func(): _salvar_em = 1.0
 	hud.mudou.connect(pedir); bolsa.mudou.connect(pedir)
 
@@ -1451,6 +1486,12 @@ func _modo_teste() -> void:
 			var pj := c + Vector2(0, float(args.get("dist", "16")))
 			jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y); jogador.rotation.y = 0.0
 		_ultima = jogador.global_position
+		if args.has("numeros"):        # teste: números de combate em cima dos lobos e o dano levado
+			get_tree().create_timer(2.6).timeout.connect(func():
+				for lo in g.membros.slice(0, 3):
+					var dl: Vector3 = (lo.global_position - jogador.global_position).normalized()
+					if lo.visible: lo.golpe_da_heroina(lo.global_position - dl * 1.5, dl, 1.6 if lo.lider else 1.0)
+				ferir_heroina(8.0, jogador.global_position - jogador.global_transform.basis.z, 2))
 		if args.has("lobo_log"):
 			for t in 14:
 				if args.has("lutar"):        # teste: a Rachel golpeia o lobo mais perto
@@ -1479,6 +1520,7 @@ func _modo_teste() -> void:
 				var a: float = randf() * TAU
 				b.pos = jogador.global_position + Vector3(-sin(jogador.rotation.y) * 45.0 + cos(a) * 8.0, 0, -cos(jogador.rotation.y) * 45.0 + sin(a) * 8.0); b.pos.y = 0.0)
 	if args.has("loja") or args.has("inv"):      # teste: --loja=N (itens e abre a loja) / --inv=1 (abre as bolsas)
+		if args.has("arma"): bolsa.pegar(String(args.arma)); hud.definir_nivel(3, 0.0)
 		bolsa.pegar("dentes_garras", int(args.get("itens", args.get("loja", "27")))); bolsa.cobre = int(args.get("dinheiro", "1234"))
 		if args.has("bolsas"):
 			bolsa.pegar("bolsa_16"); bolsa.pegar("bolsa_30")

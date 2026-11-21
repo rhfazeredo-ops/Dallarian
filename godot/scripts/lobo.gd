@@ -49,7 +49,7 @@ func montar(mundo, t: String, e_lider: bool, semente: int) -> void:
 	add_to_group("lobos")
 	var comp := rng.randf_range(1.75, 1.95) if not lider else 2.45      # do focinho à ponta da cauda (m)
 	_comp = comp
-	vida = 3.0 if not lider else 6.0
+	vida = (30.0 + 12.0 * nivel) * (1.15 if lider else 1.0)          # vida pelo nível (perto do Classic)
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
 	visual = Node3D.new(); add_child(visual)
 	mod = load(ARQ[tipo]).instantiate(); visual.add_child(mod)
@@ -241,7 +241,8 @@ func _tocar_ataque(_delta: float, ppj: Vector2) -> void:
 		_mordeu = true
 		var boca := p + _dir_salto * _comp * 0.4
 		if boca.distance_to(ppj) < 1.5:
-			var bloqueou: bool = m.ferir_heroina(7.0 if not lider else 12.0, global_position)
+			var dano := rng.randf_range(2.0 + 1.5 * nivel, 4.0 + 2.0 * nivel) * (1.15 if lider else 1.0)
+			var bloqueou: bool = m.ferir_heroina(dano, global_position, nivel)
 			if bloqueou: _ser_empurrado(ppj, 1.0)
 	if _t >= 0.9:
 		if grupo.atacante == self: grupo.atacante = null
@@ -292,11 +293,14 @@ func heroina_atacou(pos: Vector3, frente: Vector3) -> void:
 		_esquivar(Vector2(pos.x, pos.z))
 
 # chamado no instante do corte da espada
-func golpe_da_heroina(pos: Vector3, frente: Vector3, dano: float) -> bool:
+func golpe_da_heroina(pos: Vector3, frente: Vector3, mult: float) -> bool:
 	if estado == "morto" or estado == "esquivar": return false
 	var d := Vector3(global_position.x - pos.x, 0, global_position.z - pos.z)
 	if d.length() > 2.5 + (0.4 if lider else 0.0) or frente.dot(d.normalized()) < 0.3: return false
-	vida -= dano; _flash = 1.0
+	var r: Array = m.rolar_dano(mult)
+	vida -= r[0]; _flash = 1.0
+	m.hud.numero(global_position + Vector3(0, _comp * 0.55, 0), str(int(r[0])) + ("!" if r[1] else ""),
+		Color(1.0, 0.85, 0.2) if r[1] else Color(1, 1, 1), 76 if r[1] else 54)
 	grupo.alerta = true
 	if vida <= 0.0:
 		_mudar("morto"); remove_from_group("lobos")

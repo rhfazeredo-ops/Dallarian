@@ -55,6 +55,8 @@ func _process(delta: float) -> void:
 	_xp_texto_alfa = maxf(0.0, _xp_texto_alfa - delta * 0.35)
 	_nivel_alfa = maxf(0.0, _nivel_alfa - delta * 0.3)
 	for a in _avisos: a[2] -= delta
+	for n in _numeros: n[4] -= delta * 0.75
+	while not _numeros.is_empty() and _numeros[0][4] <= 0.0: _numeros.pop_front()
 	while not _avisos.is_empty() and _avisos[0][2] <= 0.0: _avisos.pop_front()
 	queue_redraw()
 
@@ -73,6 +75,7 @@ func _draw() -> void:
 	_desenhar_xp(tela)
 	_desenhar_avisos(tela)
 	_desenhar_relogio(tela)
+	_desenhar_numeros()
 	draw_texture_rect(tex_plaqueta, Rect2(p0, Vector2(pw, ph)), false)
 	# barras dentro dos trilhos
 	_barra(Rect2(P.call(418, 337), Vector2(2042 - 418, 458 - 337) * k), _vida_vis, Color(0.42, 0.78, 0.22), Color(0.62, 0.92, 0.36), "%d / %d" % [vida, vida_max])
@@ -154,6 +157,33 @@ func _desenhar_relogio(tela: Vector2) -> void:
 	var pos := Vector2(c.x - w * 0.5 + 6.0, c.y)
 	draw_string_outline(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 6, Color(0, 0, 0, 0.75))
 	draw_string(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, Color(1, 0.95, 0.85, 0.92))
+
+# números de combate (como no WoW): sobem do bicho que apanhou; o dano que a Rachel leva sobe no meio da tela
+var escala_3d := 4.0
+var _numeros := []                 # [posição 3D ou null, posição na tela, texto, cor, tempo, tamanho]
+func numero(pos: Vector3, t: String, cor: Color, tam := 32) -> void:
+	_numeros.append([pos, Vector2.ZERO, t, cor, 1.0, tam])
+func numero_heroi(t: String, cor: Color) -> void:
+	var tela := get_viewport_rect().size
+	_numeros.append([null, Vector2(tela.x * 0.5 + randf_range(-60, 60), tela.y * 0.58), t, cor, 1.0, 46])
+
+func _desenhar_numeros() -> void:
+	if _numeros.is_empty(): return
+	var cena = get_tree().current_scene
+	var cam: Camera3D = cena.jogador.cam if cena and cena.jogador else null
+	for n in _numeros:
+		var p: Vector2 = n[1]
+		if n[0] != null:
+			if cam == null or cam.is_position_behind(n[0]): continue
+			p = cam.unproject_position(n[0]) * escala_3d
+		var vida_n: float = n[4]; var tam: int = n[5]; var txt: String = n[2]
+		var sobe: float = (1.0 - vida_n) * 70.0
+		var alfa: float = clampf(vida_n * 2.0, 0.0, 1.0)
+		var w: float = fonte.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+		var pos := p + Vector2(-w * 0.5, -sobe)
+		draw_string_outline(fonte, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 12, Color(0, 0, 0, 0.85 * alfa))
+		var c: Color = n[3]; c.a = alfa
+		draw_string(fonte, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, c)
 
 # avisos curtos que sobem no lado esquerdo (XP ganho, item pego, dinheiro)
 var _avisos := []                 # [texto, cor, tempo]

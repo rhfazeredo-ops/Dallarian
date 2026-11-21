@@ -17,7 +17,7 @@ var _retrato: Texture2D
 var _abas := {}
 var _foto: Control
 # mercadorias do Bram (por enquanto: bolsas; as de 40 e 50 vão para mercadores de cidade)
-const MERCADORIAS := ["bolsa_10", "bolsa_16", "bolsa_20", "bolsa_30"]
+const MERCADORIAS := ["espada_ferro", "bolsa_10", "bolsa_16", "bolsa_20", "bolsa_30"]
 const FALAS_VENDA := ["Dente de lobo dá bom cabo de faca. Pago justo.", "Garra afiada assim? Isso eu compro.", "Cobre por cobre, negócio fechado."]
 const FALAS_COMPRA := ["Couro bom, costura dupla. Não rasga fácil.", "Leva, leva. Uma aventureira precisa de onde guardar as coisas."]
 

@@ -93,6 +93,8 @@ static func icone(id: String) -> Texture2D:
 	var t: Texture2D
 	if ResourceLoader.exists(arq): t = load(arq)
 	elif id.begins_with("bolsa_"): t = _icone_bolsa(int(Bolsa.ITENS[id].espacos))
+	elif Bolsa.ITENS[id].get("tipo", "") == "arma": t = _icone_espada(Bolsa.ITENS[id].get("modelo", "") == "ferro")
+	elif Bolsa.ITENS[id].get("tipo", "") == "escudo": t = _icone_escudo()
 	else: t = _icone_dentes()
 	_icones[id] = t
 	return t
@@ -116,6 +118,35 @@ static func _icone_bolsa(espacos: int) -> ImageTexture:
 	if espacos >= 30:
 		var faixa := Color(0.2, 0.55, 0.2) if espacos < 50 else Color(0.2, 0.35, 0.75)
 		for x in range(9, 40): _px(im, x, 31, faixa); _px(im, x, 32, faixa)
+	return ImageTexture.create_from_image(im)
+
+# provisório: espada na diagonal (lâmina de madeira clara ou de ferro, guarda e cabo de couro)
+static func _icone_espada(ferro: bool) -> ImageTexture:
+	var im := Image.create(48, 48, false, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
+	var lam := Color(0.78, 0.8, 0.84) if ferro else Color(0.82, 0.62, 0.36)
+	for t in 30:                                   # lâmina: de (14,34) até (42,6)
+		var x := 14 + t; var y := 34 - t
+		for w in range(-2, 3):
+			var c := lam.lightened(0.3) if w < 0 else (lam.darkened(0.25) if w > 0 else lam)
+			_px(im, x + w, y + w, c); _px(im, x + w + 1, y + w, c)
+	for k in range(-6, 7): _px(im, 13 + k, 35 + k, Color(0.55, 0.45, 0.25) if not ferro else Color(0.45, 0.42, 0.4)); _px(im, 14 + k, 35 + k, Color(0.35, 0.28, 0.16))   # guarda
+	for t in 9:                                    # cabo
+		_px(im, 11 - t, 37 + t, Color(0.42, 0.26, 0.14)); _px(im, 12 - t, 37 + t, Color(0.3, 0.18, 0.1)); _px(im, 11 - t, 38 + t, Color(0.3, 0.18, 0.1))
+	_px(im, 2, 46, Color(0.6, 0.5, 0.3)); _px(im, 3, 46, Color(0.6, 0.5, 0.3)); _px(im, 2, 45, Color(0.6, 0.5, 0.3))
+	return ImageTexture.create_from_image(im)
+
+# provisório: escudo redondo de tábuas com o umbo de ferro no meio
+static func _icone_escudo() -> ImageTexture:
+	var im := Image.create(48, 48, false, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
+	for y in 48:
+		for x in 48:
+			var d := Vector2(x - 23.5, y - 23.5).length()
+			if d < 21.0:
+				var tab := int(x / 7) % 2
+				var c := Color(0.62, 0.42, 0.22) if tab == 0 else Color(0.55, 0.36, 0.18)
+				if d > 18.5: c = Color(0.35, 0.22, 0.12)
+				if d < 6.0: c = Color(0.6, 0.6, 0.62) if d < 4.5 else Color(0.35, 0.35, 0.38)
+				_px(im, x, y, c)
 	return ImageTexture.create_from_image(im)
 
 # provisório: três presas curvas cor de marfim e duas garras escuras, presas por uma tira de couro

@@ -82,6 +82,7 @@ var _giro := 0.0                 # câmera: vira um pouco junto com o golpe (gra
 var _queda := 0.0; var _no_chao := true
 var _pulo_pedido := 0.0; var _coyote := 0.0
 var bloqueando := false
+var bloqueios_desde_erguer := 0    # o 1º ataque depois de levantar o escudo é bloqueado inteiro
 var congelar := -1.0             # teste: para a ação nesse ponto (0..1)
 var pose_fixa := false           # teste: mãos paradas numa pose (mostrar_pose)
 
@@ -122,28 +123,54 @@ func _armas() -> void:
 	piv_d = Node3D.new(); mao.add_child(piv_d)
 	# espada inicial de madeira (Tripo): eixo medido com tools/eixo-ferramenta.mjs — lâmina para -eixo,
 	# guarda na direção do trecho mais largo, cabo em t≈0,33; 1,367 m no arquivo → 1 m (esp escala para 0,85 m)
-	var esp := Node3D.new(); piv_d.add_child(esp); esp.scale = Vector3(0.85, 0.85, 0.85)
-	var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada_madeira.glb")
-	var eixo := Vector3(0.257, -0.6737, 0.6929).normalized()
-	var lam := -eixo
-	var gua := Vector3(0.127, -0.687, -0.715); gua = (gua - lam * gua.dot(lam)).normalized()
-	var face := gua.cross(lam)
-	var cabo := Vector3(0.0356, -0.0789, 0.0842) + eixo * 0.33
-	var r := Basis(gua, lam, face).transposed()
-	var k := 1.0 / 1.367
-	mod.transform = Transform3D(r.scaled(Vector3(k, k, k)), -(r * cabo) * k)
-	esp.add_child(mod)
+	_esp = Node3D.new(); piv_d.add_child(_esp); _esp.scale = Vector3(0.85, 0.85, 0.85)
+	trocar_equip("arma", "espada_treino")
 	piv_d.add_child(_punho(m, false))
 	# escudo inicial de madeira (Tripo): frente (com o umbo) em +X no arquivo, alça atrás; 0,97 m → 0,6 m
 	piv_e = Node3D.new(); mao.add_child(piv_e)
-	var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_madeira.glb")
-	var ke := 0.6 / 0.97
-	esc.scale = Vector3(ke, ke, ke); esc.rotation_degrees = Vector3(0, 0, 90)   # +X do arquivo → +Y (frente)
-	esc.position = Vector3(0, 0.223 * ke - 0.07, 0)                             # parte de trás na mão
-	piv_e.add_child(esc)
+	_esc = Node3D.new(); piv_e.add_child(_esc)
+	trocar_equip("escudo", "escudo_madeira")
 	var pe := _punho(m, true); pe.position = Vector3(0, -0.07, 0); piv_e.add_child(pe)
 	braco_d = _antebraco(m); mao.add_child(braco_d)
 	braco_e = _antebraco(m); mao.add_child(braco_e)
+
+# troca o modelo da arma/escudo na mão conforme o item equipado (o "cabo na origem, lâmina em +Y" é a regra)
+var _esp: Node3D
+var _esc: Node3D
+func trocar_equip(lugar: String, id: String) -> void:
+	var m: Node = get_tree().current_scene
+	var no := _esp if lugar == "arma" else _esc
+	if no == null: return
+	for c in no.get_children(): c.queue_free()
+	if id == "": return
+	var modelo: String = Bolsa.ITENS[id].get("modelo", "")
+	if lugar == "arma" and modelo == "madeira":
+		# espada de treino (Tripo): eixo medido com tools/eixo-ferramenta.mjs — lâmina para -eixo, guarda no trecho
+		# mais largo, cabo em t≈0,33; 1,367 m no arquivo → 1 m (o nó escala para 0,85 m)
+		var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada_madeira.glb")
+		var eixo := Vector3(0.257, -0.6737, 0.6929).normalized()
+		var lam := -eixo
+		var gua := Vector3(0.127, -0.687, -0.715); gua = (gua - lam * gua.dot(lam)).normalized()
+		var face := gua.cross(lam)
+		var cabo := Vector3(0.0356, -0.0789, 0.0842) + eixo * 0.33
+		var r := Basis(gua, lam, face).transposed()
+		var k := 1.0 / 1.367
+		mod.transform = Transform3D(r.scaled(Vector3(k, k, k)), -(r * cabo) * k)
+		no.add_child(mod)
+	elif lugar == "arma" and modelo == "ferro":
+		# espada de ferro (a primeira do Tripo): 0,51 m no arquivo → 1 m; cabo na origem, lâmina em +Y
+		var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada.glb")
+		var k := 1.0 / 0.51
+		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
+		mod.position = Vector3(-0.131, -0.075, 0) * k
+		no.add_child(mod)
+	elif lugar == "escudo":
+		# escudo de madeira (Tripo): frente (com o umbo) em +X no arquivo, alça atrás; 0,97 m → 0,6 m
+		var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_madeira.glb")
+		var ke := 0.6 / 0.97
+		esc.scale = Vector3(ke, ke, ke); esc.rotation_degrees = Vector3(0, 0, 90)   # +X do arquivo → +Y (frente)
+		esc.position = Vector3(0, 0.223 * ke - 0.07, 0)                             # parte de trás na mão
+		no.add_child(esc)
 
 # luva de couro fechada (low poly)
 func _punho(m: Node, esquerda: bool) -> MeshInstance3D:
@@ -298,7 +325,7 @@ func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
 			_giro = lerp(_giro, float(g.get("giro", 0.0)) * e * 1.4, 0.35)
 			if _t_acao + delta >= dur and congelar < 0.0:
 				impacto(0.07 if _acao != "forte" else 0.12)
-				get_tree().call_group("lobos", "golpe_da_heroina", global_position, -global_transform.basis.z, 2.0 if _acao == "forte" else 1.0)
+				get_tree().call_group("lobos", "golpe_da_heroina", global_position, -global_transform.basis.z, 1.6 if _acao == "forte" else 1.0)
 		2:   # seguir: o embalo leva a lâmina além do corte e ela para devagar (peso)
 			var b: Vector3 = g.b; var c: Vector3 = g.c
 			var e := 1.0 - pow(1.0 - u, 3.0)
@@ -343,6 +370,7 @@ func _physics_process(delta: float) -> void:
 		_girar(controles.consumir_olhar() * SENS_TOQUE)
 		if controles.consumir_pulo(): _pulo_pedido = 0.2     # guarda o pedido um pouquinho
 		correr = controles.correndo(); bloquear = controles.bloqueando(); atacar = controles.atacando()
+	if bloquear and not bloqueando: bloqueios_desde_erguer = 0        # levantou o escudo agora
 	bloqueando = bloquear
 	correr = correr and dir.y < -0.3 and not bloquear
 	var vel := VEL_CORRER if correr else (VEL * 0.55 if bloquear else VEL)

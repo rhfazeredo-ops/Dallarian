@@ -55,6 +55,13 @@ func _refazer() -> void:
 	# barra de baixo: dinheiro + 3 lugares de bolsa + fechar
 	var barra := UI.janela(); _janelas.add_child(barra)
 	var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 10); barra.add_child(hb)
+	# equipamento (arma e escudo) — tocar mostra os status
+	for lugar in ["arma", "escudo"]:
+		var eid: String = m.bolsa.equip.get(lugar, "")
+		var se := UI.espaco(eid, 0, 70.0)
+		se.gui_input.connect(func(e): if _toque(e) and eid != "": _mostrar_dica(eid, 1, se, [], true))
+		hb.add_child(se)
+	var esp0 := Control.new(); esp0.custom_minimum_size = Vector2(10, 0); hb.add_child(esp0)
 	hb.add_child(UI.dinheiro(m.bolsa.cobre, 28))
 	var esp := Control.new(); esp.custom_minimum_size = Vector2(16, 0); hb.add_child(esp)
 	for k in Bolsa.MAX_BOLSAS:
@@ -108,6 +115,10 @@ func _tocar(k: int, i: int, alvo: Control) -> void:
 	var id: String = s[0]; var info := Bolsa.info(id)
 	var botoes := []
 	if modo_venda: botoes.append(UI.botao("VENDER", func(): m.loja_ui.vender(k, i); _esconder_dica()))
+	if Bolsa.lugar_equip(id) != "": botoes.append(UI.botao("EQUIPAR", func():
+		var erro: String = m.bolsa.equipar_item(k, i, m.hud.nivel)
+		if erro != "": m.hud.avisar(erro, Color(1, 0.35, 0.3))
+		_esconder_dica()))
 	if Bolsa.eh_bolsa(id): botoes.append(UI.botao("EQUIPAR", func():
 		var erro: String = m.bolsa.equipar_bolsa(k, i)
 		if erro != "": m.hud.avisar(erro, Color(1, 0.35, 0.3))
@@ -122,6 +133,11 @@ func _dica_bolsa_equipada(k: int, alvo: Control) -> void:
 		var erro: String = m.bolsa.desequipar_bolsa(k)
 		if erro != "": m.hud.avisar(erro, Color(1, 0.35, 0.3))
 		_esconder_dica())], true)
+
+func _linha_dupla(a: String, b: String) -> HBoxContainer:
+	var h := HBoxContainer.new(); h.custom_minimum_size = Vector2(380, 0)
+	var la := UI.rotulo(a, 21); la.size_flags_horizontal = Control.SIZE_EXPAND_FILL; h.add_child(la)
+	h.add_child(UI.rotulo(b, 21)); return h
 
 func _mostrar_texto(titulo: String, texto: String, alvo: Control) -> void:
 	_esconder_dica()
@@ -145,6 +161,18 @@ func _mostrar_dica(id: String, qtd: int, alvo: Control, botoes: Array, equipada 
 	var v: VBoxContainer = _dica.get_child(0)
 	v.add_child(UI.rotulo(info.nome, 28, Bolsa.CORES[info.qual]))
 	if Bolsa.eh_bolsa(id): v.add_child(UI.rotulo("Bolsa de %d espaços%s" % [info.espacos, "  (equipada)" if equipada else ""], 22))
+	if info.get("tipo", "") == "arma":
+		v.add_child(_linha_dupla(info.maos, info.subtipo))
+		v.add_child(_linha_dupla("%d - %d de dano" % [info.dano_min, info.dano_max], "Velocidade %.2f" % info.velocidade))
+		v.add_child(UI.rotulo("(%.1f de dano por segundo)" % ((info.dano_min + info.dano_max) * 0.5 / info.velocidade), 21))
+	elif info.get("tipo", "") == "escudo":
+		v.add_child(_linha_dupla("Mão secundária", info.subtipo))
+		v.add_child(UI.rotulo("%d de armadura" % info.armadura, 21))
+		v.add_child(UI.rotulo("%d de bloqueio" % info.bloqueio, 21))
+		v.add_child(UI.rotulo("Equipar: segurando o escudo, bloqueia %d%% do dano." % int(info.bloqueio_ativo * 100), 20, Color(0.12, 1.0, 0.0)))
+	if info.has("nivel") and int(info.nivel) > 1:
+		v.add_child(UI.rotulo("Requer nível %d" % info.nivel, 21, Color(1, 1, 1) if m.hud.nivel >= int(info.nivel) else Color(1, 0.3, 0.3)))
+	if equipada and info.has("tipo"): v.add_child(UI.rotulo("(equipado)", 20, Color(0.7, 0.7, 0.7)))
 	if info.pilha > 1: v.add_child(UI.rotulo("Pilha: %d / %d" % [qtd, info.pilha], 20, Color(0.8, 0.8, 0.8)))
 	var d := UI.rotulo("\"%s\"" % info.desc, 21, UI.AMARELO); d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d.custom_minimum_size = Vector2(380, 0); v.add_child(d)
