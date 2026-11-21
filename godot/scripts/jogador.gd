@@ -27,7 +27,7 @@ var braco_e: MeshInstance3D
 # (x direita, y cima, -z frente). A espada é montada a partir disso: lâmina = direção, guarda = perpendicular.
 const MAO := {
 	"repouso": [Vector3(0.34, -0.44, -0.56), Vector3(-0.02, 1.0, -0.1), Vector3(0.15, 0.0, 1.0)],
-	"correr": [Vector3(0.34, -0.52, -0.42), Vector3(0.1, 0.3, -0.95), Vector3(0.9, 0.0, 0.3)],
+	"correr": [Vector3(0.36, -0.5, -0.5), Vector3(0.05, 1.0, -0.18), Vector3(0.2, 0.0, 1.0)],     # em pé também correndo
 	"bloq": [Vector3(0.38, -0.52, -0.5), Vector3(0.2, 0.5, -0.85), Vector3(0.6, 0.0, 0.8)],
 }
 # GOLPES (copiados do vídeo de referência de espada e escudo em primeira pessoa, quadro a quadro):
@@ -41,13 +41,14 @@ const GOLPES := {
 	"leve1": { "a": Vector3(0.5, 0.06, -0.46), "da": Vector3(0.5, 0.78, 0.36), "dm": Vector3(-0.55, 0.2, -0.82),
 		"b": Vector3(-0.78, -0.58, -0.42), "db": Vector3(-0.82, -0.45, -0.35), "c": Vector3(0.12, -0.08, -0.78),
 		"t": [0.32, 0.22, 0.12, 0.65], "tranco": Vector3(-1.5, 3.0, 0.05), "giro": -2.5 },
-	# 2: horizontal da esquerda para a direita, na altura da cintura/peito
-	"leve2": { "a": Vector3(-0.5, -0.22, -0.46), "da": Vector3(-0.8, 0.25, 0.5), "dm": Vector3(0.78, 0.06, -0.62),
-		"b": Vector3(0.82, -0.3, -0.36), "db": Vector3(0.88, 0.0, 0.45), "c": Vector3(-0.05, -0.28, -0.74),
+	# 2: horizontal da esquerda para a direita, perto da altura dos olhos: a lâmina fica DEITADA o golpe todo
+	"leve2": { "a": Vector3(-0.55, -0.16, -0.42), "da": Vector3(-0.92, -0.02, 0.38), "dm": Vector3(0.86, -0.03, -0.5),
+		"b": Vector3(0.75, -0.24, -0.4), "db": Vector3(0.95, -0.05, 0.3), "c": Vector3(-0.42, -0.22, -0.56),
 		"t": [0.32, 0.22, 0.12, 0.65], "tranco": Vector3(-1.0, -3.0, 0.05), "giro": 3.0 },
 	# 3: de cima para baixo pelo meio (fecha o combo)
-	"leve3": { "a": Vector3(0.22, 0.3, -0.42), "da": Vector3(0.1, 0.62, 0.78), "dm": Vector3(0.04, 0.55, -0.83),
-		"b": Vector3(0.06, -0.8, -0.48), "db": Vector3(0.0, -0.8, -0.6), "c": Vector3(0.12, 0.16, -0.78),
+	# (a lâmina fica EM PÉ, no plano vertical da tela, do começo ao fim)
+	"leve3": { "a": Vector3(0.14, 0.08, -0.5), "da": Vector3(0.0, 0.9, 0.42), "dm": Vector3(0.0, 0.45, -0.89),
+		"b": Vector3(0.08, -0.72, -0.5), "db": Vector3(0.0, -0.75, -0.66), "c": Vector3(0.12, 0.1, -0.72),
 		"t": [0.34, 0.22, 0.13, 0.68], "tranco": Vector3(-5.0, 0.5, 0.08), "giro": 0.0 },
 	# forte: a diagonal com preparação longa (segurando) e o corpo indo junto
 	"forte": { "a": Vector3(0.55, 0.1, -0.4), "da": Vector3(0.55, 0.72, 0.42), "dm": Vector3(-0.5, 0.25, -0.83),
@@ -79,6 +80,7 @@ var _tranco := Vector3.ZERO      # câmera: pitch, roll, avanço
 var _parado := 0.0               # 0..1: quanto está parado (idle)
 var _giro := 0.0                 # câmera: vira um pouco junto com o golpe (graus)
 var _queda := 0.0; var _no_chao := true
+var _pulo_pedido := 0.0; var _coyote := 0.0
 var congelar := -1.0             # teste: para a ação nesse ponto (0..1)
 var pose_fixa := false           # teste: mãos paradas numa pose (mostrar_pose)
 
@@ -335,12 +337,18 @@ func _physics_process(delta: float) -> void:
 	if controles:
 		dir = controles.dir
 		_girar(controles.consumir_olhar() * SENS_TOQUE)
-		if controles.consumir_pulo() and is_on_floor(): velocity.y = PULO
+		if controles.consumir_pulo(): _pulo_pedido = 0.2     # guarda o pedido um pouquinho
 		correr = controles.correndo(); bloquear = controles.bloqueando(); atacar = controles.atacando()
 	correr = correr and dir.y < -0.3 and not bloquear
 	var vel := VEL_CORRER if correr else (VEL * 0.55 if bloquear else VEL)
 	if GOLPES.has(_acao): vel *= 0.45                # atacando: o corpo pesa, anda devagar
 	correr = correr and not GOLPES.has(_acao)
+	# pulo: funciona parado, andando ou correndo. Tolerâncias: o toque vale por 0,2 s e dá para pular até
+	# 0,15 s depois de sair do chão (descendo morro o corpo "descola" um instante do chão irregular)
+	_coyote = 0.15 if is_on_floor() else _coyote - delta
+	_pulo_pedido -= delta
+	if _pulo_pedido > 0.0 and _coyote > 0.0 and velocity.y <= 0.5:
+		velocity.y = PULO; _pulo_pedido = 0.0; _coyote = 0.0
 	var mov := transform.basis * Vector3(dir.x, 0, dir.y); mov.y = 0
 	velocity.x = mov.x * vel; velocity.z = mov.z * vel
 	if not is_on_floor(): velocity.y -= GRAV * delta

@@ -16,6 +16,7 @@ var _dedo_olhar := -1
 var fps: Label
 var _base: Texture2D
 var _pino: Texture2D
+var _pular_btn: Control
 const RAIO := 110.0
 
 func _ready() -> void:
@@ -42,6 +43,8 @@ func _botao(_txt: String, x: float, y: float, t: float, nome: String) -> void:
 
 func _input(e: InputEvent) -> void:
 	if e is InputEventScreenTouch:
+		# garantia para vários dedos: tocar no PULAR com o outro dedo no joystick sempre pula
+		if e.pressed and _pular_btn and _pular_btn.get_global_rect().has_point(e.position): _pulo = true
 		if e.pressed:
 			if e.position.x < get_viewport_rect().size.x * 0.4 and _dedo == -1:
 				_dedo = e.index; _centro = e.position; _ponta = e.position

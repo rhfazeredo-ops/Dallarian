@@ -1149,6 +1149,13 @@ func _modo_teste() -> void:
 		await get_tree().create_timer(2.0).timeout
 		var ini := jogador.global_position
 		controles.dir = Vector2(0, -1); controles.set_process(false)
+		if args.has("pular"):           # teste: pula andando (e correndo com --correr) e mede a altura do pulo
+			if args.has("correr"): controles._seg["correr"] = true
+			await get_tree().create_timer(0.8).timeout
+			var y0 := jogador.global_position.y; controles._pulo = true; var ymax := y0
+			for i in 40:
+				await get_tree().physics_frame; ymax = maxf(ymax, jogador.global_position.y)
+			print("PULO: subiu %.2f m" % (ymax - y0))
 		await get_tree().create_timer(float(args.andar)).timeout
 		print("ANDOU de %s até %s" % [ini, jogador.global_position]); get_tree().quit(); return
 	if args.has("golpe"):        # filma um golpe: --golpe=leve1 (ou combo) → varios PNGs a cada 1/30 s
