@@ -25,17 +25,30 @@ const CALCAS := [Color(0.45, 0.44, 0.47), Color(0.35, 0.28, 0.2), Color(0.28, 0.
 # skins: 1 = modelo base com cores sorteadas; 2 e 3 = skins desenhadas no Tripo (mesmo corpo, textura própria)
 const SKINS := ["res://assets/modelos/npc.glb", "res://assets/modelos/npc2.glb", "res://assets/modelos/npc3.glb"]
 var skin := 0
+# profissão: "" (morador comum), "ferreiro", "lenhador", "fazendeiro" — fica no posto trabalhando
+var profissao := ""
+var posto := Vector2.ZERO
+var olhar_posto := Vector2.ZERO
+var campo: Array = []             # fazendeiro: o campo (centro x, z, largura, comprimento, ângulo°, tipo)
+var ao_bater: Callable            # chamado no instante do golpe (faíscas/lascas)
+const MODELOS_PROF := { "ferreiro": "res://assets/modelos/ferreiro.glb", "lenhador": "res://assets/modelos/lenhador.glb", "fazendeiro": "res://assets/modelos/fazendeiro.glb" }
+# ferramentas: [arquivo, eixo do cabo no arquivo (para a cabeça), ponto de pegada, direção da lâmina/face, comprimento no arquivo, comprimento real (m)]
+const FERRAMENTAS := {
+	"martelo": ["res://assets/modelos/martelo.glb", Vector3(-0.856, 0.508, 0.093), Vector3(-0.13, 0.071, 0.033) + Vector3(0.856, -0.508, -0.093) * 0.56, Vector3(-0.085, 0.039, -0.996), 1.073, 0.38],
+	"machado": ["res://assets/modelos/machado.glb", Vector3(-0.433, 0.694, 0.575), Vector3(-0.023, 0.026, -0.024) + Vector3(-0.433, 0.694, 0.575) * -0.56, Vector3(0.228, -0.533, 0.815), 1.29, 0.85],
+}
 
 func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	m = mundo; rng.seed = semente; area_centro = centro; area_raio = raio
 	var sorteio := rng.randf()
 	skin = 0 if sorteio < 0.4 else (1 if sorteio < 0.7 else 2)
+	if profissao != "": skin = {"ferreiro": 11, "lenhador": 12, "fazendeiro": 13}[profissao]   # modelo e textura próprios
 	var cs := CollisionShape3D.new(); var cap := CapsuleShape3D.new(); cap.radius = 0.3; cap.height = 1.7
 	cs.shape = cap; cs.position = Vector3(0, 0.85, 0); add_child(cs)
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING      # anda no plano; a altura vem do terreno
 	# modelo: 0,98 m no arquivo, de frente para -X → girado para frente = -Z e escalado
 	visual = Node3D.new(); add_child(visual)
-	var mod: Node3D = load(SKINS[skin]).instantiate(); visual.add_child(mod)
+	var mod: Node3D = load(MODELOS_PROF[profissao] if profissao != "" else SKINS[skin]).instantiate(); visual.add_child(mod)
 	var alt := rng.randf_range(1.62, 1.86); var larg := rng.randf_range(0.92, 1.12)
 	var k := alt / 0.981
 	mod.scale = Vector3(k * larg, k, k * larg); mod.rotation_degrees.y = 90     # o modelo olha para +X
@@ -58,7 +71,13 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 		var i := esq.find_bone(b)
 		if i >= 0: _ids[b] = i; _resto[b] = esq.get_bone_global_rest(i)
 	_fase = rng.randf() * TAU
-	_proxima_coisa()
+	if profissao != "":
+		if profissao == "ferreiro": _segurar("martelo")
+		if profissao == "lenhador": _segurar("machado")
+		estado = "trabalho"; _alvo = posto
+		if profissao == "fazendeiro": _proximo_canteiro()
+	else:
+		_proxima_coisa()
 
 # marca no vértice quanto ele pertence à cabeça (r) e às mãos (g), pelo peso dos ossos — para separar pele
 # de túnica e cabelo de couro, que têm a mesma cor na textura. Feito uma vez e reaproveitado.
@@ -151,7 +170,7 @@ func _ir_conversar(outro: Morador, ponto: Vector2, meio: Vector2, dur: float, co
 	_tempo_estado = dur; falando = comeca; _troca_fala = rng.randf_range(2.0, 4.0)
 
 func livre_para_conversar() -> bool:
-	return par == null and (estado == "atividade" or estado == "andar") and _prox_conversa <= 0.0
+	return profissao == "" and par == null and (estado == "atividade" or estado == "andar") and _prox_conversa <= 0.0
 
 func _physics_process(delta: float) -> void:
 	if m == null: return
@@ -171,6 +190,17 @@ func _physics_process(delta: float) -> void:
 				velocity = Vector3(dir.x, 0, dir.y) * VEL
 				_virar_para(p + dir, delta, 6.0)
 				quer_andar = true
+		"trabalho":
+			var d := _alvo - p
+			if d.length() > 0.3:
+				var dir := d.normalized(); velocity = Vector3(dir.x, 0, dir.y) * VEL * 0.8
+				_virar_para(p + dir, delta, 6.0); quer_andar = true
+			else:
+				velocity = Vector3.ZERO
+				_virar_para(olhar_posto, delta, 4.0)
+				if profissao == "fazendeiro":
+					_tempo_estado -= delta
+					if _tempo_estado <= 0.0: _proximo_canteiro()
 		"atividade":
 			velocity = Vector3.ZERO
 			_virar_para(_olhar_para, delta, 2.5)
@@ -199,9 +229,41 @@ func _physics_process(delta: float) -> void:
 	else: _travado = 0.0
 	if _travado > 0.8:
 		_travado = 0.0
+		if estado == "trabalho": _alvo = p; return
 		if _depois_andar == "conversa" and par: estado = "conversa"          # já está perto o bastante
 		else: estado = "atividade"; atividade = "olhar"; _tempo_estado = rng.randf_range(2.0, 4.0); _olhar_para = _alvo
 	_animar(delta, clampf(vel_real / VEL, 0.0, 1.0))
+
+# prende uma ferramenta na mão direita: cabo para a frente e a cabeça/lâmina para baixo, na pose de repouso
+func _segurar(nome: String) -> void:
+	var f: Array = FERRAMENTAS[nome]
+	var mao := esq.find_bone("R_Hand"); var dedo := esq.find_bone("R_Mid1")
+	if mao < 0: return
+	var rh := esq.get_bone_global_rest(mao)
+	var pega: Vector3 = rh.origin
+	if dedo >= 0: pega = rh.origin.lerp(esq.get_bone_global_rest(dedo).origin, 0.9)
+	var at := BoneAttachment3D.new(); at.bone_name = "R_Hand"; esq.add_child(at)
+	# desejado (espaço do esqueleto): cabo +X (frente), face -Y; escala: comprimento real / altura do corpo
+	var k: float = esq.get_parent().scale.y if esq.get_parent() is Node3D else 1.0
+	var y_cabo := Vector3(1, 0, 0); var z_face := Vector3(0, -1, 0)
+	var desejado := Transform3D(Basis(y_cabo.cross(z_face), y_cabo, z_face), pega)
+	var no := Node3D.new(); no.transform = rh.affine_inverse() * desejado; at.add_child(no)
+	var mod: Node3D = m.modelo_ps1(f[0])
+	var eixo: Vector3 = f[1].normalized(); var face: Vector3 = (f[3] - eixo * f[3].dot(eixo)).normalized()
+	var base_ferr := Transform3D(Basis(eixo.cross(face), eixo, face), f[2])
+	var esc: float = f[5] / f[4] / (k * 1.0) * (0.981 / 1.0) / 0.981
+	mod.transform = Transform3D(Basis().scaled(Vector3.ONE * esc)) * base_ferr.affine_inverse()
+	no.add_child(mod)
+	# a escala do pai (modelo) também atua: compensa para ficar no tamanho real
+	mod.transform = Transform3D(Basis().scaled(Vector3.ONE * (f[5] / f[4]) / esq.get_parent().scale.y)) * base_ferr.affine_inverse()
+
+# fazendeiro: escolhe outro canteiro dentro do campo cercado e vai até ele
+func _proximo_canteiro() -> void:
+	if campo.is_empty(): return
+	var c := Vector2(campo[0], campo[1]); var ang := deg_to_rad(campo[4])
+	var q := c + Vector2(rng.randf_range(-0.4, 0.4) * campo[2], rng.randf_range(-0.4, 0.4) * campo[3]).rotated(ang)
+	_alvo = q; olhar_posto = q + Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1))
+	_tempo_estado = rng.randf_range(10.0, 20.0)
 
 func _virar_para(alvo: Vector2, delta: float, vel: float) -> void:
 	var d := alvo - Vector2(global_position.x, global_position.z)
@@ -250,6 +312,11 @@ func _animar(delta: float, anda: float) -> void:
 		else:            # escuta: braços cruzados ou na cintura e balança a cabeça concordando de vez em quando
 			_pose_cruzados(alvo, resp)
 			alvo["Head"] = _q(Vector3(0, 0, 1), -0.06 + (sin(_t * 5.0) * 0.08 if sin(_t * 0.7) > 0.6 else 0.0))
+	elif estado == "trabalho" and a < 0.3:
+		match profissao:
+			"ferreiro": _anim_ferreiro(alvo)
+			"lenhador": hip = _anim_lenhador(alvo)
+			"fazendeiro": hip = _anim_fazendeiro(alvo)
 	elif estado == "atividade":
 		match atividade:
 			"olhar":
@@ -314,3 +381,54 @@ func _pose_cruzados(alvo: Dictionary, resp: float) -> void:
 	alvo["L_Upperarm"] = _zx(0.45, -0.55 + resp * 0.02); alvo["R_Upperarm"] = _zx(0.45, 0.55 - resp * 0.02)
 	alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 1.75) * _q(Vector3(1, 0, 0), -0.5)
 	alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 1.75) * _q(Vector3(1, 0, 0), 0.5)
+
+# ---------- trabalho ----------
+var _bateu := false
+func _golpe_ciclo(periodo: float) -> float:
+	# 0..1: sobe devagar (0–0,62), desce rápido (0,62–0,78), segura (0,78–1)
+	var u := fmod(_t / periodo + rng.seed % 7 * 0.13, 1.0)
+	var bate := u > 0.7 and u < 0.78
+	if bate and not _bateu and ao_bater.is_valid(): ao_bater.call()
+	_bateu = bate
+	return u
+
+func _anim_ferreiro(alvo: Dictionary) -> void:
+	var u := _golpe_ciclo(1.15)
+	var sobe := smoothstep(0.0, 0.62, u) * (1.0 - smoothstep(0.62, 0.74, u))
+	alvo["R_Upperarm"] = _zx(0.55 + 1.15 * sobe, 0.35)
+	alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.55 + 1.0 * sobe)
+	alvo["L_Upperarm"] = _zx(0.75, -0.2); alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.9)      # segura a peça na bigorna
+	alvo["Spine01"] = _q(Vector3(0, 0, 1), -0.18 - 0.08 * (1.0 - sobe))
+	alvo["Head"] = _q(Vector3(0, 0, 1), -0.3)
+
+func _anim_lenhador(alvo: Dictionary) -> float:
+	var u := _golpe_ciclo(1.6)
+	var sobe := smoothstep(0.0, 0.62, u) * (1.0 - smoothstep(0.62, 0.76, u))
+	alvo["R_Upperarm"] = _zx(0.7 + 1.9 * sobe, 0.4)
+	alvo["L_Upperarm"] = _zx(0.7 + 1.9 * sobe, -0.4)
+	alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.35 + 0.6 * sobe); alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.35 + 0.6 * sobe)
+	alvo["Spine01"] = _q(Vector3(0, 0, 1), -0.55 * (1.0 - sobe) + 0.1 * sobe)
+	alvo["L_Thigh"] = _q(Vector3(0, 0, 1), 0.25); alvo["R_Thigh"] = _q(Vector3(0, 0, 1), -0.15)
+	alvo["L_Calf"] = _q(Vector3(0, 0, 1), -0.3)
+	alvo["Head"] = _q(Vector3(0, 0, 1), -0.25)
+	return -0.05 * (1.0 - sobe)
+
+func _anim_fazendeiro(alvo: Dictionary) -> float:
+	if not campo.is_empty() and campo[5] == 0:
+		# trigo: em pé, inclinado, colhendo — junta um feixe com a esquerda e corta com a direita
+		var g := sin(_t * 2.0)
+		alvo["Spine01"] = _q(Vector3(0, 0, 1), -0.5) * _q(Vector3(0, 1, 0), 0.25 * g)
+		alvo["L_Thigh"] = _q(Vector3(0, 0, 1), 0.25); alvo["L_Calf"] = _q(Vector3(0, 0, 1), -0.35)
+		alvo["L_Upperarm"] = _zx(1.0, -0.1); alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.5)
+		alvo["R_Upperarm"] = _zx(0.8 + 0.35 * g, 0.4 - 0.3 * g); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.4)
+		alvo["Head"] = _q(Vector3(0, 0, 1), -0.25)
+		return -0.04
+	# terra arada: agachado cavando/arrancando mato com as duas mãos, alternando
+	alvo["L_Thigh"] = _q(Vector3(0, 0, 1), 1.25); alvo["R_Thigh"] = _q(Vector3(0, 0, 1), 0.95)
+	alvo["L_Calf"] = _q(Vector3(0, 0, 1), -2.0); alvo["R_Calf"] = _q(Vector3(0, 0, 1), -1.5)
+	alvo["Spine01"] = _q(Vector3(0, 0, 1), -0.45)
+	var a1 := sin(_t * 2.6); var a2 := sin(_t * 2.6 + PI)
+	alvo["R_Upperarm"] = _zx(0.95 + 0.3 * a1, 0.15); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.35 + 0.35 * max(a1, 0.0))
+	alvo["L_Upperarm"] = _zx(0.95 + 0.3 * a2, -0.15); alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.35 + 0.35 * max(a2, 0.0))
+	alvo["Head"] = _q(Vector3(0, 0, 1), -0.35) * _q(Vector3(0, 1, 0), sin(_t * 0.4) * 0.2)
+	return -0.32

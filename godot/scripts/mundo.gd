@@ -66,11 +66,76 @@ func _moradores() -> void:
 				a = randf() * TAU; p = g[0] + Vector2(cos(a), sin(a)) * randf_range(4.0, g[1] * 0.8)
 			mo.position = Vector3(p.x, altura(p.x, p.y) + 0.3, p.y)
 			mo.montar(self, 1000 + n, g[0], g[1]); n += 1
+	_profissionais()
 	# já começam algumas conversas na vila
 	var vila := []
 	for mo in raiz.get_children():
 		if mo is Morador and Vector2(mo.position.x, mo.position.z).length() < 45.0: vila.append(mo)
 	for k in range(0, mini(vila.size() - 1, 4), 2): vila[k].convidar(vila[k + 1])
+
+# trabalhadores: ferreiro na bigorna, lenhador cortando um tronco caído na mata perto da serraria,
+# um fazendeiro dentro de cada campo cercado
+func _profissionais() -> void:
+	var n := 0
+	# ferreiro: em pé na frente da bigorna (no espaço da ferraria: bigorna em (1,2; -0,4))
+	if ferraria_pos != Vector2.ZERO:
+		var loc := func(x: float, z: float) -> Vector2: return ferraria_pos + Vector2(x, z).rotated(-ferraria_ang)
+		var big: Vector2 = loc.call(1.2, -0.4)
+		var fe := Morador.new(); fe.profissao = "ferreiro"; fe.posto = loc.call(1.2, 0.42); fe.olhar_posto = big
+		raiz.add_child(fe); fe.position = Vector3(fe.posto.x, altura(fe.posto.x, fe.posto.y), fe.posto.y)
+		var yb := reg.altura(big.x, big.y)
+		var faisca := _particulas(Vector3(big.x, yb + 1.08, big.y), [Color(1.0, 0.8, 0.3), Color(1.0, 0.55, 0.15)], 16, 3.2, 0.45)
+		fe.ao_bater = func(): faisca.restart()
+		fe.montar(self, 5000 + n, fe.posto, 1.0); n += 1
+	# lenhador: tronco caído na beira da mata, perto da serraria
+	var serra := Vector2(286, -170); var lp := serra + Vector2(0, 22)
+	for t in 40:
+		var a := t * 0.7; var q := serra + Vector2(cos(a), sin(a)) * (18.0 + t * 0.6)
+		if reg.floresta(q.x, q.y) > 0.35 and reg.dist_estrada(q.x, q.y) > 6.0 and not perto_de_casa(q.x, q.y, 3.0) and reg.dist_rio(q.x, q.y) > 14.0:
+			lp = q; break
+	var ang := randf() * TAU
+	var tronco_c := lp + Vector2(cos(ang), sin(ang)) * 1.0
+	_tronco_caido(tronco_c, -ang - PI / 2)       # deitado de través na frente do lenhador
+	lugares.append([tronco_c, 4.0])
+	var le := Morador.new(); le.profissao = "lenhador"; le.posto = lp; le.olhar_posto = tronco_c
+	raiz.add_child(le); le.position = Vector3(lp.x, altura(lp.x, lp.y), lp.y)
+	var lascas := _particulas(Vector3(tronco_c.x, altura(tronco_c.x, tronco_c.y) + 0.45, tronco_c.y), [Color(0.85, 0.66, 0.4), Color(0.6, 0.42, 0.24)], 12, 2.4, 0.6)
+	le.ao_bater = func(): lascas.restart()
+	le.montar(self, 6000, lp, 1.0)
+	# fazendeiros: um em cada campo cercado
+	for cp in reg.campos:
+		var fz := Morador.new(); fz.profissao = "fazendeiro"; fz.campo = cp
+		var c := Vector2(cp[0], cp[1])
+		fz.posto = c; fz.olhar_posto = c + Vector2(1, 0)
+		raiz.add_child(fz); fz.position = Vector3(c.x, altura(c.x, c.y), c.y)
+		fz.montar(self, 7000 + n, c, 1.0); n += 1
+
+# faíscas / lascas: partículas que saem num estouro (restart() a cada golpe)
+func _particulas(pos: Vector3, cores: Array, qtd: int, vel: float, vida: float) -> CPUParticles3D:
+	var p := CPUParticles3D.new(); p.position = pos
+	p.one_shot = true; p.emitting = false; p.amount = qtd; p.lifetime = vida; p.explosiveness = 1.0
+	p.direction = Vector3(0, 1, 0); p.spread = 70.0; p.initial_velocity_min = vel * 0.5; p.initial_velocity_max = vel
+	p.gravity = Vector3(0, -9.0, 0); p.scale_amount_min = 0.6; p.scale_amount_max = 1.2
+	var q := QuadMesh.new(); q.size = Vector2(0.05, 0.05)
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mt.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED; mt.vertex_color_use_as_albedo = true
+	q.material = mt; p.mesh = q
+	var g := Gradient.new(); g.set_color(0, cores[0]); g.set_color(1, cores[1]); p.color_initial_ramp = g
+	raiz.add_child(p); return p
+
+# tronco caído (para o lenhador cortar): deitado no chão, com um corte em V no meio e lascas em volta
+func _tronco_caido(c: Vector2, ang: float) -> void:
+	var y := terreno.altura_malha(c.x, c.y)
+	var st := _st(); cilindro(st, Vector3(0, -1.4, 0), 0.34, 0.3, 2.8, 7, true)
+	var mi := _peca(st, mat("casca"), Vector3(c.x, y + 0.28, c.y)); mi.rotation = Vector3(0, ang, PI / 2)
+	st = _st(); _caixa(st, Vector3(0, 0.0, 0), Vector3(0.18, 0.2, 0.62))
+	var corte := _peca(st, mat("", 1.0, Color(0.86, 0.68, 0.42)), Vector3(c.x, y + 0.56, c.y)); corte.rotation.y = ang
+	var lascas := []
+	for k in 16:
+		var q := c + Vector2(randf_range(-0.9, 0.9), randf_range(-0.9, 0.9))
+		lascas.append([Vector3(q.x, terreno.altura_malha(q.x, q.y) + 0.03, q.y), Color(0.82, 0.64, 0.4) * randf_range(0.85, 1.1), randf_range(0.06, 0.1)])
+	_splats(lascas, Vector2(1, 1), false, 0.0)
+	_colisor_caixa(Vector3(c.x, y - 0.1, c.y), Vector3(0.7, 0.75, 2.8), ang + PI / 2)
 
 # ponto dentro (ou perto) de uma casa?
 func perto_de_casa(x: float, z: float, folga: float) -> bool:
@@ -200,6 +265,7 @@ func _vila() -> void:
 # chaminé e fogo aceso, bigorna sobre um toco, tina d'água, monte de carvão e um suporte de ferramentas.
 # O lugar é escolhido sozinho: livre de casas e longe da estrada, na beira da vila.
 var ferraria_pos := Vector2.ZERO
+var ferraria_ang := 0.0
 func _ferraria() -> void:
 	var c := Vector2(-34, 44)
 	for t in 80:
@@ -208,7 +274,7 @@ func _ferraria() -> void:
 		if not perto_de_casa(q.x, q.y, 6.0) and reg.dist_estrada(q.x, q.y) > 9.0: c = q; break
 	var ang := atan2(-c.x, -c.y)                         # frente aberta virada para a praça
 	var livre := _longe_da_estrada(c, Vector2(4.5, 3.5), ang)
-	c = livre; ferraria_pos = c
+	c = livre; ferraria_pos = c; ferraria_ang = ang
 	var y := reg.aplanar(c, Vector2(5.0, 4.0), -ang, 3.0)
 	var base := Vector3(c.x, y, c.y)
 	var no := Node3D.new(); no.position = base; no.rotation.y = ang; raiz.add_child(no)
@@ -759,6 +825,16 @@ func _modo_teste() -> void:
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
+	if args.has("ver"):          # teste: olha um trabalhador de perto (--ver=ferreiro|lenhador|fazendeiro[:lado])
+		var partes := String(args.ver).split(":")
+		for mo in raiz.get_children():
+			if mo is Morador and mo.profissao == partes[0] and (not "arado" in partes or (not mo.campo.is_empty() and mo.campo[5] == 1)):
+				if "arado" in partes: mo._alvo = Vector2(mo.global_position.x, mo.global_position.z); mo._tempo_estado = 1000.0
+				var alvo3: Vector3 = mo.global_position
+				var ang_v: float = mo.rotation.y + (PI * 0.5 if "lado" in partes else PI * 0.15)
+				var pj := alvo3 + Vector3(-sin(ang_v), 0, -cos(ang_v)) * 4.0
+				jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); _ultima = jogador.global_position
+				var d3 := alvo3 - pj; jogador.rotation.y = atan2(-d3.x, -d3.z); break
 	if args.has("ferraria"):
 		var f3 := Vector3(ferraria_pos.x, 0, ferraria_pos.y); var dirf := (Vector3.ZERO - f3).normalized()
 		var pj := f3 + dirf * 9.0; jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z)
