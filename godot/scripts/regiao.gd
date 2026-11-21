@@ -234,8 +234,19 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	if h > 40.0: c = c.lerp(Color(0.88, 0.91, 0.98), smoothstep(40.0, 50.0, h))  # neve
 	return c
 
+# dentro do chão de alguma construção (casa, ferraria, moinho...)?
+func em_construcao(x: float, z: float) -> bool:
+	for pl in planos:
+		var c: Vector2 = pl[0]
+		var dx := x - c.x; var dz := z - c.y
+		if dx * dx + dz * dz > pl[5]: continue
+		var q := Vector2(dx, dz).rotated(-pl[2]); var meia: Vector2 = pl[1]
+		if abs(q.x) < meia.x - 0.6 and abs(q.y) < meia.y - 0.6: return true
+	return false
+
 # a grama nasce aqui? (devolve 0..1 = densidade)
 func grama(x: float, z: float, h: float, ny: float) -> float:
+	if em_construcao(x, z): return 0.0
 	if abs(x) > LIM - 20 or abs(z) > LIM - 20 or ny < 0.8 or h > 30.0: return 0.0
 	if Vector2(x, z).length() < 18.0: return 0.0
 	if h < agua(x, z) + 0.15: return 0.0

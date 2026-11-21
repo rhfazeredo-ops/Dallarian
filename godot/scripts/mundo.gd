@@ -188,7 +188,83 @@ func _vila() -> void:
 	_poco(Vector3(0, reg.aplanar(Vector2.ZERO, Vector2(1.6, 1.6), 0.0, 2.0) - 0.1, 0))
 	for b in [[3.5, 2.0], [4.2, 2.6], [-3.0, 3.6], [6.0, -9.0], [-26, -16], [-25, -15.2]]:
 		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
+	_ferraria()
 	lugares.append([Vector2.ZERO, 50.0])
+
+# ferraria: telheiro aberto de madeira (4 esteios e telhado inclinado de tábuas), fornalha de pedra com
+# chaminé e fogo aceso, bigorna sobre um toco, tina d'água, monte de carvão e um suporte de ferramentas.
+# O lugar é escolhido sozinho: livre de casas e longe da estrada, na beira da vila.
+var ferraria_pos := Vector2.ZERO
+func _ferraria() -> void:
+	var c := Vector2(-34, 44)
+	for t in 80:
+		var a := deg_to_rad(120.0 + t * 37.0); var r := 30.0 + (t % 5) * 5.0
+		var q := Vector2(cos(a), sin(a)) * r
+		if not perto_de_casa(q.x, q.y, 6.0) and reg.dist_estrada(q.x, q.y) > 9.0: c = q; break
+	var ang := atan2(-c.x, -c.y)                         # frente aberta virada para a praça
+	var livre := _longe_da_estrada(c, Vector2(4.5, 3.5), ang)
+	c = livre; ferraria_pos = c
+	var y := reg.aplanar(c, Vector2(5.0, 4.0), -ang, 3.0)
+	var base := Vector3(c.x, y, c.y)
+	var no := Node3D.new(); no.position = base; no.rotation.y = ang; raiz.add_child(no)
+	var add := func(st: SurfaceTool, mt: Material) -> void:
+		var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = mt; no.add_child(mi)
+	var col := func(pos: Vector3, tam: Vector3) -> void:
+		var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bx := BoxShape3D.new()
+		bx.size = tam; cs.shape = bx; cs.position = pos + Vector3(0, tam.y / 2.0, 0); corpo.add_child(cs); no.add_child(corpo)
+	# piso de pedra batida
+	var st := _st(); _caixa(st, Vector3(0, -0.15, 0), Vector3(9.0, 0.4, 7.0)); add.call(st, mat("pedra", 1.0, Color(0.75, 0.72, 0.7)))
+	# esteios e vigas
+	st = _st()
+	for e in [Vector2(-4.2, 3.2), Vector2(4.2, 3.2), Vector2(-4.2, -3.2), Vector2(4.2, -3.2)]:
+		var alt: float = 3.4 if e.y > 0 else 2.6
+		_caixa(st, Vector3(e.x, alt / 2.0 - 0.3, e.y), Vector3(0.3, alt + 0.6, 0.3))
+		col.call(Vector3(e.x, -0.3, e.y), Vector3(0.32, alt, 0.32))
+	_caixa(st, Vector3(0, 3.2, 3.2), Vector3(8.8, 0.25, 0.25)); _caixa(st, Vector3(0, 2.4, -3.2), Vector3(8.8, 0.25, 0.25))
+	add.call(st, mat("madeira"))
+	# telhado de tábuas inclinado (mais alto na frente)
+	st = _st()
+	_quad(st, Vector3(-4.8, 2.5, -3.8), Vector3(4.8, 2.5, -3.8), Vector3(4.8, 3.45, 3.8), Vector3(-4.8, 3.45, 3.8), 5.0, 4.0)
+	_quad(st, Vector3(4.8, 2.5, -3.8), Vector3(-4.8, 2.5, -3.8), Vector3(-4.8, 3.45, 3.8), Vector3(4.8, 3.45, 3.8), 5.0, 4.0)
+	add.call(st, mat("madeira", 1.0, Color(0.62, 0.55, 0.5)))
+	# fornalha de pedra no fundo, com chaminé atravessando o telhado
+	st = _st()
+	_caixa(st, Vector3(-2.2, 0.75, -2.3), Vector3(2.4, 1.5, 1.8))
+	_caixa(st, Vector3(-2.2, 1.9, -2.6), Vector3(1.6, 0.8, 1.2))
+	_caixa(st, Vector3(-2.2, 3.4, -2.6), Vector3(0.9, 2.6, 0.9))
+	add.call(st, mat("pedra"))
+	col.call(Vector3(-2.2, 0, -2.3), Vector3(2.4, 2.4, 1.8))
+	# boca da fornalha: brasa (escuro + laranja) e fogo em splats
+	st = _st(); _quad(st, Vector3(-2.9, 0.35, -1.38), Vector3(-1.5, 0.35, -1.38), Vector3(-1.5, 1.05, -1.38), Vector3(-2.9, 1.05, -1.38), 1, 1)
+	add.call(st, mat("", 1.0, Color(1.6, 0.55, 0.15)))
+	var fogo := []
+	for k in 18:
+		fogo.append([no.transform * Vector3(-2.2 + randf_range(-0.45, 0.45), randf_range(0.4, 1.0), -1.3 + randf_range(-0.05, 0.08)),
+			[Color(1.0, 0.75, 0.3), Color(0.98, 0.45, 0.15), Color(1.0, 0.9, 0.55)][k % 3], randf_range(0.18, 0.32)])
+	_splats(fogo, Vector2(1, 1), false, 0.6)
+	# bigorna sobre um toco
+	st = _st(); cilindro(st, Vector3(1.2, -0.1, -0.4), 0.45, 0.42, 0.75, 7, true); add.call(st, mat("casca"))
+	st = _st()
+	_caixa(st, Vector3(1.2, 0.72, -0.4), Vector3(0.38, 0.18, 0.3))
+	_caixa(st, Vector3(1.2, 0.92, -0.4), Vector3(0.75, 0.22, 0.34))
+	_caixa(st, Vector3(1.68, 0.95, -0.4), Vector3(0.25, 0.14, 0.18))      # bico
+	add.call(st, mat("", 1.0, Color(0.3, 0.3, 0.34)))
+	col.call(Vector3(1.2, -0.1, -0.4), Vector3(0.9, 1.05, 0.9))
+	# tina d'água e monte de carvão
+	st = _st(); cilindro(st, Vector3(3.2, -0.1, -2.2), 0.6, 0.65, 0.75, 8); add.call(st, mat("madeira"))
+	st = _st(); _quad(st, Vector3(2.65, 0.55, -2.75), Vector3(3.75, 0.55, -2.75), Vector3(3.75, 0.55, -1.65), Vector3(2.65, 0.55, -1.65), 1, 1)
+	add.call(st, mat("", 1.0, Color(0.2, 0.32, 0.42)))
+	col.call(Vector3(3.2, -0.1, -2.2), Vector3(1.3, 0.85, 1.3))
+	st = _st(); cilindro(st, Vector3(-3.6, -0.1, 1.2), 0.9, 0.0, 0.7, 6); add.call(st, mat("", 1.0, Color(0.13, 0.12, 0.12)))
+	# suporte de ferramentas na parede do fundo (tenazes e martelos como silhuetas)
+	st = _st()
+	_caixa(st, Vector3(1.6, 1.6, -3.05), Vector3(2.2, 0.12, 0.12))
+	for k in 5:
+		var x := 0.8 + k * 0.4
+		_caixa(st, Vector3(x, 1.25, -3.0), Vector3(0.05, 0.7, 0.05))
+		_caixa(st, Vector3(x, 0.92, -3.0), Vector3(0.16, 0.1, 0.08))
+	add.call(st, mat("", 1.0, Color(0.32, 0.3, 0.3)))
+	lugares.append([c, 7.0])
 
 func _colisor_caixa(pos: Vector3, tam: Vector3, ang: float) -> void:
 	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bx := BoxShape3D.new()
@@ -678,6 +754,10 @@ func _modo_teste() -> void:
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
+	if args.has("ferraria"):
+		var f3 := Vector3(ferraria_pos.x, 0, ferraria_pos.y); var dirf := (Vector3.ZERO - f3).normalized()
+		var pj := f3 + dirf * 9.0; jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z)
+		jogador.rotation.y = atan2(dirf.x, dirf.z)
 	if args.has("npc"):          # teste: põe moradores parados em fila na frente do jogador
 		var fr := -jogador.global_transform.basis.z; var lado := jogador.global_transform.basis.x
 		var k := 0

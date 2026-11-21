@@ -78,7 +78,7 @@ func _bloco(c: Dictionary, k: Vector2i) -> MultiMeshInstance3D:
 	var b: int = c.bloco; var itens := []
 	for n in int(b * b * c.dens):
 		var x := k.x * b + rng.randf() * b; var z := k.y * b + rng.randf() * b
-		if not m.reg.dentro(x, z): continue
+		if not m.reg.dentro(x, z) or m.reg.em_construcao(x, z): continue
 		var h: float = m.altura_malha(x, z); var nrm: Vector3 = m.normal_malha(x, z)
 		if h < m.reg.agua(x, z) - 0.05: continue
 		var s := rng.randf_range(c.tam.x, c.tam.y)
