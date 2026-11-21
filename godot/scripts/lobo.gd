@@ -7,8 +7,8 @@ extends CharacterBody3D
 class_name Lobo
 
 const ARQ := {"branco": "res://assets/modelos/lobo_branco.glb", "preto": "res://assets/modelos/lobo_preto.glb", "marrom": "res://assets/modelos/lobo_marrom.glb"}
-const VEL_ANDAR := 1.7
-const VEL_CORRER := 6.6
+const VEL_ANDAR := 1.4
+const VEL_CORRER := 5.2       # um pouco mais lento que a Rachel correndo (7,2)
 var tipo := "marrom"
 var lider := false
 var nivel := 2

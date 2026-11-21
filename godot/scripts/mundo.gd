@@ -149,20 +149,39 @@ func _lobos() -> void:
 			if not ok: continue
 			escolhidos.append(q); feitos += 1
 			_matilha(q, lista[1], rng)
+	# grupinhos de 3 lobos marrons de nível 1–2 nas matas mais perto da vila (para quem está começando)
+	var perto := []
+	for i in 3000:
+		var q := Vector2(rng.randf_range(-330, 330), rng.randf_range(-330, 330))
+		if q.length() < 85.0 or q.length() > 320.0 or reg.folga_caminho(q.x, q.y) < 8.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if perto_de_lugar(q.x, q.y, 20.0) or reg.campo_em(q.x, q.y) >= 0 or perto_de_casa(q.x, q.y, 12.0): continue
+		if reg.floresta(q.x, q.y) < 0.3 or reg.altura(q.x, q.y) - reg.base(q.y) > 5.0: continue
+		perto.append(q)
+	perto.shuffle()
+	var feitos2 := 0
+	for q in perto:
+		if feitos2 >= 14: break
+		var ok := true
+		for e in escolhidos: if q.distance_to(e) < 55.0: ok = false
+		if not ok: continue
+		escolhidos.append(q); feitos2 += 1
+		_matilha(q, "marrom", rng, true)
 
-func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator) -> void:
-	var n := rng.randi_range(4, 6)
+func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator, pequena := false) -> void:
+	var n := 3 if pequena else rng.randi_range(4, 6)
 	var g := {"casa": c, "membros": [], "alerta": false, "atacante": null, "tipo": tipo}
 	# nível: marrons (floresta) 2–3, brancos (montanha) 4–6; o líder um nível acima do maior
 	var nv_min := 2 if tipo == "marrom" else 4; var nv_max := 3 if tipo == "marrom" else 6
+	if pequena: nv_min = 1; nv_max = 2                      # grupinhos de 3 de nível 1–2, sem líder
 	for i in n:
 		var lobo := Lobo.new(); lobo.grupo = g
+		var lider := i == 0 and not pequena
 		var a := TAU * i / n + rng.randf() * 0.4; var r := 0.0 if i == 0 else rng.randf_range(3.0, 6.0)
 		var p := c + Vector2(cos(a), sin(a)) * r
 		raiz.add_child(lobo); lobo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 		lobo.vaga = TAU * i / n
-		lobo.nivel = nv_max + 1 if i == 0 else rng.randi_range(nv_min, nv_max)
-		lobo.montar(self, "preto" if i == 0 else tipo, i == 0, rng.randi())
+		lobo.nivel = nv_max + 1 if lider else rng.randi_range(nv_min, nv_max)
+		lobo.montar(self, "preto" if lider else tipo, lider, rng.randi())
 		lobo.rotation.y = rng.randf() * TAU
 		g.membros.append(lobo)
 	matilhas.append(g)
