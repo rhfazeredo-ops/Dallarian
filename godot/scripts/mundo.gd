@@ -48,6 +48,7 @@ func _ready() -> void:
 	_ultima = jogador.position
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
+	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self)
 	_musica()
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
 	if args.has("checar"): _checar_chao()
@@ -825,6 +826,12 @@ func _modo_teste() -> void:
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
+	if args.has("falar") and args.falar == "1":
+		get_tree().create_timer(3.0).timeout.connect(func():
+			for c in get_children():
+				if c is CanvasLayer:
+					for i in c.get_children():
+						if i is Interacao: i._conversar())
 	if args.has("ver"):          # teste: olha um trabalhador de perto (--ver=ferreiro|lenhador|fazendeiro[:lado])
 		var partes := String(args.ver).split(":")
 		for mo in raiz.get_children():
@@ -832,7 +839,7 @@ func _modo_teste() -> void:
 				if "arado" in partes: mo._alvo = Vector2(mo.global_position.x, mo.global_position.z); mo._tempo_estado = 1000.0
 				var alvo3: Vector3 = mo.global_position
 				var ang_v: float = mo.rotation.y + (PI * 0.5 if "lado" in partes else PI * 0.15)
-				var pj := alvo3 + Vector3(-sin(ang_v), 0, -cos(ang_v)) * 4.0
+				var pj := alvo3 + Vector3(-sin(ang_v), 0, -cos(ang_v)) * 3.2
 				jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); _ultima = jogador.global_position
 				var d3 := alvo3 - pj; jogador.rotation.y = atan2(-d3.x, -d3.z); break
 	if args.has("ferraria"):

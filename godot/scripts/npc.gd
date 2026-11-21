@@ -30,6 +30,7 @@ var profissao := ""
 var posto := Vector2.ZERO
 var olhar_posto := Vector2.ZERO
 var campo: Array = []             # fazendeiro: o campo (centro x, z, largura, comprimento, ângulo°, tipo)
+var falando_com: Node3D = null    # o jogador, quando está conversando com ele
 var ao_bater: Callable            # chamado no instante do golpe (faíscas/lascas)
 const MODELOS_PROF := { "ferreiro": "res://assets/modelos/ferreiro.glb", "lenhador": "res://assets/modelos/lenhador.glb", "fazendeiro": "res://assets/modelos/fazendeiro.glb" }
 # ferramentas: [arquivo, eixo do cabo no arquivo (para a cabeça), ponto de pegada, direção da lâmina/face, comprimento no arquivo, comprimento real (m)]
@@ -190,6 +191,9 @@ func _physics_process(delta: float) -> void:
 				velocity = Vector3(dir.x, 0, dir.y) * VEL
 				_virar_para(p + dir, delta, 6.0)
 				quer_andar = true
+		"trabalho" when falando_com != null:
+			velocity = Vector3.ZERO
+			_virar_para(Vector2(falando_com.global_position.x, falando_com.global_position.z), delta, 5.0)
 		"trabalho":
 			var d := _alvo - p
 			if d.length() > 0.3:
@@ -312,6 +316,11 @@ func _animar(delta: float, anda: float) -> void:
 		else:            # escuta: braços cruzados ou na cintura e balança a cabeça concordando de vez em quando
 			_pose_cruzados(alvo, resp)
 			alvo["Head"] = _q(Vector3(0, 0, 1), -0.06 + (sin(_t * 5.0) * 0.08 if sin(_t * 0.7) > 0.6 else 0.0))
+	elif falando_com != null:      # conversando com a Dallarian: gesticula e olha para ela
+		var g := sin(_t * 3.1) * 0.5 + 0.5
+		alvo["R_Upperarm"] = _zx(0.55 + 0.15 * sin(_t * 2.3), 0.2); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 1.2 + 0.35 * g)
+		alvo["L_Upperarm"] = _zx(0.25, -0.25); alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.7)
+		alvo["Head"] = _q(Vector3(0, 0, 1), 0.08 + sin(_t * 4.0) * 0.04)
 	elif estado == "trabalho" and a < 0.3:
 		match profissao:
 			"ferreiro": _anim_ferreiro(alvo)
