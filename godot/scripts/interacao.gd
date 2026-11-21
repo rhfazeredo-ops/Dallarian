@@ -14,11 +14,20 @@ var fala_lbl: Label
 var aviso: Label
 var _falando := false
 var _f_antes := false
-const FALAS_FERREIRO := [
-	"Ferro quente não espera ninguém, garota. Se quer ser cavaleira, comece aprendendo que toda boa lâmina nasceu de mil marteladas.",
-	"Uma espada não faz o cavaleiro... mas um cavaleiro sem uma boa espada vira história curta. Volte quando tiver moedas.",
-	"Escuta o som do martelo? Quando ele canta limpo, o aço está pronto. Quando ele chia, alguém vai morrer com essa lâmina.",
+# diálogos: lista de falas [quem, texto, áudio (ou "")]; quem = "heroina" ou "ferreiro"
+const NOME_HEROINA := "Dallarian"
+const DIALOGOS_FERREIRO := [
+	[["heroina", "Bom dia, mestre ferreiro. Que barulho bonito esse do martelo.", "res://assets/voz/heroina_01.ogg"],
+	 ["ferreiro", "Ferro quente não espera ninguém, garota. Se quer ser cavaleira, comece aprendendo que toda boa lâmina nasceu de mil marteladas.", "res://assets/voz/ferreiro_01.ogg"]],
+	[["heroina", "Um dia vou ter uma espada digna de um cavaleiro. Você faria uma pra mim?", ""],
+	 ["ferreiro", "Uma espada não faz o cavaleiro... mas um cavaleiro sem uma boa espada vira história curta. Volte quando tiver moedas.", ""]],
+	[["heroina", "Como você sabe quando uma lâmina está pronta?", ""],
+	 ["ferreiro", "Escuta o som do martelo? Quando ele canta limpo, o aço está pronto. Quando ele chia, alguém vai morrer com essa lâmina.", ""]],
 ]
+var _dialogo: Array = []
+var _fala := 0
+var _tempo_fala := 0.0
+var voz: AudioStreamPlayer
 var _fala_i := 0
 
 func montar(mundo) -> void:
@@ -43,16 +52,17 @@ func montar(mundo) -> void:
 	nome_lbl = Label.new(); nome_lbl.add_theme_font_size_override("font_size", 36); nome_lbl.add_theme_color_override("font_color", Color(0.98, 0.8, 0.42))
 	fala_lbl = Label.new(); fala_lbl.add_theme_font_size_override("font_size", 32); fala_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	fala_lbl.custom_minimum_size = Vector2(1100, 0)
-	var dica := Label.new(); dica.text = "toque para fechar"; dica.add_theme_font_size_override("font_size", 22); dica.add_theme_color_override("font_color", Color(0.7, 0.65, 0.58))
+	var dica := Label.new(); dica.text = "toque para continuar"; dica.add_theme_font_size_override("font_size", 22); dica.add_theme_color_override("font_color", Color(0.7, 0.65, 0.58))
 	dica.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v.add_child(nome_lbl); v.add_child(fala_lbl); v.add_child(dica)
-	caixa.gui_input.connect(func(e): if (e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed: _fechar())
+	caixa.gui_input.connect(func(e): if (e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed: _avancar())
 	caixa.visible = false; add_child(caixa)
 	aviso = Label.new(); aviso.add_theme_font_size_override("font_size", 30); aviso.add_theme_constant_override("outline_size", 8)
 	aviso.add_theme_color_override("font_outline_color", Color.BLACK); aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	aviso.anchor_left = 0.5; aviso.anchor_right = 0.5; aviso.anchor_top = 1; aviso.anchor_bottom = 1
 	aviso.offset_left = -500; aviso.offset_right = 500; aviso.offset_top = -400; aviso.offset_bottom = -350
 	aviso.modulate.a = 0.0; add_child(aviso)
+	voz = AudioStreamPlayer.new(); voz.volume_db = 2.0; add_child(voz)
 
 func _botao(txt: String, ativo: bool, f: Callable) -> Button:
 	var b := Button.new(); b.text = txt; b.add_theme_font_size_override("font_size", 34)
@@ -71,14 +81,32 @@ func _aviso(t: String) -> void:
 func _conversar() -> void:
 	if npc == null: return
 	_falando = true; painel.visible = false
-	nome_lbl.text = "Bram, o ferreiro"
-	fala_lbl.text = FALAS_FERREIRO[_fala_i % FALAS_FERREIRO.size()]; _fala_i += 1
-	caixa.visible = true
+	_dialogo = DIALOGOS_FERREIRO[_fala_i % DIALOGOS_FERREIRO.size()]; _fala_i += 1
+	_fala = 0; caixa.visible = true
 	npc.falando_com = m.jogador
+	_mostrar_fala()
+
+# mostra a fala atual (legenda + voz); sem voz, fica o tempo de leitura
+func _mostrar_fala() -> void:
+	var f: Array = _dialogo[_fala]
+	nome_lbl.text = NOME_HEROINA if f[0] == "heroina" else "Bram, o ferreiro"
+	nome_lbl.add_theme_color_override("font_color", Color(0.62, 0.82, 1.0) if f[0] == "heroina" else Color(0.98, 0.8, 0.42))
+	fala_lbl.text = f[1]
+	if npc: npc.gesticula = f[0] == "ferreiro"
+	voz.stop()
+	if f[2] != "" and ResourceLoader.exists(f[2]):
+		voz.stream = load(f[2]); voz.play(); _tempo_fala = voz.stream.get_length() + 0.6
+	else:
+		_tempo_fala = 1.5 + f[1].length() * 0.055
+
+func _avancar() -> void:
+	_fala += 1
+	if _fala >= _dialogo.size(): _fechar()
+	else: _mostrar_fala()
 
 func _fechar() -> void:
-	caixa.visible = false; _falando = false
-	if npc: npc.falando_com = null
+	caixa.visible = false; _falando = false; voz.stop()
+	if npc: npc.falando_com = null; npc.gesticula = true
 
 func _process(_d: float) -> void:
 	if m == null or m.jogador == null: return
@@ -90,8 +118,11 @@ func _process(_d: float) -> void:
 		if npc and _falando: _fechar()
 		npc = perto
 	painel.visible = npc != null and not _falando
+	if _falando:
+		_tempo_fala -= _d
+		if _tempo_fala <= 0.0: _avancar()          # passa sozinho quando a fala termina
 	var f := Input.is_key_pressed(KEY_F)
 	if f and not _f_antes:
-		if _falando: _fechar()
+		if _falando: _avancar()
 		elif npc: _conversar()
 	_f_antes = f

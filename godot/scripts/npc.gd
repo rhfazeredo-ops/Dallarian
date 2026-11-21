@@ -30,6 +30,7 @@ var profissao := ""
 var posto := Vector2.ZERO
 var olhar_posto := Vector2.ZERO
 var campo: Array = []             # fazendeiro: o campo (centro x, z, largura, comprimento, ângulo°, tipo)
+var gesticula := true              # enquanto conversa: true = ele fala (gesticula), false = escuta
 var falando_com: Node3D = null    # o jogador, quando está conversando com ele
 var ao_bater: Callable            # chamado no instante do golpe (faíscas/lascas)
 const MODELOS_PROF := { "ferreiro": "res://assets/modelos/ferreiro.glb", "lenhador": "res://assets/modelos/lenhador.glb", "fazendeiro": "res://assets/modelos/fazendeiro.glb" }
@@ -316,6 +317,9 @@ func _animar(delta: float, anda: float) -> void:
 		else:            # escuta: braços cruzados ou na cintura e balança a cabeça concordando de vez em quando
 			_pose_cruzados(alvo, resp)
 			alvo["Head"] = _q(Vector3(0, 0, 1), -0.06 + (sin(_t * 5.0) * 0.08 if sin(_t * 0.7) > 0.6 else 0.0))
+	elif falando_com != null and not gesticula:   # escutando a Dallarian: braços cruzados, concorda com a cabeça
+		_pose_cruzados(alvo, resp)
+		alvo["Head"] = _q(Vector3(0, 0, 1), -0.04 + (sin(_t * 5.0) * 0.07 if sin(_t * 0.9) > 0.5 else 0.0))
 	elif falando_com != null:      # conversando com a Dallarian: gesticula e olha para ela
 		var g := sin(_t * 3.1) * 0.5 + 0.5
 		alvo["R_Upperarm"] = _zx(0.55 + 0.15 * sin(_t * 2.3), 0.2); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 1.2 + 0.35 * g)
