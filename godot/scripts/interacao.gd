@@ -91,7 +91,7 @@ func montar(mundo) -> void:
 
 func _botao(txt: String, ativo: bool, f: Callable) -> Control:
 	var caixa_b := VBoxContainer.new(); caixa_b.alignment = BoxContainer.ALIGNMENT_CENTER
-	var b := BotaoAcao.criar({"LOJA": "inventario"}.get(txt, txt.to_lower()), 132)
+	var b := BotaoAcao.criar(txt.to_lower(), 132)
 	b.ativo = ativo; b.apertou.connect(f)
 	var cont := CenterContainer.new(); cont.custom_minimum_size = Vector2(150, 132); cont.add_child(b)
 	var l := Label.new(); l.text = txt; l.add_theme_font_size_override("font_size", 24); l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
