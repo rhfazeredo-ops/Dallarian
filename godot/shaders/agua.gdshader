@@ -2,6 +2,7 @@
 // No pântano (sul) fica verde-escura e turva.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
+#include "res://shaders/noite.gdshaderinc"
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
 uniform float neb_ini = 40.0;
 uniform float neb_fim = 330.0;
@@ -34,5 +35,5 @@ void fragment() {
   c = mix(c, mix(pantano, ceu(normalize(r)) * 0.45, fres * 0.5), pnt);
   c += step(0.78, noise(wpos.xz * 2.0 + TIME * 0.8)) * 0.06 * (1.0 - pnt);  // brilhos
   float nb = clamp((length(wpos - CAMERA_POSITION_WORLD) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);
-  ALBEDO = mix(c * (1.0 + relampago * 0.6), neblina, nb);
+  ALBEDO = mix(noite_cor(c * (1.0 + relampago * 0.6), (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina), nb);
 }

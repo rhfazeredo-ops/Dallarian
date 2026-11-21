@@ -117,25 +117,27 @@ func _arco(da: Vector3, dm: Vector3, db: Vector3, u: float) -> Vector3:
 func _armas() -> void:
 	var m: Node = get_tree().current_scene
 	piv_d = Node3D.new(); mao.add_child(piv_d)
-	# espada do Tripo (assets/modelos/espada.glb): 0,51 m no arquivo → 0,85 m; cabo na origem, lâmina em +Y
+	# espada inicial de madeira (Tripo): eixo medido com tools/eixo-ferramenta.mjs — lâmina para -eixo,
+	# guarda na direção do trecho mais largo, cabo em t≈0,33; 1,367 m no arquivo → 1 m (esp escala para 0,85 m)
 	var esp := Node3D.new(); piv_d.add_child(esp); esp.scale = Vector3(0.85, 0.85, 0.85)
-	var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada.glb")
-	var k := 1.0 / 0.51
-	mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
-	mod.position = Vector3(-0.131, -0.075, 0) * k
+	var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada_madeira.glb")
+	var eixo := Vector3(0.257, -0.6737, 0.6929).normalized()
+	var lam := -eixo
+	var gua := Vector3(0.127, -0.687, -0.715); gua = (gua - lam * gua.dot(lam)).normalized()
+	var face := gua.cross(lam)
+	var cabo := Vector3(0.0356, -0.0789, 0.0842) + eixo * 0.33
+	var r := Basis(gua, lam, face).transposed()
+	var k := 1.0 / 1.367
+	mod.transform = Transform3D(r.scaled(Vector3(k, k, k)), -(r * cabo) * k)
 	esp.add_child(mod)
 	piv_d.add_child(_punho(m, false))
-	# escudo redondo de madeira com borda de ferro (provisório, até o modelo do Tripo)
+	# escudo inicial de madeira (Tripo): frente (com o umbo) em +X no arquivo, alça atrás; 0,97 m → 0,6 m
 	piv_e = Node3D.new(); mao.add_child(piv_e)
-	var esc := Node3D.new(); piv_e.add_child(esc); esc.scale = Vector3(0.75, 0.75, 0.75)
-	var e := ArrayMesh.new()
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	m.cilindro(st, Vector3(0, 0, 0), 0.4, 0.4, 0.04, 10, true); st.set_material(m.mat("madeira")); st.commit(e)
-	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	m.cilindro(st, Vector3(0, -0.005, 0), 0.43, 0.43, 0.035, 10)
-	m.cilindro(st, Vector3(0, 0.04, 0), 0.09, 0.05, 0.05, 6, true)
-	st.set_material(m.mat("", 1.0, Color(0.38, 0.38, 0.42))); st.commit(e)
-	var me := MeshInstance3D.new(); me.mesh = e; esc.add_child(me)
+	var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_madeira.glb")
+	var ke := 0.6 / 0.97
+	esc.scale = Vector3(ke, ke, ke); esc.rotation_degrees = Vector3(0, 0, 90)   # +X do arquivo → +Y (frente)
+	esc.position = Vector3(0, 0.223 * ke - 0.07, 0)                             # parte de trás na mão
+	piv_e.add_child(esc)
 	var pe := _punho(m, true); pe.position = Vector3(0, -0.07, 0); piv_e.add_child(pe)
 	braco_d = _antebraco(m); mao.add_child(braco_d)
 	braco_e = _antebraco(m); mao.add_child(braco_e)

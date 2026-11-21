@@ -78,6 +78,17 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - **Porto** de pescadores no litoral leste (píer, barcos), **ruínas** de uma torre num morro (nordeste),
   **serraria**, **acampamento de bandidos** (sudoeste), **caverna** no pé das montanhas a oeste.
 - Floresta de carvalhos, bétulas e pinheiros (algumas copas de outono), árvores mortas no pântano.
+- **Postes com lanterna** na rua principal e na praça (acendem de noite).
+- **Acampamentos**: 5 barracas com fogueira, isoladas, longe da vila e umas das outras (ícone de tenda na bússola).
+  Perto da barraca aparece **DESCANSAR**: a tela escurece e Rachel dorme até as 6h.
+- **Moradores**: homens e mulheres de vários corpos (gorda, forte/alto, idosos que andam devagar) e duas crianças
+  brincando de pega-pega perto da praça.
+
+## 7.1.1 Dia e noite
+- Relógio do jogo: 1 hora = 1 minuto real (o dia inteiro dura 24 min); começa às 9h.
+- Pôr do sol alaranjado (17h30–20h30), noite azul-escura com estrelas e lua, lanternas e fogueiras iluminando
+  em volta; amanhecer das 4h30 às 7h.
+- Equipamento inicial da Rachel: **espada e escudo de madeira**.
 
 ## 7.2 Interface
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados

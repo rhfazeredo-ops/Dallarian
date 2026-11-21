@@ -2,6 +2,7 @@
 // agrupado em tufos. Luz pela direção da face (dois tons), mais escura por dentro do tufo, balanço do vento.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
+#include "res://shaders/noite.gdshaderinc"
 uniform vec3 sol = vec3(0.45, 0.6, 0.35);
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
 uniform float neb_ini = 40.0;
@@ -24,5 +25,5 @@ void vertex() {
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);
 }
 void fragment() {
-  ALBEDO = mix(cor, neblina * (1.0 + relampago * 0.8), nb);
+  ALBEDO = mix(noite_cor(cor, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina * (1.0 + relampago * 0.8)), nb);
 }

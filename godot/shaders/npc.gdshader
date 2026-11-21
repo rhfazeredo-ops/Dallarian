@@ -4,6 +4,7 @@
 // suavização, neblina.
 shader_type spatial;
 render_mode unshaded, cull_back;
+#include "res://shaders/noite.gdshaderinc"
 uniform sampler2D tex : source_color, filter_nearest_mipmap;
 uniform vec3 cor_pele : source_color = vec3(0.93, 0.62, 0.42);
 uniform vec3 cor_tunica : source_color = vec3(0.86, 0.72, 0.52);
@@ -54,5 +55,5 @@ void fragment() {
   vec3 c = cor_calca * (l / 0.4) * cinza + cor_couro * (l / 0.38) * couro + cor_cabelo * (l / 0.38) * cabelo
          + cor_pele * (l / 0.88) * pele + cor_tunica * (l / 0.85) * tunica;
   if (original) c = t;
-  ALBEDO = mix(c * luz, neblina, nb);
+  ALBEDO = mix(noite_cor(c * luz, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina), nb);
 }

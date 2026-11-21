@@ -1,6 +1,7 @@
 // Grama: tufos de folhas retangulares de ponta quadrada (malha), escuras na base e claras na ponta em degraus, balançando com o vento (mais na ponta) e se abrindo quando o jogador passa.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
+#include "res://shaders/noite.gdshaderinc"
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
 uniform float neb_ini = 40.0;
 uniform float neb_fim = 330.0;
@@ -37,5 +38,5 @@ void vertex() {
   cor = c * (1.0 + raj * 0.12) * (1.0 + relampago * 0.7);
 }
 void fragment() {
-  ALBEDO = mix(cor, neblina * (1.0 + relampago * 0.8), nb);
+  ALBEDO = mix(noite_cor(cor, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina * (1.0 + relampago * 0.8)), nb);
 }

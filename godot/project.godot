@@ -20,6 +20,38 @@ textures/vram_compression/import_etc2_astc=true
 textures/canvas_textures/default_texture_filter=0
 
 [shader_globals]
+luz_ambiente={
+"type": "vec3",
+"value": Vector3(1, 1, 1)
+}
+lanterna0={
+"type": "vec4",
+"value": Vector4(0, -1000, 0, 0)
+}
+lanterna1={
+"type": "vec4",
+"value": Vector4(0, -1000, 0, 0)
+}
+lanterna2={
+"type": "vec4",
+"value": Vector4(0, -1000, 0, 0)
+}
+lanterna3={
+"type": "vec4",
+"value": Vector4(0, -1000, 0, 0)
+}
+lanterna4={
+"type": "vec4",
+"value": Vector4(0, -1000, 0, 0)
+}
+lanterna5={
+"type": "vec4",
+"value": Vector4(0, -1000, 0, 0)
+}
+noite={
+"type": "float",
+"value": 0.0
+}
 relampago={
 "type": "float",
 "value": 0.0

@@ -2,6 +2,7 @@
 // textura pequena sem suavização e neblina por distância. Sem sombras em tempo real (leve no celular).
 shader_type spatial;
 render_mode unshaded, cull_disabled;
+#include "res://shaders/noite.gdshaderinc"
 uniform sampler2D tex : source_color, filter_nearest, repeat_enable;
 uniform bool usa_tex = true;
 uniform vec4 cor : source_color = vec4(1.0);
@@ -33,5 +34,5 @@ void vertex() {
 void fragment() {
   vec3 base = cor.rgb * (usa_tex ? texture(tex, UV).rgb : vec3(1.0));
   vec3 c = base * luz;
-  ALBEDO = mix(c, neblina * (1.0 + relampago * 0.8), nb);
+  ALBEDO = mix(noite_cor(c, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina * (1.0 + relampago * 0.8)), nb);
 }

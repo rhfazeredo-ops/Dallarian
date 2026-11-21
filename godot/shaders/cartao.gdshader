@@ -3,6 +3,7 @@
 // textura sem suavização (pixel), luz pela face do cartão em dois tons, cor por árvore, vento.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
+#include "res://shaders/noite.gdshaderinc"
 uniform sampler2D tex : source_color, filter_nearest_mipmap, repeat_disable;
 uniform vec3 sol = vec3(0.45, 0.6, 0.35);
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
@@ -29,5 +30,5 @@ void vertex() {
 void fragment() {
   vec4 t = texture(tex, UV);
   if (t.a < 0.5) discard;
-  ALBEDO = mix(t.rgb * cor, neblina * (1.0 + relampago * 0.8), nb);
+  ALBEDO = mix(noite_cor(t.rgb * cor, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina * (1.0 + relampago * 0.8)), nb);
 }

@@ -3,8 +3,10 @@
 // "em_pe" = gira só em volta do eixo vertical (grama); senão, encara a câmera de todo jeito (folhas, nuvens).
 shader_type spatial;
 render_mode unshaded, cull_disabled;
+#include "res://shaders/noite.gdshaderinc"
 uniform bool em_pe = false;
 uniform float corte = 0.3;
+uniform bool brilha = false;   // chamas/lanternas: não escurecem de noite
 uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
 uniform float neb_ini = 40.0;
 uniform float neb_fim = 330.0;
@@ -43,5 +45,5 @@ void fragment() {
     if (g < corte) discard;
     c = cor * (0.82 + 0.18 * step(0.62, g));           // miolo um pouco mais claro, em dois tons
   }
-  ALBEDO = mix(c, neblina * (1.0 + relampago * 0.8), nb);
+  ALBEDO = mix(brilha ? c : noite_cor(c, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina * (1.0 + relampago * 0.8)), nb);
 }

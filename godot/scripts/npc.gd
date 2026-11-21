@@ -25,6 +25,19 @@ const CALCAS := [Color(0.45, 0.44, 0.47), Color(0.35, 0.28, 0.2), Color(0.28, 0.
 # skins: 1 = modelo base com cores sorteadas; 2 e 3 = skins desenhadas no Tripo (mesmo corpo, textura própria)
 const SKINS := ["res://assets/modelos/npc.glb", "res://assets/modelos/npc2.glb", "res://assets/modelos/npc3.glb"]
 var skin := 0
+# tipos de corpo (modelos próprios do Tripo, com o esqueleto do npc.glb transferido): [arquivo, altura mín, máx, ritmo]
+const TIPOS := {
+	"fem": ["res://assets/modelos/npc_fem.glb", 1.6, 1.7, 1.0],
+	"gorda": ["res://assets/modelos/npc_gorda.glb", 1.5, 1.58, 0.85],
+	"velha": ["res://assets/modelos/npc_velha.glb", 1.42, 1.5, 0.65],
+	"forte": ["res://assets/modelos/npc_forte.glb", 1.88, 1.96, 1.0],
+	"velho": ["res://assets/modelos/npc_velho.glb", 1.64, 1.72, 0.7],
+	"menino": ["res://assets/modelos/npc_menino.glb", 1.22, 1.28, 1.0],
+	"menina": ["res://assets/modelos/npc_menina.glb", 1.17, 1.23, 1.0],
+}
+var tipo := ""                    # "" = sorteia entre as skins e os tipos acima
+var ritmo := 1.0                  # velhos andam mais devagar
+var _corre := 0.0                 # 0..1: quanto a animação é de corrida (crianças brincando)
 # profissão: "" (morador comum), "ferreiro", "lenhador", "fazendeiro" — fica no posto trabalhando
 var profissao := ""
 var posto := Vector2.ZERO
@@ -43,15 +56,21 @@ const FERRAMENTAS := {
 func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	m = mundo; rng.seed = semente; area_centro = centro; area_raio = raio
 	var sorteio := rng.randf()
-	skin = 0 if sorteio < 0.4 else (1 if sorteio < 0.7 else 2)
+	skin = 0 if sorteio < 0.2 else (1 if sorteio < 0.32 else 2)
+	if tipo == "" and profissao == "" and sorteio >= 0.44:
+		tipo = ["fem", "fem", "gorda", "velha", "forte", "velho"][int((sorteio - 0.44) / 0.56 * 6.0) % 6]
+	if tipo != "": skin = 20 + TIPOS.keys().find(tipo)
 	if profissao != "": skin = {"ferreiro": 11, "lenhador": 12, "fazendeiro": 13}[profissao]   # modelo e textura próprios
-	var cs := CollisionShape3D.new(); var cap := CapsuleShape3D.new(); cap.radius = 0.3; cap.height = 1.7
-	cs.shape = cap; cs.position = Vector3(0, 0.85, 0); add_child(cs)
+	var alt := rng.randf_range(1.62, 1.86); var larg := rng.randf_range(0.92, 1.12)
+	if tipo != "":
+		var tp: Array = TIPOS[tipo]; alt = rng.randf_range(tp[1], tp[2]); larg = rng.randf_range(0.97, 1.03); ritmo = tp[3]
+	var cs := CollisionShape3D.new(); var cap := CapsuleShape3D.new(); cap.radius = 0.3 if alt > 1.4 else 0.24
+	cap.height = alt - 0.1; cs.shape = cap; cs.position = Vector3(0, cap.height * 0.5, 0); add_child(cs)
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING      # anda no plano; a altura vem do terreno
 	# modelo: 0,98 m no arquivo, de frente para -X → girado para frente = -Z e escalado
 	visual = Node3D.new(); add_child(visual)
-	var mod: Node3D = load(MODELOS_PROF[profissao] if profissao != "" else SKINS[skin]).instantiate(); visual.add_child(mod)
-	var alt := rng.randf_range(1.62, 1.86); var larg := rng.randf_range(0.92, 1.12)
+	var arq: String = MODELOS_PROF[profissao] if profissao != "" else (TIPOS[tipo][0] if tipo != "" else SKINS[skin])
+	var mod: Node3D = load(arq).instantiate(); visual.add_child(mod)
 	var k := alt / 0.981
 	mod.scale = Vector3(k * larg, k, k * larg); mod.rotation_degrees.y = 90     # o modelo olha para +X
 	esq = mod.find_children("*", "Skeleton3D", true, false)[0]
@@ -78,6 +97,8 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 		if profissao == "lenhador": _segurar("machado")
 		estado = "trabalho"; _alvo = posto
 		if profissao == "fazendeiro": _proximo_canteiro()
+	elif tipo == "menino" or tipo == "menina":
+		estado = "brincar"; _tempo_estado = rng.randf_range(20.0, 35.0)
 	else:
 		_proxima_coisa()
 
@@ -172,7 +193,7 @@ func _ir_conversar(outro: Morador, ponto: Vector2, meio: Vector2, dur: float, co
 	_tempo_estado = dur; falando = comeca; _troca_fala = rng.randf_range(2.0, 4.0)
 
 func livre_para_conversar() -> bool:
-	return profissao == "" and par == null and (estado == "atividade" or estado == "andar") and _prox_conversa <= 0.0
+	return profissao == "" and estado != "brincar" and par == null and (estado == "atividade" or estado == "andar") and _prox_conversa <= 0.0
 
 func _physics_process(delta: float) -> void:
 	if m == null: return
@@ -189,7 +210,7 @@ func _physics_process(delta: float) -> void:
 					estado = "atividade"; _tempo_estado = rng.randf_range(6.0, 15.0)
 			else:
 				var dir := d.normalized()
-				velocity = Vector3(dir.x, 0, dir.y) * VEL
+				velocity = Vector3(dir.x, 0, dir.y) * VEL * ritmo
 				_virar_para(p + dir, delta, 6.0)
 				quer_andar = true
 		"trabalho" when falando_com != null:
@@ -206,6 +227,8 @@ func _physics_process(delta: float) -> void:
 				if profissao == "fazendeiro":
 					_tempo_estado -= delta
 					if _tempo_estado <= 0.0: _proximo_canteiro()
+		"brincar":
+			quer_andar = _brincar(p, delta)
 		"atividade":
 			velocity = Vector3.ZERO
 			_virar_para(_olhar_para, delta, 2.5)
@@ -230,6 +253,8 @@ func _physics_process(delta: float) -> void:
 	global_position.y = m.altura_malha(global_position.x, global_position.z)
 	# travou (andando sem sair do lugar): desiste e escolhe outra coisa — nunca "anda parado"
 	var vel_real := Vector2(get_real_velocity().x, get_real_velocity().z).length()
+	_corre = lerp(_corre, clampf((vel_real - 1.6) / 1.2, 0.0, 1.0), 1.0 - exp(-6.0 * delta))
+	if estado == "brincar": _travado = 0.0; quer_andar = false
 	if quer_andar and vel_real < 0.3: _travado += delta
 	else: _travado = 0.0
 	if _travado > 0.8:
@@ -237,7 +262,44 @@ func _physics_process(delta: float) -> void:
 		if estado == "trabalho": _alvo = p; return
 		if _depois_andar == "conversa" and par: estado = "conversa"          # já está perto o bastante
 		else: estado = "atividade"; atividade = "olhar"; _tempo_estado = rng.randf_range(2.0, 4.0); _olhar_para = _alvo
-	_animar(delta, clampf(vel_real / VEL, 0.0, 1.0))
+	_animar(delta, clampf(vel_real / (VEL * ritmo), 0.0, 1.0))
+
+# crianças: pega-pega. Uma é o pegador e corre atrás da outra, que foge dando voltas pela área; quando pega,
+# os papéis trocam (o novo pegador conta um pouco antes de correr). De vez em quando param para tomar fôlego.
+var pegador := false
+var _contar := 0.0
+var _giro_fuga := 1.0
+func _brincar(p: Vector2, delta: float) -> bool:
+	_tempo_estado -= delta
+	if par == null or not is_instance_valid(par):
+		velocity = Vector3.ZERO; return false
+	var q := Vector2(par.global_position.x, par.global_position.z)
+	if _tempo_estado < 0.0:                          # descanso: param, mãos na cintura, olham um para o outro
+		velocity = Vector3.ZERO; _virar_para(q, delta, 4.0); atividade = "cintura"
+		if _tempo_estado < -5.0: _tempo_estado = rng.randf_range(20.0, 35.0); par._tempo_estado = _tempo_estado
+		return false
+	var vel := 0.0; var dir := Vector2.ZERO
+	if pegador:
+		if _contar > 0.0:
+			_contar -= delta; velocity = Vector3.ZERO; _virar_para(q, delta, 3.0); return false
+		dir = (q - p).normalized(); vel = 2.9
+		if p.distance_to(q) < 0.8:                   # pegou!
+			pegador = false; par.pegador = true; par._contar = 1.3; _giro_fuga = -_giro_fuga
+	else:
+		var fora := (p - q)
+		if fora.length() > 9.0 or par._contar > 0.0: vel = 1.2 + 0.2 * sin(_t)        # longe: trota
+		else: vel = 2.75
+		dir = fora.normalized().rotated(_giro_fuga * 0.9)       # foge fazendo curva
+		var dc := area_centro - p
+		if dc.length() > area_raio * 0.6: dir = (dir + dc.normalized() * (dc.length() / area_raio) * 2.0).normalized()
+	# desvia de casas, cercas e do poço
+	for tent in 6:
+		var prox := p + dir * 1.6
+		if not m.perto_de_casa(prox.x, prox.y, 0.8) and prox.length() > 2.8: break
+		dir = dir.rotated(0.6 * _giro_fuga)
+	velocity = Vector3(dir.x, 0, dir.y) * vel
+	_virar_para(p + dir, delta, 9.0)
+	return true
 
 # prende uma ferramenta na mão direita: cabo para a frente e a cabeça/lâmina para baixo, na pose de repouso
 func _segurar(nome: String) -> void:
@@ -297,7 +359,7 @@ func _zx(z: float, x: float) -> Quaternion: return _q(Vector3(0, 0, 1), z) * _q(
 func _animar(delta: float, anda: float) -> void:
 	_anda_suave = lerp(_anda_suave, anda, 1.0 - exp(-8.0 * delta))
 	var a := _anda_suave
-	_fase += delta * TAU * 0.95 * a
+	_fase += delta * TAU * 0.95 * a * (ritmo if ritmo < 1.0 else 1.0) * (1.0 + 0.85 * _corre)
 	var s := sin(_fase); var c := cos(_fase)
 	var resp := sin(_t * 1.4 + _fase * 0.1)
 	var alvo := {}
@@ -340,7 +402,7 @@ func _animar(delta: float, anda: float) -> void:
 			"ferreiro": _anim_ferreiro(alvo)
 			"lenhador": hip = _anim_lenhador(alvo)
 			"fazendeiro": hip = _anim_fazendeiro(alvo)
-	elif estado == "atividade":
+	elif estado == "atividade" or (estado == "brincar" and a < 0.2 and _tempo_estado < 0.0):
 		match atividade:
 			"olhar":
 				alvo["Head"] = _q(Vector3(0, 1, 0), sin(_t * 0.35) * 0.55) * _q(Vector3(0, 0, 1), sin(_t * 0.23) * 0.06)
@@ -373,14 +435,15 @@ func _animar(delta: float, anda: float) -> void:
 	# caminhada por cima (pesa conforme a velocidade de verdade)
 	if a > 0.01:
 		var sw := {}
-		sw["L_Thigh"] = _q(Vector3(0, 0, 1), 0.42 * s); sw["R_Thigh"] = _q(Vector3(0, 0, 1), -0.42 * s)
-		sw["L_Calf"] = _q(Vector3(0, 0, 1), -0.6 * max(0.0, -c)); sw["R_Calf"] = _q(Vector3(0, 0, 1), -0.6 * max(0.0, c))
-		sw["L_Upperarm"] = _zx(-0.35 * s, -0.32); sw["R_Upperarm"] = _zx(0.35 * s, 0.32)
-		sw["L_Forearm"] = _q(Vector3(0, 0, 1), 0.35); sw["R_Forearm"] = _q(Vector3(0, 0, 1), 0.35)
-		sw["Spine01"] = _q(Vector3(0, 1, 0), 0.08 * s); sw["Head"] = Quaternion()
+		var co := _corre; var pe := 0.42 + 0.3 * co; var br := 0.35 + 0.45 * co
+		sw["L_Thigh"] = _q(Vector3(0, 0, 1), pe * s + 0.15 * co); sw["R_Thigh"] = _q(Vector3(0, 0, 1), -pe * s + 0.15 * co)
+		sw["L_Calf"] = _q(Vector3(0, 0, 1), -(0.6 + 0.8 * co) * max(0.0, -c)); sw["R_Calf"] = _q(Vector3(0, 0, 1), -(0.6 + 0.8 * co) * max(0.0, c))
+		sw["L_Upperarm"] = _zx(-br * s, -0.32); sw["R_Upperarm"] = _zx(br * s, 0.32)
+		sw["L_Forearm"] = _q(Vector3(0, 0, 1), 0.35 + 0.9 * co); sw["R_Forearm"] = _q(Vector3(0, 0, 1), 0.35 + 0.9 * co)
+		sw["Spine01"] = _q(Vector3(0, 1, 0), 0.08 * s) * _q(Vector3(0, 0, 1), -0.18 * co); sw["Head"] = _q(Vector3(0, 0, 1), 0.1 * co)
 		for k in sw.keys():
 			alvo[k] = (alvo[k] if alvo.has(k) else Quaternion()).slerp(sw[k], a)
-		hip = lerp(hip, abs(s) * 0.012 - 0.006, a)
+		hip = lerp(hip, abs(s) * (0.012 + 0.03 * _corre) - 0.006, a)
 	# suaviza a troca de poses e aplica
 	var f := 1.0 - exp(-7.0 * delta)
 	for b in OSSOS:

@@ -37,6 +37,10 @@ var _fala := 0
 var _tempo_fala := 0.0
 var voz: AudioStreamPlayer
 var _fala_i := 0
+# barraca: botão DESCANSAR (dorme até as 6h da manhã)
+var painel_barraca: Control
+var escuro: ColorRect
+var _dormindo := false
 
 func montar(mundo) -> void:
 	m = mundo
@@ -48,6 +52,12 @@ func montar(mundo) -> void:
 	painel.add_child(_botao("CRIAR", false, func(): _aviso("A forja ainda está esfriando... em breve.")))
 	painel.add_child(_botao("CONVERSAR", true, _conversar))
 	painel.visible = false
+	painel_barraca = _botao("DESCANSAR", true, _descansar)
+	painel_barraca.anchor_left = 0.5; painel_barraca.anchor_right = 0.5; painel_barraca.anchor_top = 1; painel_barraca.anchor_bottom = 1
+	painel_barraca.offset_left = -75; painel_barraca.offset_right = 75; painel_barraca.offset_top = -380; painel_barraca.offset_bottom = -210
+	painel_barraca.visible = false; add_child(painel_barraca)
+	escuro = ColorRect.new(); escuro.color = Color(0, 0, 0, 1); escuro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	escuro.mouse_filter = Control.MOUSE_FILTER_IGNORE; escuro.modulate.a = 0.0; escuro.visible = false; add_child(escuro)
 	# caixa de fala
 	caixa = PanelContainer.new()
 	var st := StyleBoxFlat.new(); st.bg_color = Color(0.1, 0.08, 0.07, 0.88); st.set_corner_radius_all(14)
@@ -80,7 +90,7 @@ func montar(mundo) -> void:
 
 func _botao(txt: String, ativo: bool, f: Callable) -> Control:
 	var caixa_b := VBoxContainer.new(); caixa_b.alignment = BoxContainer.ALIGNMENT_CENTER
-	var b := BotaoAcao.criar("criar" if txt == "CRIAR" else "conversar", 132)
+	var b := BotaoAcao.criar(txt.to_lower(), 132)
 	b.ativo = ativo; b.apertou.connect(f)
 	var cont := CenterContainer.new(); cont.custom_minimum_size = Vector2(150, 132); cont.add_child(b)
 	var l := Label.new(); l.text = txt; l.add_theme_font_size_override("font_size", 24); l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -88,6 +98,28 @@ func _botao(txt: String, ativo: bool, f: Callable) -> Control:
 	l.add_theme_constant_override("outline_size", 7); l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	caixa_b.add_child(cont); caixa_b.add_child(l)
 	return caixa_b
+
+# descansar na barraca: tela escurece, o tempo passa até as 6h e amanhece
+func _descansar() -> void:
+	if _dormindo: return
+	_dormindo = true; painel_barraca.visible = false
+	escuro.visible = true; move_child(escuro, get_child_count() - 1)
+	var tw := create_tween()
+	tw.tween_property(escuro, "modulate:a", 1.0, 1.2)
+	tw.tween_callback(func():
+		m.hora = 6.0
+		aviso.text = "Rachel descansou até o amanhecer."; aviso.modulate.a = 1.0
+		move_child(aviso, get_child_count() - 1))
+	tw.tween_interval(1.6)
+	tw.tween_property(escuro, "modulate:a", 0.0, 1.4)
+	tw.parallel().tween_property(aviso, "modulate:a", 0.0, 1.4).set_delay(0.8)
+	tw.tween_callback(func(): escuro.visible = false; _dormindo = false)
+
+func perto_da_barraca() -> bool:
+	var pj: Vector3 = m.jogador.global_position
+	for b in m.barracas:
+		if Vector2(pj.x - b.x, pj.z - b.y).length() < 4.5: return true
+	return false
 
 func _aviso(t: String) -> void:
 	aviso.text = t; aviso.modulate.a = 1.0
@@ -147,6 +179,8 @@ func _process(_d: float) -> void:
 			_fala_solta(TCHAU, true)
 		npc = perto
 	painel.visible = npc != null and not _falando
+	var na_barraca := perto_da_barraca() and not _dormindo
+	painel_barraca.visible = na_barraca and npc == null
 	Audio.falando = _falando and voz.playing
 	if _falando:
 		_tempo_fala -= _d
@@ -155,4 +189,5 @@ func _process(_d: float) -> void:
 	if f and not _f_antes:
 		if _falando: _avancar()
 		elif npc: _conversar()
+		elif na_barraca: _descansar()
 	_f_antes = f

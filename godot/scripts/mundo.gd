@@ -68,7 +68,7 @@ func _ready() -> void:
 		["Acampamento de Bandidos", Vector2(-330, 300), "bandidos", 25.0],
 		["Caverna do Oeste", caverna_pos, "caverna", 18.0],
 		["Desfiladeiro do Norte", Vector2(0, -468), "montanhas", 40.0],
-	])
+	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	_musica()
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
 	if args.has("checar"): _checar_chao()
@@ -88,11 +88,35 @@ func _moradores() -> void:
 			mo.position = Vector3(p.x, altura(p.x, p.y) + 0.3, p.y)
 			mo.montar(self, 1000 + n, g[0], g[1]); n += 1
 	_profissionais()
+	_criancas()
 	# já começam algumas conversas na vila
 	var vila := []
 	for mo in raiz.get_children():
 		if mo is Morador and Vector2(mo.position.x, mo.position.z).length() < 45.0: vila.append(mo)
 	for k in range(0, mini(vila.size() - 1, 4), 2): vila[k].convidar(vila[k + 1])
+
+# crianças brincando de pega-pega num pedaço livre da vila (o lugar com mais espaço sem casas perto da praça)
+var brincadeira_pos := Vector2.ZERO
+func _criancas() -> void:
+	var melhor := Vector2(8, 8); var nota := -1
+	for i in 60:
+		var a := TAU * i / 60.0 * 7.0; var r := 7.0 + float(i % 6) * 3.0
+		var c := Vector2(cos(a), sin(a)) * r
+		var livres := 0
+		for k in 16:
+			var b := TAU * k / 16.0
+			for rr in [2.5, 5.0, 7.5]:
+				var q: Vector2 = c + Vector2(cos(b), sin(b)) * float(rr)
+				if not perto_de_casa(q.x, q.y, 1.0) and reg.agua(q.x, q.y) == 0.0: livres += 1
+		if livres > nota: nota = livres; melhor = c
+	brincadeira_pos = melhor
+	var kids := []
+	for t in ["menino", "menina"]:
+		var mo := Morador.new(); mo.tipo = t; raiz.add_child(mo)
+		var p := melhor + Vector2(2.0 if t == "menino" else -2.0, 0)
+		mo.position = Vector3(p.x, altura(p.x, p.y), p.y)
+		mo.montar(self, 777 + kids.size(), melhor, 9.0); kids.append(mo)
+	kids[0].par = kids[1]; kids[1].par = kids[0]; kids[0].pegador = true; kids[0]._contar = 1.0
 
 # trabalhadores: ferreiro na bigorna, lenhador cortando um tronco caído na mata perto da serraria,
 # um fazendeiro dentro de cada campo cercado
@@ -233,6 +257,7 @@ var _prox_raio := 4.0
 var _raio := 0.0
 func _process(delta: float) -> void:
 	Audio.atualizar(delta)
+	_dia_noite(delta)
 	for mo in moinhos: mo.rotate_object_local(Vector3(0, 0, 1), delta * 0.6)
 	if not TEMPESTADE and not args.has("raio"): return
 	_prox_raio -= delta
@@ -242,6 +267,127 @@ func _process(delta: float) -> void:
 		_raio = max(0.0, _raio - delta * 2.2)
 		var v: float = _raio * (0.6 + 0.4 * float(int(_raio * 14.0) % 2))    # pisca
 		RenderingServer.global_shader_parameter_set("relampago", v)
+
+# ---------- dia e noite ----------
+# relógio do jogo: 1 hora = 1 minuto de verdade (o dia inteiro dura 24 min). A luz ambiente vai do branco
+# (dia) ao laranja (pôr/nascer do sol) e ao azul-escuro (noite); as lanternas e fogueiras acendem no escuro.
+var hora := 9.0
+const MINUTOS_POR_HORA := 1.0
+var luzes: Array[Vector3] = []       # lanternas dos postes e fogueiras (posição da chama)
+var _brilhos: Array[Node3D] = []     # chamas das lanternas (aparecem só de noite)
+var _t_luzes := 0.0
+var noite := 0.0
+func _dia_noite(delta: float) -> void:
+	hora = fmod(hora + delta / (60.0 * MINUTOS_POR_HORA), 24.0)
+	# noite: 0 de dia (7h–17h30), sobe no fim da tarde, 1 das 20h30 às 4h30, desce no amanhecer
+	var h := hora
+	noite = 1.0 - smoothstep(4.5, 7.0, h) if h < 12.0 else smoothstep(17.5, 20.5, h)
+	var crep := clampf(1.0 - absf(noite - 0.45) * 2.6, 0.0, 1.0)
+	var dia := Color(1, 1, 1); var tarde := Color(1.0, 0.72, 0.52); var escuro := Color(0.2, 0.25, 0.45)
+	var c := dia.lerp(escuro, noite).lerp(tarde * (1.0 - noite * 0.5), crep * 0.55)
+	RenderingServer.global_shader_parameter_set("luz_ambiente", Vector3(c.r, c.g, c.b))
+	RenderingServer.global_shader_parameter_set("noite", noite)
+	var acesa := smoothstep(0.25, 0.6, noite)
+	for b in _brilhos: b.visible = acesa > 0.05
+	_t_luzes -= delta
+	if _t_luzes > 0.0 or jogador == null: return
+	_t_luzes = 0.25
+	var pj := jogador.global_position
+	var ordem := luzes.duplicate()
+	ordem.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(pj) < b.distance_squared_to(pj))
+	for i in 6:
+		var v := Vector4(0, -1000, 0, 0)
+		if i < ordem.size() and acesa > 0.0:
+			var q: Vector3 = ordem[i]; v = Vector4(q.x, q.y, q.z, acesa * (0.9 + 0.1 * sin(_tempo_jogo() * 7.0 + i)))
+		RenderingServer.global_shader_parameter_set("lanterna%d" % i, v)
+
+# postes de madeira com lanterna ao longo da rua principal e na praça (lanterna virada para a rua)
+func _postes() -> void:
+	var pontos := []                                       # [posição, para onde a lanterna aponta]
+	for k in 6:                                            # praça do poço
+		var a := TAU * (k + 0.5) / 6.0; var q := Vector2(cos(a), sin(a)) * 9.5
+		if reg.folga_caminho(q.x, q.y) > 0.6 and not perto_de_casa(q.x, q.y, 0.6): pontos.append([q, Vector2.ZERO])
+	for e in 2:
+		var linha: PackedVector2Array = reg.estradas[e]
+		var sp := 18.0; var lado := 1.0
+		while sp < 74.0:
+			var pr := _ponto_na_linha(linha, sp)
+			var pt: Vector2 = pr[0]; var tg: Vector2 = pr[1]; var nrm := Vector2(-tg.y, tg.x) * lado
+			for tent in 4:
+				var q: Vector2 = pt + nrm * (3.6 + tent * 0.6)
+				if reg.folga_caminho(q.x, q.y) > 0.4 and not perto_de_casa(q.x, q.y, 0.5):
+					pontos.append([q, pt]); break
+			sp += 13.0; lado = -lado
+	var lista := []
+	for pp in pontos:
+		var q: Vector2 = pp[0]; var alvo: Vector2 = pp[1]
+		var bom := true
+		for o in lista: if q.distance_to(o[0]) < 6.0: bom = false
+		if bom: lista.append(pp)
+	for pp in lista:
+		var q: Vector2 = pp[0]; var d: Vector2 = (pp[1] - q).normalized()
+		_depois.append(func():
+			var y := altura_malha(q.x, q.y)
+			var mod := modelo_ps1("res://assets/modelos/poste.glb")
+			var k := 2.6 / 0.977
+			mod.scale = Vector3(k, k, k); mod.position = Vector3(q.x, y + 0.489 * k - 0.05, q.y)
+			mod.rotation.y = atan2(-d.x, -d.y)             # lanterna (-Z do modelo) para a rua
+			raiz.add_child(mod)
+			_colisor_cilindro(Vector3(q.x, y, q.y), 0.16, 2.6)
+			var lp := mod.global_transform * Vector3(0.065, 0.243, -0.181)
+			luzes.append(lp + Vector3(0, -0.2, 0))
+			var ch := _splats([[lp, Color(1.0, 0.82, 0.4), 0.22], [lp + Vector3(0, 0.04, 0), Color(1.0, 0.95, 0.7), 0.12]], Vector2(1, 1), false, 0.0, 0.0, true)
+			ch.visible = false; _brilhos.append(ch))
+
+# barracas de acampamento: longe da vila, longe umas das outras e longe das estradas, em lugares isolados.
+# Cada uma tem uma fogueira; perto dela aparece o botão DESCANSAR (dorme até as 6h).
+var barracas: Array[Vector2] = []
+var _fogueiras_barraca: Array[Vector2] = []
+func _barracas() -> void:
+	var cand := []
+	var rng := RandomNumberGenerator.new(); rng.seed = 91
+	for i in 900:
+		var q := Vector2(rng.randf_range(-520, 520), rng.randf_range(-520, 520))
+		if q.length() < 170.0 or reg.folga_caminho(q.x, q.y) < 22.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if reg.dist_rio(q.x, q.y) < 25.0 or Vector2(q.x - Regiao.LAGO.x, q.y - Regiao.LAGO.y).length() < Regiao.LAGO.z + 15.0: continue
+		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
+		var h0 := reg.altura(q.x, q.y); var desnivel := 0.0
+		for o in [Vector2(4, 0), Vector2(-4, 0), Vector2(0, 4), Vector2(0, -4)]:
+			desnivel = maxf(desnivel, absf(reg.altura(q.x + o.x, q.y + o.y) - h0))
+		if desnivel > 1.2: continue
+		cand.append(q)
+	# escolhe as mais espalhadas (cada nova o mais longe possível das já escolhidas e da vila)
+	var esc: Array[Vector2] = []
+	while esc.size() < 5 and not cand.is_empty():
+		var melhor: Vector2 = cand[0]; var md := -1.0
+		for q in cand:
+			var d: float = q.length() * 0.6
+			for e in esc: d = minf(d, q.distance_to(e))
+			if d > md: md = d; melhor = q
+		if md < 160.0 and esc.size() > 0: break
+		esc.append(melhor)
+	for q in esc: _barraca(q, rng.randf() * TAU)
+
+func _barraca(c: Vector2, ang: float) -> void:
+	var y := reg.aplanar(c, Vector2(3.0, 3.0), ang, 3.0)
+	barracas.append(c); lugares.append([c, 6.0]); _fogueiras_barraca.append(c + Vector2(2.9, 0).rotated(-ang))
+	var mod := modelo_ps1("res://assets/modelos/barraca.glb")
+	var k := 2.4 / 0.975
+	mod.scale = Vector3(k, k, k); mod.position = Vector3(c.x, y + 0.33 * k - 0.04, c.y); mod.rotation.y = ang
+	raiz.add_child(mod)
+	_colisor_caixa(Vector3(c.x, y, c.y), Vector3(2.3, 1.5, 1.6), ang)
+	# fogueira na frente (pedras, lenha e chamas)
+	var f := c + Vector2(2.9, 0).rotated(-ang)            # na frente da entrada (ponta +X do modelo)
+	var st := _st(); cilindro(st, Vector3(f.x, y - 0.1, f.y), 0.5, 0.5, 0.2, 7); _peca(st, mat("pedra"), Vector3.ZERO)
+	st = _st()
+	_caixa(st, Vector3(f.x, y + 0.1, f.y), Vector3(0.9, 0.1, 0.12)); _caixa(st, Vector3(f.x, y + 0.2, f.y), Vector3(0.12, 0.1, 0.9))
+	_peca(st, mat("madeira"), Vector3.ZERO)
+	var chamas := []
+	for i in 9:
+		chamas.append([Vector3(f.x + randf_range(-0.2, 0.2), y + randf_range(0.15, 0.7), f.y + randf_range(-0.2, 0.2)),
+			[Color(1.0, 0.75, 0.3), Color(0.98, 0.45, 0.15), Color(1.0, 0.9, 0.55)][i % 3], randf_range(0.18, 0.32)])
+	_splats(chamas, Vector2(1, 1), false, 0.6, 0.0, true)
+	luzes.append(Vector3(f.x, y + 0.6, f.y))
 
 # ---------- material PS1 ----------
 func mat(textura: String, escala := 1.0, cor := Color.WHITE) -> ShaderMaterial:
@@ -499,6 +645,8 @@ func _lugares() -> void:
 	_bandidos()
 	_caverna()
 	_barricada()
+	_barracas()
+	_postes()
 
 # pontes de madeira onde as estradas cruzam o rio (com rampas nas pontas e colisão)
 func _pontes() -> void:
@@ -720,7 +868,8 @@ func _bandidos() -> void:
 	for k in 14:
 		chamas.append([Vector3(c.x + randf_range(-0.35, 0.35), y0 + randf_range(0.2, 1.1), c.y + randf_range(-0.35, 0.35)),
 			[Color(1.0, 0.75, 0.3), Color(0.98, 0.45, 0.15), Color(1.0, 0.9, 0.55)][k % 3], randf_range(0.25, 0.45)])
-	_splats(chamas, Vector2(1, 1), false, 0.6)
+	_splats(chamas, Vector2(1, 1), false, 0.6, 0.0, true)
+	luzes.append(Vector3(c.x, y0 + 0.9, c.y))
 	st = _st()
 	var yc := yb
 	for k in 4: _caixa(st, Vector3(c.x + 5 + k * 0.9, yc + 0.3, c.y - 6.0), Vector3(0.8, 1.0, 0.8))
@@ -852,7 +1001,7 @@ func _colisor_cilindro(pos: Vector3, r: float, h: float) -> void:
 	corpo.position = pos; raiz.add_child(corpo)
 
 # MultiMesh de splats: itens = [posição, cor, escala]
-func _splats(itens: Array, tam: Vector2, em_pe: bool, balanco: float, ate := 0.0) -> MultiMeshInstance3D:
+func _splats(itens: Array, tam: Vector2, em_pe: bool, balanco: float, ate := 0.0, brilha := false) -> MultiMeshInstance3D:
 	var q := QuadMesh.new(); q.size = Vector2(1, 1)
 	if em_pe: q.center_offset = Vector3(0, 0.5, 0)
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = true; mm.mesh = q
@@ -863,6 +1012,7 @@ func _splats(itens: Array, tam: Vector2, em_pe: bool, balanco: float, ate := 0.0
 		mm.set_instance_color(i, it[1])
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/splat.gdshader")
 	sm.set_shader_parameter("em_pe", em_pe); sm.set_shader_parameter("balanco", balanco); sm.set_shader_parameter("neblina", NEBLINA)
+	sm.set_shader_parameter("brilha", brilha)
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = sm
 	if ate > 0.0: mi.visibility_range_end = ate; mi.visibility_range_end_margin = 4.0
 	raiz.add_child(mi); return mi
@@ -953,6 +1103,24 @@ func _modo_teste() -> void:
 				var pj := alvo3 + Vector3(-sin(ang_v), 0, -cos(ang_v)) * float(args.get("dist", "3.2"))
 				jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); _ultima = jogador.global_position
 				var d3 := alvo3 - pj; jogador.rotation.y = atan2(-d3.x, -d3.z); break
+	if args.has("hora"): hora = float(args.hora)
+	if args.has("barraca") and not barracas.is_empty():
+		var b: Vector2 = barracas[int(args.barraca) % barracas.size()]
+		var pj := b + Vector2(5.5, 5.5)
+		if args.has("frente"): pj = b + (_fogueiras_barraca[int(args.barraca) % barracas.size()] - b) * 2.6
+		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y); _ultima = jogador.global_position
+		jogador.rotation.y = atan2(-(b - pj).x, -(b - pj).y)
+		print("BARRACAS: ", barracas)
+	if args.has("descansar"):
+		get_tree().create_timer(1.0).timeout.connect(func():
+			for c in get_children():
+				if c is CanvasLayer:
+					for i in c.get_children(): if i is Interacao: i._descansar())
+		get_tree().create_timer(4.5).timeout.connect(func(): print("HORA depois de descansar: ", hora))
+	if args.has("criancas"):
+		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
+		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0
+		_ultima = jogador.global_position
 	if args.has("ferraria"):
 		var f3 := Vector3(ferraria_pos.x, 0, ferraria_pos.y); var dirf := (Vector3.ZERO - f3).normalized()
 		var pj := f3 + dirf * 9.0; jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z)

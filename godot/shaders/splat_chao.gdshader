@@ -3,6 +3,7 @@
 // Tipo 1 (INSTANCE_CUSTOM.r) = água de poça: reflete o céu e as nuvens pela direção do olhar.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
+#include "res://shaders/noite.gdshaderinc"
 uniform vec3 sol = vec3(0.45, 0.6, 0.35);
 uniform vec3 luz_sol : source_color = vec3(0.95, 0.88, 0.72);
 uniform vec3 luz_amb : source_color = vec3(0.5, 0.54, 0.64);
@@ -56,5 +57,5 @@ void fragment() {
     r.xz += (vec2(noise(wpos.xz * 3.0 + TIME * 0.6), noise(wpos.zx * 3.0 - TIME * 0.5)) - 0.5) * 0.06;   // marolinha
     c = ceu(normalize(r)) * 0.82 + vec3(0.02, 0.03, 0.05);
   }
-  ALBEDO = mix(c, neblina * (1.0 + relampago * 0.8), nb);
+  ALBEDO = mix(noite_cor(c, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina * (1.0 + relampago * 0.8)), nb);
 }
