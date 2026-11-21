@@ -1,5 +1,7 @@
 # Dallarian — Documento do jogo (GDD)
 
+> **Rachel** é a heroína. **Dallarian** é o continente (e o nome do jogo).
+
 > Documento vivo: cresce conforme o dono for contando a história. O que está marcado como **(proposta)**
 > é sugestão do Claude, ainda não decidida.
 
@@ -9,11 +11,12 @@ monstros, política e traição, onde ainda existem amor, amizade e gente boa pe
 
 ## 2. Gênero e formato
 - **3D, primeira pessoa, mundo aberto de exploração.**
-- **Um personagem só:** Dallarian. O jogador é ele o jogo inteiro.
+- **Uma personagem só:** Rachel. A jogadora é ela o jogo inteiro.
+- **Dallarian** é o nome do continente onde tudo acontece — e o nome do jogo.
 - **Plataforma principal: celular** (Android); também no navegador. Tudo pensado para rodar leve.
 - Motor: **Godot 4.5** (renderizador Compatibility).
 
-## 3. O protagonista: Dallarian
+## 3. A protagonista: Rachel
 - **Humano.** Não tem sangue nobre, magia nem destino escrito. Quer ser cavaleiro, tenta ser herói.
 - Começa fraco e inexperiente; cresce pelo que vive, aprende e escolhe.
 - Tema central: **o que faz alguém ser herói num mundo onde quase ninguém é?**
@@ -41,14 +44,14 @@ monstros, política e traição, onde ainda existem amor, amizade e gente boa pe
 5. (proposta) **Escolher lados** na política, com consequências nas cidades e nas pessoas.
 
 ## 6.1 História principal e favores
-- **História principal:** a jornada do Dallarian para se tornar herói/cavaleiro, em capítulos pelo mundo.
+- **História principal:** a jornada de Rachel para se tornar herói/cavaleiro, em capítulos pelo mundo.
 - **Favores (missões extras):** as pessoas pedem ajuda no caminho: buscar algo, entregar uma carta, resolver
   uma briga, proteger alguém, achar um animal perdido, enfrentar um monstro que ronda a vila...
   Pequenos, humanos, ligados à vida de cada lugar.
 - **O mundo comenta o sonho dele:** os moradores falam sobre o que ele quer ser.
   - Uns **zombam** ("um camponês querendo ser cavaleiro?"), outros **apoiam** e incentivam,
     alguns desconfiam, alguns se inspiram nele.
-  - (proposta) As falas mudam com a **reputação** do Dallarian: quanto mais favores e feitos, mais gente
+  - (proposta) As falas mudam com a **reputação** de Rachel: quanto mais favores e feitos, mais gente
     respeita; falhar, fugir ou trair faz a zombaria e a desconfiança voltarem.
   - (proposta) Comentários soltos ao passar perto das pessoas (sem precisar abrir conversa), como num mundo vivo.
 
@@ -87,7 +90,7 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
    céu de tempestade, espada e escudo provisórios.
 2. Primeira vila pequena com alguns moradores e uma conversa.
 3. Primeiro combate contra um monstro.
-4. Primeira missão curta que apresente o Dallarian e seu sonho de ser cavaleiro.
+4. Primeira missão curta que apresente Rachel e seu sonho de ser cavaleiro.
 
 ## 8.1 Ideias para depois
 - **Magia de cura** (referência: vídeo de primeira pessoa com conjuração): mão esquerda se estica com a palma
@@ -96,6 +99,6 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 ## 9. Perguntas em aberto
 - Nome do mundo e dos reinos.
 - Quais raças existem e como se relacionam.
-- De onde vem o Dallarian (vila, família, passado) e por que quer ser cavaleiro.
+- De onde vem Rachel (vila, família, passado) e por que quer ser cavaleiro.
 - Qual é o grande conflito da história.
 - Tem diálogos com escolhas? Romance? Companheiros?

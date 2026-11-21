@@ -51,6 +51,7 @@ func _ready() -> void:
 	_ultima = jogador.position
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
+	var hud := Hud.new(); cl.add_child(hud); hud.montar()
 	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self)
 	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
 	var bus := Bussola.new(); cl.add_child(bus)

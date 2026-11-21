@@ -15,7 +15,7 @@ var aviso: Label
 var _falando := false
 var _f_antes := false
 # diálogos: lista de falas [quem, texto, áudio (ou "")]; quem = "heroina" ou "ferreiro"
-const NOME_HEROINA := "Dallarian"
+const NOME_HEROINA := "Rachel"
 const DIALOGOS_FERREIRO := [
 	[["heroina", "Bom dia, mestre ferreiro. Que barulho bonito esse do martelo.", "res://assets/voz/heroina_01.ogg"],
 	 ["ferreiro", "Ferro quente não espera ninguém, garota. Se quer ser cavaleira, comece aprendendo que toda boa lâmina nasceu de mil marteladas.", "res://assets/voz/ferreiro_01.ogg"]],

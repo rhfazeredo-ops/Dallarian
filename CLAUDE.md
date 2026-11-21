@@ -7,4 +7,5 @@
   preferências do dono, prompts sempre prontos, caminho ChatGPT → multivisão → Tripo, testes do Godot sem tela,
   técnica dos pixel splats e publicação.
 - Ao aprender algo novo que sirva para outros projetos, **acrescentar na skill** e fazer commit junto.
+- A heroína se chama **Rachel**; **Dallarian** é o continente e o nome do jogo.
 - A lore e o desenho do jogo ficam em `docs/GDD.md`.
