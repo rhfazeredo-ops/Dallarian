@@ -20,6 +20,8 @@ const ITENS := {
 	"escudo_madeira": {"nome": "Escudo de madeira", "venda": 5, "compra": 0, "pilha": 1, "qual": "comum",
 		"tipo": "escudo", "subtipo": "Escudo", "armadura": 30, "bloqueio": 5, "bloqueio_ativo": 0.6, "nivel": 1,
 		"modelo": "madeira", "desc": "Tábuas presas com tiras de couro."},
+	"nucleo_golem": {"nome": "Coração de barro do Grumo", "venda": 250, "compra": 0, "pilha": 5, "qual": "incomum",
+		"desc": "Ainda pulsa, morno. Dizem que guarda a força do vale."},
 	"escama_lodoso": {"nome": "Escama de Lodoso", "venda": 8, "compra": 0, "pilha": 20, "qual": "lixo",
 		"desc": "Escamas escorregadias amarradas com alga. Ainda cheiram a rio."},
 	"presa_aranha": {"nome": "Presa de aranha-musgo", "venda": 15, "compra": 0, "pilha": 20, "qual": "lixo",

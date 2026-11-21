@@ -118,6 +118,17 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
   em volta; amanhecer das 4h30 às 7h.
 - Equipamento inicial da Rachel: **espada e escudo de madeira**.
 
+## 7.1.2b Outros monstros
+- **Aranha-musgo** (nível 3–5): uma só por lugar, 14 na mata fechada, longe umas das outras. Anda, corre rasteira,
+  pica (30% de chance de envenenar: dano verde por alguns segundos), dá um bote de 5–7 m. Morre virando de barriga
+  para cima. Drop: presa de aranha-musgo (40%).
+- **Lodosos**: 9 grupos de 3 (um grande nível 3–4 e dois jovens nível 2–3) na beira do rio, do lago e da praia, com
+  acampamento (cabaninha de juncos, varal de peixes, fogueirinha). Lança de osso de peixe, estocada. Drop: escama (40%).
+- **Chefe: Grumo, o Guardião do Vale** (golem de terra, 4 m, nível 8): dá a volta no mapa inteiro, longe da vila,
+  sem parar; o chão treme perto dele. Soco e PANCADA com as duas mãos no chão (dano em área de 5,5 m, mais forte
+  perto). Barra do golpe em cima da cabeça (enche até o instante do golpe) e barra de vida grande no alto da tela.
+  Drops: Coração de barro do Grumo (sempre), dinheiro, chance de espada de ferro e bolsa de 16.
+
 ## 7.1.3 Progresso, dinheiro e loja
 - **Níveis 1 a 30** (máximo por enquanto) com a **tabela de XP do WoW Classic** (400, 900, 1.400, 2.100… 44.300;
   499 mil no total). Cada nível dá +8 de vida e +5 de mana e enche as duas.

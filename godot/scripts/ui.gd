@@ -95,6 +95,7 @@ static func icone(id: String) -> Texture2D:
 	elif id.begins_with("bolsa_"): t = _icone_bolsa(int(Bolsa.ITENS[id].espacos))
 	elif Bolsa.ITENS[id].get("tipo", "") == "arma": t = _icone_espada(Bolsa.ITENS[id].get("modelo", "") == "ferro")
 	elif Bolsa.ITENS[id].get("tipo", "") == "escudo": t = _icone_escudo()
+	elif id == "nucleo_golem": t = _icone_nucleo()
 	else: t = _icone_dentes()
 	_icones[id] = t
 	return t
@@ -146,6 +147,20 @@ static func _icone_escudo() -> ImageTexture:
 				var c := Color(0.62, 0.42, 0.22) if tab == 0 else Color(0.55, 0.36, 0.18)
 				if d > 18.5: c = Color(0.35, 0.22, 0.12)
 				if d < 6.0: c = Color(0.6, 0.6, 0.62) if d < 4.5 else Color(0.35, 0.35, 0.38)
+				_px(im, x, y, c)
+	return ImageTexture.create_from_image(im)
+
+# provisório: pedra de barro redonda com musgo e uma rachadura brilhando
+static func _icone_nucleo() -> ImageTexture:
+	var im := Image.create(48, 48, false, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
+	for y in 48:
+		for x in 48:
+			var d := Vector2(x - 23.5, y - 25.0).length()
+			if d < 18.0:
+				var c := Color(0.5, 0.33, 0.2) * (1.15 - 0.35 * clampf((y - 10) / 34.0, 0.0, 1.0))
+				if d > 16.0: c = c.darkened(0.5)
+				if y < 18 and d < 16.0 and int(x * 7 + y * 3) % 5 < 3: c = Color(0.35, 0.55, 0.22)
+				if absi(x - 24 + int((y - 25) * 0.4)) < 2 and y > 18 and y < 36: c = Color(1.0, 0.75, 0.3)
 				_px(im, x, y, c)
 	return ImageTexture.create_from_image(im)
 

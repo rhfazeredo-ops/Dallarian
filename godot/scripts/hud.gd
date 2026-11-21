@@ -7,6 +7,7 @@ class_name Hud
 
 var nome := "Rachel"
 var hora := 9.0                    # relógio do jogo (vem do mundo)
+var chefe: Node = null             # chefe em luta: barra grande no alto
 var nivel := 1
 var vida := 100.0; var vida_max := 100.0
 var mana := 100.0; var mana_max := 100.0
@@ -76,6 +77,8 @@ func _draw() -> void:
 	_desenhar_avisos(tela)
 	_desenhar_relogio(tela)
 	_desenhar_numeros()
+	_desenhar_chefe(tela)
+	_desenhar_aviso_golpe()
 	draw_texture_rect(tex_plaqueta, Rect2(p0, Vector2(pw, ph)), false)
 	# barras dentro dos trilhos
 	_barra(Rect2(P.call(418, 337), Vector2(2042 - 418, 458 - 337) * k), _vida_vis, Color(0.42, 0.78, 0.22), Color(0.62, 0.92, 0.36), "%d / %d" % [vida, vida_max])
@@ -136,6 +139,47 @@ func definir_nivel(n: int, x: float) -> void:
 	nivel = clampi(n, 1, NIVEL_MAX); xp_max = xp_do_nivel(nivel); xp = clampf(x, 0.0, xp_max - 1.0)
 	vida_max = 100.0 + (nivel - 1) * 8.0; mana_max = 100.0 + (nivel - 1) * 5.0; vida = vida_max; mana = mana_max
 	_xp_vis = xp / xp_max; _vida_vis = 1.0
+
+# barra de vida do chefe no alto da tela (nome, nível e vida)
+func _desenhar_chefe(tela: Vector2) -> void:
+	if chefe == null or not is_instance_valid(chefe): return
+	var w := 760.0; var h := 26.0
+	var r := Rect2(tela.x * 0.5 - w * 0.5, 158.0, w, h)
+	var t := "%s  (nível %d)" % [chefe.nome, chefe.nivel]
+	var tw := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
+	draw_string_outline(fonte, Vector2(tela.x * 0.5 - tw * 0.5, r.position.y - 8), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, 8, Color(0, 0, 0, 0.9))
+	draw_string(fonte, Vector2(tela.x * 0.5 - tw * 0.5, r.position.y - 8), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(1.0, 0.82, 0.2))
+	draw_rect(r.grow(3), Color(0, 0, 0, 0.75)); draw_rect(r, Color(0.2, 0.05, 0.04))
+	var f := clampf(chefe.vida / chefe.vida_max, 0.0, 1.0)
+	draw_rect(Rect2(r.position, Vector2(w * f, h)), Color(0.75, 0.12, 0.08))
+	draw_rect(Rect2(r.position, Vector2(w * f, 5)), Color(1.0, 0.4, 0.3))
+	draw_rect(r.grow(3), UI.DOURADO, false, 2.0)
+
+# barra do golpe do chefe em cima da cabeça dele: enche até o instante do golpe (bem visível para dar tempo
+# de se afastar ou levantar o escudo); a pancada no chão é vermelha e maior
+func _desenhar_aviso_golpe() -> void:
+	if chefe == null or not is_instance_valid(chefe) or chefe.estado != "atacar": return
+	var cena = get_tree().current_scene
+	var cam: Camera3D = cena.jogador.cam
+	var topo: Vector3 = chefe.global_position + Vector3(0, chefe.k * 1.08, 0)
+	if cam.is_position_behind(topo): return
+	var tt: Vector3 = chefe._tempos()
+	var f := clampf(chefe._t / tt.y, 0.0, 1.0)
+	var pancada: bool = chefe._golpe == "pancada"
+	var p := cam.unproject_position(topo) * escala_3d
+	var w := 300.0 if pancada else 220.0; var h := 24.0 if pancada else 18.0
+	var r := Rect2(p.x - w * 0.5, p.y - h, w, h)
+	var cor := Color(1.0, 0.18, 0.1) if pancada else Color(1.0, 0.7, 0.15)
+	if f >= 1.0: cor = Color(1, 1, 1)
+	draw_rect(r.grow(4), Color(0, 0, 0, 0.85))
+	draw_rect(r, Color(0.15, 0.05, 0.03, 0.9))
+	draw_rect(Rect2(r.position, Vector2(w * f, h)), cor)
+	draw_rect(r.grow(4), UI.DOURADO, false, 2.0)
+	var t := "PANCADA NO CHÃO!" if pancada else "Soco"
+	var tw := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24).x
+	var pos := Vector2(p.x - tw * 0.5, r.position.y - 10)
+	draw_string_outline(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24, 8, Color(0, 0, 0, 0.9))
+	draw_string(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24, cor if f < 1.0 else Color(1, 0.9, 0.6))
 
 # relógio clean embaixo da bússola: sol ou lua + hora (de 5 em 5 minutos)
 func _desenhar_relogio(tela: Vector2) -> void:

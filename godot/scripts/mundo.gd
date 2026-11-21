@@ -106,6 +106,9 @@ func _moradores() -> void:
 	_profissionais()
 	_criancas()
 	_lobos()
+	_aranhas()
+	_lodosos()
+	_golem()
 	fauna = Fauna.new(); raiz.add_child(fauna)
 	# já começam algumas conversas na vila
 	var vila := []
@@ -250,6 +253,153 @@ func _desmaiar() -> void:
 	tw.tween_callback(func(): _tela_dano.color = Color(0.7, 0, 0, 1); heroina_desmaiada = false)
 
 # lobo morto: XP (o líder dá um pouco mais) e deixa dentes e garras na bolsa
+# ---------- monstros novos ----------
+# aranhas: uma só por lugar, na mata fechada, longe umas das outras (nível 3–5)
+func _aranhas() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 707
+	var feitos: Array[Vector2] = []
+	for i in 5000:
+		if feitos.size() >= 14: break
+		var q := Vector2(rng.randf_range(-540, 540), rng.randf_range(-540, 540))
+		if q.length() < 140.0 or reg.floresta(q.x, q.y) < 0.6 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if perto_de_lugar(q.x, q.y, 25.0) or reg.altura(q.x, q.y) - reg.base(q.y) > 6.0: continue
+		var ok := true
+		for f in feitos: if q.distance_to(f) < 90.0: ok = false
+		for g in matilhas: if q.distance_to(g.casa) < 40.0: ok = false
+		if not ok: continue
+		feitos.append(q)
+		var a := Aranha.new(); a.grupo = {"casa": q, "membros": [a], "alerta": false}
+		raiz.add_child(a); a.position = Vector3(q.x, altura_malha(q.x, q.y), q.y)
+		a.montar(self, rng.randi_range(3, 5), rng.randi()); a.rotation.y = rng.randf() * TAU
+		matilhas.append({"casa": q, "tipo": "aranha", "membros": [a], "alerta": false})
+
+# Lodosos: grupos de 3 (um grande e dois jovens) em trechos da beira do rio, do lago e da praia
+func _lodosos() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 909
+	var cands: Array[Vector2] = []
+	var r := reg.rio
+	for i in r.size() - 1:
+		for u in [0.25, 0.75]:
+			var a: Vector2 = r[i]; var b: Vector2 = r[i + 1]; var pt := a.lerp(b, u)
+			var nrm := Vector2(-(b - a).normalized().y, (b - a).normalized().x) * (1.0 if rng.randf() < 0.5 else -1.0)
+			var t: float = (float(i) + float(u)) / (r.size() - 1)
+			cands.append(pt + nrm * (reg.largura_rio(t) * 0.5 + 4.0))
+	for k in 6:
+		var ang := TAU * k / 6.0 + 0.3
+		cands.append(Vector2(Regiao.LAGO.x, Regiao.LAGO.y) + Vector2(cos(ang), sin(ang)) * (Regiao.LAGO.z + 5.0))
+	for z in [-380.0, -200.0, -40.0, 140.0, 300.0]:
+		var x := 380.0
+		while x < 600.0 and reg.altura(x, z) > 1.0: x += 1.0
+		cands.append(Vector2(x - 5.0, z))
+	cands.shuffle()
+	var feitos: Array[Vector2] = []
+	for q in cands:
+		if feitos.size() >= 9: break
+		if q.length() < 110.0 or reg.dist_estrada(q.x, q.y) < 12.0 or perto_de_lugar(q.x, q.y, 18.0) or perto_de_casa(q.x, q.y, 10.0): continue
+		if reg.agua(q.x, q.y) != 0.0 and altura(q.x, q.y) < reg.agua(q.x, q.y): continue
+		var ok := true
+		for f in feitos: if q.distance_to(f) < 70.0: ok = false
+		if not ok: continue
+		feitos.append(q)
+		var g := {"casa": q, "membros": [], "alerta": false, "tipo": "lodoso"}
+		for j in 3:
+			var mo := Monstro.new(); mo.grupo = g
+			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.0)
+			raiz.add_child(mo); mo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
+			mo.montar(self, "lodoso_g" if j == 0 else "lodoso_j", rng.randi_range(3, 4) if j == 0 else rng.randi_range(2, 3), rng.randi())
+			mo.rotation.y = rng.randf() * TAU
+			g.membros.append(mo)
+		matilhas.append(g)
+		_acampamento_lodoso(q, rng)
+
+# cabaninha de juncos, varal de peixes e fogueirinha
+func _acampamento_lodoso(c: Vector2, rng: RandomNumberGenerator) -> void:
+	var y := altura_malha(c.x, c.y)
+	var st := _st()
+	var h := c + Vector2(3.0, 1.5).rotated(rng.randf() * TAU)
+	cilindro(st, Vector3(h.x, altura_malha(h.x, h.y) - 0.1, h.y), 1.2, 0.05, 1.7, 7)
+	_peca(st, mat("palha", 1.0, Color(0.75, 0.8, 0.55)), Vector3.ZERO)
+	st = _st()
+	var v0 := c + Vector2(-2.5, -1.5)
+	for d in [Vector2(0, 0), Vector2(1.8, 0)]:
+		var q: Vector2 = v0 + d; _caixa(st, Vector3(q.x, altura_malha(q.x, q.y) + 0.6, q.y), Vector3(0.08, 1.2, 0.08))
+	_caixa(st, Vector3(v0.x + 0.9, altura_malha(v0.x, v0.y) + 1.15, v0.y), Vector3(1.9, 0.05, 0.05))
+	_peca(st, mat("madeira"), Vector3.ZERO)
+	var peixes := []
+	for i in 4: peixes.append([Vector3(v0.x + 0.3 + i * 0.4, altura_malha(v0.x, v0.y) + 0.95, v0.y), Color(0.55, 0.62, 0.66), 0.22])
+	_splats(peixes, Vector2(0.5, 1.0), false, 0.0)
+	_fogo(Vector3(c.x + 1.0, y + 0.05, c.y - 2.5), 0.45, 0.6, 2)
+	luzes.append(Vector3(c.x + 1.0, y + 0.4, c.y - 2.5))
+
+# Grumo, o golem de terra (chefe): dá a volta no mapa inteiro, longe da vila, andando sem parar
+var golem: Monstro
+func _golem() -> void:
+	var rota := []
+	for i in 36:
+		var a := TAU * i / 36.0
+		var melhor := Vector2.ZERO
+		for r in [330.0, 310.0, 350.0, 290.0, 370.0]:
+			var q: Vector2 = Vector2(cos(a), sin(a)) * float(r)
+			if reg.agua(q.x, q.y) == 0.0 and reg.altura(q.x, q.y) > 0.5 and reg.altura(q.x, q.y) - reg.base(q.y) < 9.0:
+				melhor = q; break
+		if melhor != Vector2.ZERO: rota.append(melhor)
+	if rota.size() < 4: return
+	golem = Monstro.new(); golem.rota = rota; golem.nome = "Grumo, o Guardião do Vale"
+	golem.grupo = {"casa": rota[0], "membros": [golem], "alerta": false, "tipo": "golem"}
+	var p: Vector2 = rota[0]
+	raiz.add_child(golem); golem.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
+	golem.montar(self, "golem", 8, 31)
+	matilhas.append(golem.grupo)
+
+# pancada no chão do golem: poeira, tremor e som grave
+func pancada_no_chao(pos: Vector3, raio: float) -> void:
+	var p := _particulas(pos + Vector3(0, 0.3, 0), [Color(0.6, 0.48, 0.32), Color(0.42, 0.33, 0.22)], 40, 6.0, 0.9)
+	p.direction = Vector3(0, 0.4, 0); p.spread = 90.0; p.gravity = Vector3(0, -6.0, 0)
+	var q: QuadMesh = p.mesh; q.size = Vector2(0.35, 0.35)
+	p.restart(); get_tree().create_timer(2.0).timeout.connect(p.queue_free)
+	var d := jogador.global_position.distance_to(pos)
+	if d < raio * 3.0: jogador._tranco += Vector3(-4.0 * (1.0 - d / (raio * 3.0)), randf_range(-3, 3), 0.0); jogador.impacto(0.1)
+
+# veneno: tira vida aos poucos (número verde)
+var _veneno_t := 0.0
+var _veneno_dano := 0.0
+var _veneno_tick := 0.0
+func envenenar(dano: float, dur: float) -> void:
+	_veneno_t = dur; _veneno_dano = dano; _veneno_tick = 1.0
+	hud.numero_heroi("Envenenada!", Color(0.45, 1.0, 0.35))
+
+func _tick_veneno(delta: float) -> void:
+	if _veneno_t <= 0.0 or heroina_desmaiada: return
+	_veneno_t -= delta; _veneno_tick -= delta
+	if _veneno_tick <= 0.0:
+		_veneno_tick = 1.5
+		var d := roundf(_veneno_dano)
+		hud.vida = maxf(0.0, hud.vida - d); hud.numero_heroi("-%d" % d, Color(0.45, 1.0, 0.35))
+		if hud.vida <= 0.0: _desmaiar()
+
+# morte de aranha, Lodoso ou golem: XP (o chefe vale muito mais), dinheiro e drops
+func monstro_morreu(mo: Node) -> void:
+	var ganho := Hud.xp_por_matar(mo.nivel, hud.nivel)
+	var mult := 1.0
+	if mo is Monstro: mult = mo.cfg.xp
+	elif mo is Aranha: mult = 1.3
+	if ganho > 0.0: hud.ganhar_xp(roundf(ganho * mult))
+	var drops := []                       # [id, chance, mín, máx]
+	if mo is Aranha: drops = [["presa_aranha", 0.4, 1, 1]]
+	elif mo is Monstro and mo.tipo == "golem":
+		drops = [["nucleo_golem", 1.0, 1, 1], ["espada_ferro", 0.35, 1, 1], ["bolsa_16", 0.35, 1, 1]]
+		var moedas := randi_range(150, 400); bolsa.cobre += moedas; bolsa.mudou.emit()
+		hud.avisar("+%s" % Bolsa.texto_dinheiro(moedas), Color(0.95, 0.75, 0.4))
+		hud.avisar("Grumo, o Guardião do Vale foi derrotado!", Color(1.0, 0.82, 0.2))
+	elif mo is Monstro: drops = [["escama_lodoso", 0.4, 1, 2 if mo.tipo == "lodoso_g" else 1]]
+	for d in drops:
+		if randf() > d[1]: continue
+		var n := randi_range(d[2], d[3])
+		var sobra := bolsa.pegar(d[0], n)
+		var info: Dictionary = Bolsa.ITENS[d[0]]
+		if n - sobra > 0: hud.avisar("+%d %s" % [n - sobra, info.nome], Bolsa.CORES[info.qual])
+		if sobra > 0: hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3))
+
 func lobo_morreu(l: Lobo) -> void:
 	var ganho := Hud.xp_por_matar(l.nivel, hud.nivel)
 	if ganho > 0.0: hud.ganhar_xp(ganho)
@@ -495,6 +645,9 @@ var _raio := 0.0
 func _process(delta: float) -> void:
 	Audio.atualizar(delta)
 	_dia_noite(delta)
+	_tick_veneno(delta)
+	if hud and golem and is_instance_valid(golem):
+		hud.chefe = golem if (golem.grupo.alerta and golem.estado != "morto" and golem.global_position.distance_to(jogador.global_position) < 60.0) else null
 	if _salvar_em > 0.0:
 		_salvar_em -= delta
 		if _salvar_em <= 0.0: bolsa.salvar(hud.nivel, hud.xp)
@@ -1516,13 +1669,13 @@ func _modo_teste() -> void:
 		if args.has("lobo_log"):
 			for t in 14:
 				if args.has("lutar"):        # teste: a Rachel golpeia o lobo mais perto
-					var perto: Lobo = null
+					var perto: Node3D = null
 					for l in g.membros: if is_instance_valid(l) and l.estado != "morto" and (perto == null or l.global_position.distance_to(jogador.global_position) < perto.global_position.distance_to(jogador.global_position)): perto = l
 					if perto: var dl := perto.global_position - jogador.global_position; jogador.rotation.y = atan2(-dl.x, -dl.z)
 					controles._seg["atacar"] = true; await get_tree().create_timer(0.12).timeout; controles._seg["atacar"] = false
 				await get_tree().create_timer(0.9).timeout
 				if args.has("lutar"): print("BOLSA: ", bolsa.bolsas[0].slots, " XP ", hud.xp, "/", hud.xp_max, " nível ", hud.nivel)
-				print("t=%d alerta=%s atac=%s " % [t, g.alerta, g.atacante != null], g.membros.map(func(l): return "%s %.1f" % [l.estado, Vector2(l.global_position.x - jogador.global_position.x, l.global_position.z - jogador.global_position.z).length()] if is_instance_valid(l) else "-"))
+				print("t=%d alerta=%s atac=%s " % [t, g.alerta, g.get("atacante") != null], g.membros.map(func(l): return "%s %.1f" % [l.estado, Vector2(l.global_position.x - jogador.global_position.x, l.global_position.z - jogador.global_position.z).length()] if is_instance_valid(l) else "-"))
 	if args.has("casa"):           # teste: olha uma casa de lado, a 8 m (--casa=N)
 		var c: Array = casas[int(args.casa) % casas.size()]
 		var cp := Vector2(c[0].x, c[0].z); var pj := cp + Vector2(c[2] * 0.5 + 8.0, 2.0).rotated(-c[1])
@@ -1597,6 +1750,21 @@ func _modo_teste() -> void:
 				P.get_monitor(P.RENDER_TOTAL_PRIMITIVES_IN_FRAME), P.get_monitor(P.TIME_PROCESS) * 1000.0,
 				P.get_monitor(P.TIME_PHYSICS_PROCESS) * 1000.0, P.get_monitor(P.OBJECT_NODE_COUNT)]))
 	if args.has("mapa"): get_tree().create_timer(1.5).timeout.connect(func(): mapa.alternar())
+	if args.has("monstro"):        # teste: um monstro parado na frente da câmera numa animação (--monstro=golem --manim=soco:0.6)
+		var pj := Vector2(-30, 62); var tp: String = args.monstro
+		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y + float(args.get("dist", "6")))
+		jogador.rotation.y = 0.0; jogador.mao.visible = false; jogador.set_physics_process(false)
+		jogador.pescoco.rotation.x = float(args.get("inclina", "0"))
+		var mo: Node3D
+		if tp == "aranha": mo = Aranha.new()
+		else: mo = Monstro.new()
+		mo.grupo = {"casa": pj, "membros": [mo], "alerta": false}
+		raiz.add_child(mo); mo.position = Vector3(pj.x, altura_malha(pj.x, pj.y), pj.y)
+		if tp == "aranha": mo.montar(self, 4, 1)
+		else: mo.montar(self, tp, 3, 1)
+		mo.rotation.y = deg_to_rad(float(args.get("giro_m", "90")))
+		mo.anim_fixa = String(args.get("manim", "andar"))
+		if tp == "golem": golem = mo; mo.grupo.alerta = true
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0
