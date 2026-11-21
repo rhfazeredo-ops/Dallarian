@@ -14,30 +14,30 @@ var bloqueio_mouse := false
 var _dedo := -1; var _centro := Vector2.ZERO; var _ponta := Vector2.ZERO
 var _dedo_olhar := -1
 var fps: Label
+var _base: Texture2D
+var _pino: Texture2D
 const RAIO := 110.0
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_botao("ATACAR", -330, -300, 250, "atacar")
-	_botao("BLOQUEAR", -600, -250, 190, "bloquear")
-	_botao("CORRER", -330, -560, 170, "correr")
-	_botao("PULAR", -560, -470, 150, "pular")
+	_botao("ATACAR", -320, -310, 250, "atacar")
+	_botao("BLOQUEAR", -575, -240, 180, "bloquear")
+	_botao("CORRER", -300, -540, 165, "correr")
+	_botao("PULAR", -520, -455, 150, "pular")
+	_base = load("res://assets/ui/joystick_base.png"); _pino = load("res://assets/ui/joystick_pino.png")
 	fps = Label.new(); fps.position = Vector2(24, 18); fps.add_theme_font_size_override("font_size", 30)
 	fps.add_theme_color_override("font_outline_color", Color.BLACK); fps.add_theme_constant_override("outline_size", 8)
 	add_child(fps)
 
-func _botao(txt: String, x: float, y: float, t: float, nome: String) -> void:
-	var b := Button.new(); b.text = txt; b.add_theme_font_size_override("font_size", int(t * 0.17))
+func _botao(_txt: String, x: float, y: float, t: float, nome: String) -> void:
+	var b := BotaoAcao.criar(nome, t)
 	b.anchor_left = 1; b.anchor_top = 1; b.anchor_right = 1; b.anchor_bottom = 1
 	b.offset_left = x; b.offset_top = y; b.offset_right = x + t; b.offset_bottom = y + t
-	var st := StyleBoxFlat.new(); st.bg_color = Color(0.12, 0.1, 0.16, 0.55); st.set_corner_radius_all(int(t / 2))
-	st.border_color = Color(0.85, 0.75, 0.5, 0.8); st.set_border_width_all(4)
-	for k in ["normal", "hover", "pressed", "focus"]: b.add_theme_stylebox_override(k, st)
-	b.button_down.connect(func():
+	b.apertou.connect(func():
 		_seg[nome] = true
 		if nome == "pular": _pulo = true)
-	b.button_up.connect(func(): _seg[nome] = false)
+	b.soltou.connect(func(): _seg[nome] = false)
 	add_child(b)
 
 func _input(e: InputEvent) -> void:
@@ -80,7 +80,14 @@ func bloqueando() -> bool: return _seg.get("bloquear", false) or bloqueio_mouse
 func correndo() -> bool: return _seg.get("correr", false) or Input.is_key_pressed(KEY_SHIFT)
 
 func _draw() -> void:
-	if _dedo == -1: return
-	draw_circle(_centro, RAIO, Color(1, 0.95, 0.8, 0.15))
-	draw_arc(_centro, RAIO, 0, TAU, 40, Color(0.9, 0.8, 0.55, 0.6), 4.0)
-	draw_circle(_centro + (_ponta - _centro).limit_length(RAIO), 50, Color(1, 0.95, 0.8, 0.45))
+	# joystick com as artes: aparece onde o dedo toca; parado, fica bem apagado no canto (só no celular)
+	var tela := get_viewport_rect().size
+	var centro := _centro; var ponta := _ponta; var alfa := 0.95
+	if _dedo == -1:
+		if not (OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()): return
+		centro = Vector2(250, tela.y - 260); ponta = centro; alfa = 0.35
+	var rb := RAIO * 1.35
+	draw_texture_rect(_base, Rect2(centro - Vector2(rb, rb), Vector2(rb, rb) * 2.0), false, Color(1, 1, 1, alfa * 0.9))
+	var pp := centro + (ponta - centro).limit_length(RAIO)
+	var rp := RAIO * 0.5
+	draw_texture_rect(_pino, Rect2(pp - Vector2(rp, rp), Vector2(rp, rp) * 2.0), false, Color(1, 1, 1, alfa))

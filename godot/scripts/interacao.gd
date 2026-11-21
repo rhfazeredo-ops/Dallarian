@@ -43,7 +43,7 @@ func montar(mundo) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
 	painel = HBoxContainer.new(); painel.add_theme_constant_override("separation", 26)
 	painel.anchor_left = 0.5; painel.anchor_right = 0.5; painel.anchor_top = 1; painel.anchor_bottom = 1
-	painel.offset_left = -330; painel.offset_right = 330; painel.offset_top = -330; painel.offset_bottom = -230
+	painel.offset_left = -170; painel.offset_right = 170; painel.offset_top = -380; painel.offset_bottom = -210
 	add_child(painel)
 	painel.add_child(_botao("CRIAR", false, func(): _aviso("A forja ainda está esfriando... em breve.")))
 	painel.add_child(_botao("CONVERSAR", true, _conversar))
@@ -78,15 +78,16 @@ func montar(mundo) -> void:
 	legenda.offset_left = -560; legenda.offset_right = 560; legenda.offset_top = -470; legenda.offset_bottom = -350
 	legenda.modulate.a = 0.0; add_child(legenda)
 
-func _botao(txt: String, ativo: bool, f: Callable) -> Button:
-	var b := Button.new(); b.text = txt; b.add_theme_font_size_override("font_size", 34)
-	b.custom_minimum_size = Vector2(300, 96)
-	var st := StyleBoxFlat.new(); st.set_corner_radius_all(48); st.set_border_width_all(4)
-	st.bg_color = Color(0.16, 0.12, 0.1, 0.85) if ativo else Color(0.16, 0.14, 0.13, 0.6)
-	st.border_color = Color(0.9, 0.72, 0.4) if ativo else Color(0.5, 0.46, 0.42)
-	for k in ["normal", "hover", "pressed", "focus"]: b.add_theme_stylebox_override(k, st)
-	if not ativo: b.add_theme_color_override("font_color", Color(0.65, 0.62, 0.58))
-	b.pressed.connect(f); return b
+func _botao(txt: String, ativo: bool, f: Callable) -> Control:
+	var caixa_b := VBoxContainer.new(); caixa_b.alignment = BoxContainer.ALIGNMENT_CENTER
+	var b := BotaoAcao.criar("criar" if txt == "CRIAR" else "conversar", 132)
+	b.ativo = ativo; b.apertou.connect(f)
+	var cont := CenterContainer.new(); cont.custom_minimum_size = Vector2(150, 132); cont.add_child(b)
+	var l := Label.new(); l.text = txt; l.add_theme_font_size_override("font_size", 24); l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_color_override("font_color", Color(1, 0.9, 0.65) if ativo else Color(0.7, 0.67, 0.62))
+	l.add_theme_constant_override("outline_size", 7); l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	caixa_b.add_child(cont); caixa_b.add_child(l)
+	return caixa_b
 
 func _aviso(t: String) -> void:
 	aviso.text = t; aviso.modulate.a = 1.0
