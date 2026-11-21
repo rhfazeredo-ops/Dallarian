@@ -93,10 +93,11 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - **Pássaros** grandes voando alto (26–40 m), sozinhos, em dupla ou em trio em V; batem as asas e planam.
 
 ## 7.1.2 Inimigos: lobos
-- Matilhas de 4 a 6 lobos (8 matilhas na região): **líder preto** (maior, 6 de vida, morde mais forte), **brancos só
+- Matilhas de 4 a 6 lobos (18 matilhas, ~95 lobos na região): **líder preto** (maior, 6 de vida, morde mais forte), **brancos só
   nas montanhas/morros** e **marrons só nas florestas**; longe da vila, das estradas e dos acampamentos.
 - Passeiam e farejam perto da toca; viram a Rachel a 20 m e a matilha toda caça. Cercam em roda (5,5 m, com espaço
   entre eles), só **um ataca de cada vez** e a matilha respira 1–2 s entre ataques. Desistem se ela se afastar.
+- Em **fúria**: depois de morder ou apanhar não foge — fica colado na Rachel atacando (até 2 ao mesmo tempo).
 - Animações: **correr** (trote/galope), **atacar** (agacha, salta e morde) e **esquivar** (pulo para o lado — quando
   a Rachel começa um golpe na frente deles, ou depois de morder).
 - Escudo levantado de frente bloqueia a mordida. Lobo comum cai com 3 golpes leves (o forte vale 2); dá XP

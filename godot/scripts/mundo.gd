@@ -116,9 +116,9 @@ var loja_ui: Loja
 func _lobos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
-	for i in 2500:
+	for i in 4000:
 		var q := Vector2(rng.randf_range(-540, 540), rng.randf_range(-540, 540))
-		if q.length() < 150.0 or reg.folga_caminho(q.x, q.y) < 14.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if q.length() < 120.0 or reg.folga_caminho(q.x, q.y) < 12.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
 		var longe_barraca := true
 		for b in barracas: if q.distance_to(b) < 60.0: longe_barraca = false
@@ -130,13 +130,13 @@ func _lobos() -> void:
 		if h0 - reg.base(q.y) > 5.0: montanha.append(q)
 		elif reg.floresta(q.x, q.y) > 0.6: mata.append(q)
 	var escolhidos := []
-	for lista in [[montanha, "branco", 3], [mata, "marrom", 5]]:
+	for lista in [[montanha, "branco", 7], [mata, "marrom", 11]]:
 		var cands: Array = lista[0]; var feitos := 0
 		cands.shuffle()
 		for q in cands:
 			if feitos >= lista[2]: break
 			var ok := true
-			for e in escolhidos: if q.distance_to(e) < 130.0: ok = false
+			for e in escolhidos: if q.distance_to(e) < 80.0: ok = false
 			if not ok: continue
 			escolhidos.append(q); feitos += 1
 			_matilha(q, lista[1], rng)
@@ -240,7 +240,7 @@ func _profissionais() -> void:
 		var som := AudioStreamPlayer3D.new(); som.position = Vector3(big.x, yb + 1.0, big.y)
 		# volume cheio até ~6 m da bigorna; depois cai aos poucos (ouve-se baixinho chegando na ferraria)
 		som.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
-		som.unit_size = 6.0; som.max_distance = 75.0; som.volume_db = 0.0; som.bus = "Efeitos"
+		som.unit_size = 6.0; som.max_distance = 75.0; som.volume_db = -4.5; som.bus = "Efeitos"
 		som.attenuation_filter_cutoff_hz = 6000.0; som.attenuation_filter_db = -8.0   # de longe fica um pouco abafado
 		raiz.add_child(som)
 		var batidas := []
@@ -273,6 +273,36 @@ func _profissionais() -> void:
 		fz.montar(self, 7000 + n, c, 1.0); n += 1
 
 # faíscas / lascas: partículas que saem num estouro (restart() a cada golpe)
+# fogo animado: n labaredas (quadrados com o shader de fogo) espalhadas na base + fagulhas subindo
+func _fogo(pos: Vector3, larg: float, alt: float, n: int, brasas := true, raio := -1.0) -> Node3D:
+	var no := Node3D.new(); no.position = pos; raiz.add_child(no)
+	if raio < 0.0: raio = larg * 0.25
+	var q := QuadMesh.new(); q.size = Vector2(1, 1); q.center_offset = Vector3(0, 0.5, 0)
+	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = q; mm.instance_count = n
+	for i in n:
+		var a := TAU * i / n + randf() * 0.5; var r := 0.0 if i == 0 else raio * randf_range(0.4, 1.0)
+		var s := 1.0 if i == 0 else randf_range(0.55, 0.85)
+		mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(larg * s, alt * s, 1)), Vector3(cos(a) * r, 0, sin(a) * r)))
+	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/fogo.gdshader"); sm.set_shader_parameter("neblina", NEBLINA)
+	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = sm; mi.visibility_range_end = 160.0
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; no.add_child(mi)
+	if brasas:
+		var p := CPUParticles3D.new(); p.position = Vector3(0, alt * 0.4, 0)
+		p.amount = 10 + n * 2; p.lifetime = 1.8; p.preprocess = 2.0
+		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE; p.emission_sphere_radius = larg * 0.3
+		p.direction = Vector3(0, 1, 0); p.spread = 18.0; p.initial_velocity_min = 0.6; p.initial_velocity_max = 1.4
+		p.gravity = Vector3(0, 0.35, 0); p.damping_min = 0.2; p.damping_max = 0.5
+		p.scale_amount_min = 0.5; p.scale_amount_max = 1.0; p.visibility_aabb = AABB(Vector3(-2, -1, -2), Vector3(4, 6, 4))
+		var bq := QuadMesh.new(); bq.size = Vector2(0.045, 0.045)
+		var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mt.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES; mt.vertex_color_use_as_albedo = true
+		mt.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		bq.material = mt; p.mesh = bq
+		var gr := Gradient.new(); gr.set_color(0, Color(1.0, 0.9, 0.5, 1)); gr.add_point(0.5, Color(1.0, 0.5, 0.12, 1)); gr.set_color(2, Color(0.6, 0.1, 0.05, 0))
+		p.color_ramp = gr
+		no.add_child(p)
+	return no
+
 func _particulas(pos: Vector3, cores: Array, qtd: int, vel: float, vida: float) -> CPUParticles3D:
 	var p := CPUParticles3D.new(); p.position = pos
 	p.one_shot = true; p.emitting = false; p.amount = qtd; p.lifetime = vida; p.explosiveness = 1.0
@@ -491,11 +521,7 @@ func _barraca(c: Vector2, ang: float) -> void:
 	st = _st()
 	_caixa(st, Vector3(f.x, y + 0.1, f.y), Vector3(0.9, 0.1, 0.12)); _caixa(st, Vector3(f.x, y + 0.2, f.y), Vector3(0.12, 0.1, 0.9))
 	_peca(st, mat("madeira"), Vector3.ZERO)
-	var chamas := []
-	for i in 9:
-		chamas.append([Vector3(f.x + randf_range(-0.2, 0.2), y + randf_range(0.15, 0.7), f.y + randf_range(-0.2, 0.2)),
-			[Color(1.0, 0.75, 0.3), Color(0.98, 0.45, 0.15), Color(1.0, 0.9, 0.55)][i % 3], randf_range(0.18, 0.32)])
-	_splats(chamas, Vector2(1, 1), false, 0.6, 0.0, true)
+	_fogo(Vector3(f.x, y + 0.12, f.y), 0.75, 1.0, 4)
 	luzes.append(Vector3(f.x, y + 0.6, f.y))
 
 # ---------- material PS1 ----------
@@ -661,11 +687,9 @@ func _ferraria() -> void:
 	# boca da fornalha: brasa (escuro + laranja) e fogo em splats
 	st = _st(); _quad(st, Vector3(-2.9, 0.35, -1.38), Vector3(-1.5, 0.35, -1.38), Vector3(-1.5, 1.05, -1.38), Vector3(-2.9, 1.05, -1.38), 1, 1)
 	add.call(st, mat("", 1.0, Color(1.6, 0.55, 0.15)))
-	var fogo := []
-	for k in 18:
-		fogo.append([no.transform * Vector3(-2.2 + randf_range(-0.45, 0.45), randf_range(0.4, 1.0), -1.3 + randf_range(-0.05, 0.08)),
-			[Color(1.0, 0.75, 0.3), Color(0.98, 0.45, 0.15), Color(1.0, 0.9, 0.55)][k % 3], randf_range(0.18, 0.32)])
-	_splats(fogo, Vector2(1, 1), false, 0.6)
+	var boca: Vector3 = no.transform * Vector3(-2.2, 0.36, -1.32)
+	for dx in [-0.42, 0.0, 0.42]:
+		_fogo(boca + no.transform.basis * Vector3(dx, 0, 0), 0.5, 0.62, 2, dx == 0.0, 0.1)
 	# bigorna sobre um toco
 	st = _st(); cilindro(st, Vector3(1.2, -0.1, -0.4), 0.45, 0.42, 0.75, 7, true); add.call(st, mat("casca"))
 	st = _st()
@@ -973,11 +997,7 @@ func _bandidos() -> void:
 	# fogueira: pedras + lenha + chamas em splats
 	var y0 := yb
 	st = _st(); cilindro(st, Vector3(c.x, y0 - 0.1, c.y), 0.9, 0.9, 0.25, 8); _peca(st, mat("pedra"), Vector3.ZERO)
-	var chamas := []
-	for k in 14:
-		chamas.append([Vector3(c.x + randf_range(-0.35, 0.35), y0 + randf_range(0.2, 1.1), c.y + randf_range(-0.35, 0.35)),
-			[Color(1.0, 0.75, 0.3), Color(0.98, 0.45, 0.15), Color(1.0, 0.9, 0.55)][k % 3], randf_range(0.25, 0.45)])
-	_splats(chamas, Vector2(1, 1), false, 0.6, 0.0, true)
+	_fogo(Vector3(c.x, y0 + 0.1, c.y), 1.1, 1.6, 6)
 	luzes.append(Vector3(c.x, y0 + 0.9, c.y))
 	st = _st()
 	var yc := yb
@@ -1243,7 +1263,7 @@ func _modo_teste() -> void:
 				k += 1
 			var pj := c + Vector2(0, float(args.get("dist", "7")))
 			jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y); jogador.rotation.y = 0.0
-			jogador.mao.visible = false; jogador.set_physics_process(false)
+			jogador.mao.visible = false; jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "0"))
 			jogador.global_position.x += (float(args.lobo_um) - 1.0) * 3.2 if args.has("lobo_um") else 0.0
 		else:
 			var pj := c + Vector2(0, float(args.get("dist", "16")))
@@ -1257,7 +1277,7 @@ func _modo_teste() -> void:
 					if perto: var dl := perto.global_position - jogador.global_position; jogador.rotation.y = atan2(-dl.x, -dl.z)
 					controles._seg["atacar"] = true; await get_tree().create_timer(0.12).timeout; controles._seg["atacar"] = false
 				await get_tree().create_timer(0.9).timeout
-				if args.has("lutar"): print("BOLSA: ", bolsa.itens, " XP ", hud.xp, "/", hud.xp_max, " nível ", hud.nivel)
+				if args.has("lutar"): print("BOLSA: ", bolsa.bolsas[0].slots, " XP ", hud.xp, "/", hud.xp_max, " nível ", hud.nivel)
 				print("t=%d alerta=%s atac=%s " % [t, g.alerta, g.atacante != null], g.membros.map(func(l): return "%s %.1f" % [l.estado, Vector2(l.global_position.x - jogador.global_position.x, l.global_position.z - jogador.global_position.z).length()] if is_instance_valid(l) else "-"))
 	if args.has("casa"):           # teste: olha uma casa de lado, a 8 m (--casa=N)
 		var c: Array = casas[int(args.casa) % casas.size()]

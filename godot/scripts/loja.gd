@@ -114,8 +114,7 @@ func _celula(it: Array) -> Control:
 	nome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(nome)
 	var preco: int = it[2]
 	var pode: bool = m.bolsa.cobre >= preco
-	var d := UI.dinheiro(preco, 22)
-	if not pode: d.modulate = Color(1, 0.4, 0.4)                        # preço vermelho: não dá para pagar
+	var d := UI.dinheiro(preco, 22, UI.TEXTO if pode else Color(1, 0.3, 0.3))   # só o número fica vermelho
 	v.add_child(d)
 	c.mouse_filter = Control.MOUSE_FILTER_STOP
 	c.gui_input.connect(func(ev):

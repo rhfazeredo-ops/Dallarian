@@ -59,13 +59,13 @@ static func espaco(id: String, qtd: int, tam := 84.0, vazio_tex: Texture2D = nul
 	return p
 
 # dinheiro como no WoW: só as moedas que aparecem (número + moedinha)
-static func dinheiro(c: int, tam := 26) -> HBoxContainer:
+static func dinheiro(c: int, tam := 26, cor := TEXTO) -> HBoxContainer:
 	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 6); h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var mo: Array = Bolsa.moedas(c)
 	var nomes := ["ouro", "prata", "cobre"]
 	for k in 3:
 		if mo[k] == 0 and not (k == 2 and c == 0): continue
-		h.add_child(rotulo(str(mo[k]), tam))
+		h.add_child(rotulo(str(mo[k]), tam, cor))
 		var ic := TextureRect.new(); ic.texture = moeda(nomes[k]); ic.custom_minimum_size = Vector2(tam, tam)
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE

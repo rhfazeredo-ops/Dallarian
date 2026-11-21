@@ -31,6 +31,7 @@ var _dir_salto := Vector2.ZERO
 var _dist_salto := 0.0
 var _lado := 1.0
 var _mordeu := false
+var furioso := false               # em fúria: não volta para a roda, fica atacando a Rachel
 var _flash := 0.0
 var anim_fixa := ""               # teste: prende uma animação (correr, atacar, esquivar) para print
 var u_fixo := -1.0
@@ -152,6 +153,13 @@ func _physics_process(delta: float) -> void:
 		"cacar":
 			if dist > 48.0 or p.distance_to(casa) > 75.0 or m.heroina_desmaiada:
 				grupo.alerta = false; grupo.atacante = null
+				for o in grupo.membros: if is_instance_valid(o): o.furioso = false
+			elif furioso:
+				# enfurecido (apanhou ou já mordeu): fica colado na Rachel e ataca de novo assim que puder
+				var dd := (ppj - p)
+				olhar = ppj
+				if dist > 2.6: dir = dd.normalized(); vel = VEL_CORRER * (0.7 if dist < 5.0 else 1.0)
+				if dist < 3.3 and _recarga <= 0.0 and _atacando_agora() < 2: _iniciar_ataque(ppj)
 			elif grupo.atacante == self:
 				dir = (ppj - p).normalized(); vel = VEL_CORRER * (0.75 if dist < 6.0 else 1.0)
 				if dist < 3.3: _iniciar_ataque(ppj)
@@ -164,6 +172,9 @@ func _physics_process(delta: float) -> void:
 				var a: float = vaga + _relogio() * 0.18
 				var slot := ppj + Vector2(cos(a), sin(a)) * raio
 				var ds := slot - p
+				if dist < raio - 0.8:                 # a Rachel chegou perto: não recua, encara e ataca
+					ds = Vector2.ZERO
+					if dist < 3.3 and _recarga <= 0.0 and _atacando_agora() < 2: furioso = true; _iniciar_ataque(ppj)
 				if ds.length() > 0.5:
 					dir = ds.normalized(); vel = clampf(ds.length() * 1.6, 1.2, VEL_CORRER)
 				olhar = ppj
@@ -176,7 +187,7 @@ func _physics_process(delta: float) -> void:
 			olhar = ppj
 			if _t >= 0.5: _mudar("cacar" if grupo.alerta else "parado")
 		"ferido":
-			if _t < 0.2: dir = _dir_salto; vel = 4.0
+			if _t < 0.15: dir = _dir_salto; vel = 3.0
 			olhar = ppj
 			if _t >= 0.35: _mudar("cacar")
 		"morto":
@@ -224,30 +235,35 @@ func _tocar_ataque(_delta: float, ppj: Vector2) -> void:
 			var bloqueou: bool = m.ferir_heroina(7.0 if not lider else 12.0, global_position)
 			if bloqueou: _ser_empurrado(ppj, 1.0)
 	if _t >= 0.9:
-		grupo.atacante = null; _recarga = rng.randf_range(3.5, 6.0)
-		grupo.pausa = _relogio() + rng.randf_range(1.2, 2.2)        # a matilha respira entre um ataque e outro
-		if rng.randf() < 0.45: _esquivar(ppj)
-		else: _mudar("cacar")
+		if grupo.atacante == self: grupo.atacante = null
+		_recarga = rng.randf_range(1.6, 2.6); furioso = true          # mordeu: fica no ataque (não foge)
+		grupo.pausa = _relogio() + rng.randf_range(1.2, 2.2)
+		_mudar("cacar")
+
+func _atacando_agora() -> int:
+	var n := 0
+	for o in grupo.membros: if is_instance_valid(o) and o.estado == "atacar": n += 1
+	return n
 
 func _esquivar(de: Vector2) -> void:
 	var p := Vector2(global_position.x, global_position.z)
 	var fora := (p - de).normalized()
 	_lado = 1.0 if rng.randf() < 0.5 else -1.0
-	_dir_salto = (Vector2(-fora.y, fora.x) * _lado + fora * 0.35).normalized(); _dist_salto = 2.4
-	if grupo.atacante == self: grupo.atacante = null
+	_dir_salto = (Vector2(-fora.y, fora.x) * _lado - fora * 0.15).normalized(); _dist_salto = 2.0   # de lado, sem se afastar
+	_recarga = 0.0; furioso = true                                  # e volta atacando
 	_mudar("esquivar")
 
 func _ser_empurrado(de: Vector2, forca: float) -> void:
 	var p := Vector2(global_position.x, global_position.z)
 	_dir_salto = (p - de).normalized() * forca
 	if grupo.atacante == self: grupo.atacante = null
-	_recarga = 2.0; _mudar("ferido")
+	_recarga = 0.7; furioso = true; _mudar("ferido")
 
 # chamado pela Rachel ao começar um golpe: alguns lobos na frente dela pulam para o lado
 func heroina_atacou(pos: Vector3, frente: Vector3) -> void:
 	if estado == "morto" or estado == "atacar" or estado == "esquivar" or estado == "ferido": return
 	var d := Vector3(global_position.x - pos.x, 0, global_position.z - pos.z)
-	if d.length() < 3.6 and frente.dot(d.normalized()) > 0.4 and rng.randf() < (0.5 if lider else 0.35):
+	if d.length() < 3.6 and frente.dot(d.normalized()) > 0.4 and rng.randf() < (0.35 if lider else 0.25):
 		_esquivar(Vector2(pos.x, pos.z))
 
 # chamado no instante do corte da espada
