@@ -88,8 +88,10 @@ func _profissionais() -> void:
 		var faisca := _particulas(Vector3(big.x, yb + 1.08, big.y), [Color(1.0, 0.8, 0.3), Color(1.0, 0.55, 0.15)], 16, 3.2, 0.45)
 		# som da martelada (3D: alto perto da ferraria, some ao longe); sorteia uma das batidas e varia o tom
 		var som := AudioStreamPlayer3D.new(); som.position = Vector3(big.x, yb + 1.0, big.y)
-		som.unit_size = 6.0; som.max_distance = 70.0; som.volume_db = -4.0; som.bus = "Efeitos"
-		som.attenuation_filter_cutoff_hz = 9000.0; som.attenuation_filter_db = -12.0   # de longe fica abafado
+		# volume cheio até ~6 m da bigorna; depois cai aos poucos (ouve-se baixinho chegando na ferraria)
+		som.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+		som.unit_size = 6.0; som.max_distance = 75.0; som.volume_db = 0.0; som.bus = "Efeitos"
+		som.attenuation_filter_cutoff_hz = 6000.0; som.attenuation_filter_db = -8.0   # de longe fica um pouco abafado
 		raiz.add_child(som)
 		var batidas := []
 		for k in 4: batidas.append(load("res://assets/som/martelo_%d.ogg" % (k + 1)))
@@ -194,6 +196,7 @@ func _tela() -> void:
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/tela.gdshader"); cont.material = sm
 	add_child(cont)
 	vp = SubViewport.new(); vp.msaa_3d = Viewport.MSAA_DISABLED
+	vp.audio_listener_enable_3d = true         # a câmera desta tela é o "ouvido" dos sons 3D (sem isso ficam mudos)
 	vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	cont.add_child(vp)
 	raiz = Node3D.new(); vp.add_child(raiz)
