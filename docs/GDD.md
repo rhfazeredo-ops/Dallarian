@@ -68,7 +68,9 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - **Limites:** montanhas ao norte (com um desfiladeiro fechado por uma paliçada — saída futura) e a oeste,
   mar a leste, pântano e morros escuros ao sul.
 - **Rio em "S"** do norte ao pântano, com três pontes; **lago** com um **mosteiro numa ilha** (passarela).
-- **Vila** no centro, no cruzamento das estradas: casas, taverna, igreja com torre, poço.
+- **Vila** no centro: rua principal norte-sul com casas dos dois lados (taverna no sul, igreja com torre no
+  norte), praça do poço no cruzamento, ferraria; trilhas para um sítio a oeste (com horta), casas e horta a
+  leste, a casa do pescador com píer no rio e uma casa afastada ao norte.
 - **Fazendas** a oeste (campos de trigo e terra arada, cercas, celeiros vermelhos, moinho de vento).
 - **Porto** de pescadores no litoral leste (píer, barcos), **ruínas** de uma torre num morro (nordeste),
   **serraria**, **acampamento de bandidos** (sudoeste), **caverna** no pé das montanhas a oeste.

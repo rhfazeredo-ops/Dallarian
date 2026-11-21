@@ -32,6 +32,13 @@ var estradas := [
 	PackedVector2Array([Vector2(12, -280), Vector2(-60, -290), Vector2(-112, -300)]),     # trilha até o lago
 	PackedVector2Array([Vector2(240, 44), Vector2(260, -60), Vector2(280, -150)]),        # serraria
 ]
+# trilhas: caminhos estreitos de terra saindo da rua principal da vila para grupos de casas, hortas e o rio
+var trilhas := [
+	PackedVector2Array([Vector2(-4, -32), Vector2(-24, -38), Vector2(-40, -42), Vector2(-52, -44)]),    # sítio a oeste
+	PackedVector2Array([Vector2(-7, 30), Vector2(14, 36), Vector2(30, 40), Vector2(44, 44)]),          # casas e horta a leste
+	PackedVector2Array([Vector2(-4, -36), Vector2(28, -54), Vector2(70, -63), Vector2(108, -64)]),     # descida para o rio (píer)
+	PackedVector2Array([Vector2(-9, -60), Vector2(10, -72), Vector2(28, -80)]),                        # casa afastada ao norte
+]
 # rio em "S", das montanhas do norte até o pântano
 var rio := PackedVector2Array([Vector2(-270, -520), Vector2(-250, -420), Vector2(-215, -345), Vector2(-170, -300),
 	Vector2(-130, -240), Vector2(-60, -175), Vector2(40, -135), Vector2(115, -70), Vector2(140, 20), Vector2(110, 120),
@@ -43,11 +50,13 @@ const CENTRO_VILA := Vector2(0, 0)
 var campos := [
 	[-200, 75, 60, 40, 8, 0], [-205, 125, 50, 34, 8, 1], [-280, -10, 56, 42, -12, 0], [-300, 40, 40, 30, -12, 1],
 	[-265, 180, 64, 40, 20, 0], [-90, 60, 44, 30, 4, 0], [70, 70, 50, 32, -6, 0], [90, -40, 36, 28, 10, 1],
+	[-62, -60, 22, 14, 8, 1], [20, 60, 16, 11, 0, 1],      # hortas da vila (sítio oeste e casas a leste)
 ]
 # morros (x, z, raio, altura)
 var morros := [Vector4(220, -260, 70, 16), Vector4(-60, -390, 60, 10), Vector4(330, 250, 80, 12), Vector4(-380, 330, 70, 9)]
 
 var d_estrada := PackedFloat32Array()
+var d_trilha := PackedFloat32Array()
 var d_rio := PackedFloat32Array()
 var t_rio := PackedFloat32Array()            # posição ao longo do rio (0 nascente → 1 foz)
 var _rio_comp := PackedFloat32Array()
@@ -60,6 +69,8 @@ func _init() -> void:
 	d_estrada.resize(N * N); d_estrada.fill(1e6)
 	d_rio.resize(N * N); d_rio.fill(1e6); t_rio.resize(N * N); t_rio.fill(0.0)
 	for e in estradas: _rasterizar(e, d_estrada, null, 24.0)
+	d_trilha.resize(N * N); d_trilha.fill(1e6)
+	for t in trilhas: _rasterizar(t, d_trilha, null, 12.0)
 	var tot := 0.0; _rio_comp.append(0.0)
 	for i in rio.size() - 1: tot += rio[i].distance_to(rio[i + 1]); _rio_comp.append(tot)
 	for i in rio.size(): _rio_comp[i] /= tot
@@ -90,6 +101,9 @@ func _amostra(g: PackedFloat32Array, x: float, z: float) -> float:
 
 func dist_estrada(x: float, z: float) -> float: return _amostra(d_estrada, x, z)
 func dist_rio(x: float, z: float) -> float: return _amostra(d_rio, x, z)
+func dist_trilha(x: float, z: float) -> float: return _amostra(d_trilha, x, z)
+# folga até a beira do caminho mais perto (estrada larga: 2,6 m do meio; trilha: 1,3 m)
+func folga_caminho(x: float, z: float) -> float: return minf(dist_estrada(x, z) - 2.6, dist_trilha(x, z) - 1.3)
 
 func _achar_pontes() -> void:
 	for e in estradas:
@@ -130,6 +144,7 @@ func altura(x: float, z: float) -> float:
 		if dc < 60: h = lerp(b + 0.2, h, smoothstep(c[2] * 0.4, c[2] * 0.9, dc))
 	# estradas um pouco afundadas
 	h -= (1.0 - smoothstep(1.5, 4.0, dist_estrada(x, z))) * 0.3
+	h -= (1.0 - smoothstep(0.6, 2.0, dist_trilha(x, z))) * 0.15
 	# rio: leito escavado
 	var lr := largura_rio(tr) * 0.5
 	var nv := nivel_rio(tr)
@@ -223,7 +238,8 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	elif campo == 1:
 		var faixa := int(floor(Vector2(x, z).rotated(0.2).x / 1.6)) % 2
 		c = Color(0.48, 0.34, 0.22) * (0.9 + 0.12 * faixa)
-	if dist_estrada(x, z) < 2.6 or Vector2(x, z).length() < 20.0: c = Color(0.52, 0.38, 0.24) * (0.95 + n * 0.1)
+	if dist_estrada(x, z) < 2.6 or Vector2(x, z).length() < 13.0 + n * 3.0: c = Color(0.52, 0.38, 0.24) * (0.95 + n * 0.1)
+	elif dist_trilha(x, z) < 1.3 + n * 0.3: c = Color(0.55, 0.42, 0.27) * (0.95 + n * 0.1)     # trilha de terra
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 2.5 or abs(Vector2(x - LAGO.x, z - LAGO.y).length() - LAGO.z) < 4.0:
 		c = Color(0.4, 0.33, 0.22)                                             # margem de lama
@@ -247,6 +263,7 @@ func em_construcao(x: float, z: float) -> bool:
 # a grama nasce aqui? (devolve 0..1 = densidade)
 func grama(x: float, z: float, h: float, ny: float) -> float:
 	if em_construcao(x, z): return 0.0
+	if dist_trilha(x, z) < 1.2: return 0.0
 	if abs(x) > LIM - 20 or abs(z) > LIM - 20 or ny < 0.8 or h > 30.0: return 0.0
 	if Vector2(x, z).length() < 18.0: return 0.0
 	if h < agua(x, z) + 0.15: return 0.0

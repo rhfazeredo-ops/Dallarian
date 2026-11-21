@@ -56,7 +56,7 @@ func _ready() -> void:
 
 # moradores: o mesmo modelo com cores e alturas sorteadas, andando pela vila (e alguns no porto e nas fazendas)
 func _moradores() -> void:
-	var grupos := [[Vector2.ZERO, 42.0, 10], [Vector2(360, 60), 30.0, 3], [Vector2(-215, 60), 40.0, 3]]
+	var grupos := [[Vector2(-3, 0), 58.0, 12], [Vector2(360, 60), 30.0, 3], [Vector2(-215, 60), 40.0, 3]]
 	var n := 0
 	for g in grupos:
 		for i in g[2]:
@@ -251,17 +251,58 @@ func modelo_ps1(caminho: String) -> Node3D:
 # ---------- vila (no cruzamento das estradas, centro da região) ----------
 func _vila() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 5
-	# casas nos quatro cantos, longe das estradas (que saem para N, S, L e O)
-	for l in [[14, -14], [30, -26], [-15, -13], [14, 13], [-17, 14], [-30, 28], [30, 30], [44, -10], [-44, 12], [-12, 40], [16, 44]]:
-		var p := Vector2(l[0], l[1])
-		var ang := atan2(-p.x, -p.y)
-		_casa(Vector3(p.x, altura(p.x, p.y) - 0.2, p.y), ang, rng.randf_range(4.5, 6.5), rng.randf_range(4.0, 5.0), rng.randf_range(2.6, 3.2))
-	# taverna (maior, dois andares)
-	var tv := Vector2(-31, -22)
-	_casa(Vector3(tv.x, altura(tv.x, tv.y) - 0.2, tv.y), atan2(-tv.x, -tv.y), 10.0, 7.5, 5.2)
-	# igreja de pedra com torre
-	var ig := Vector2(18, -40); var ang_ig := atan2(-ig.x, -ig.y)
-	_casa(Vector3(ig.x, altura(ig.x, ig.y) - 0.2, ig.y), ang_ig, 7.5, 12.0, 5.0, mat("pedra"), mat("madeira", 1.0, Color(0.55, 0.5, 0.55)))
+	# RUA PRINCIPAL: a estrada norte-sul atravessa a vila; casas dos dois lados, viradas para a rua, com
+	# recuos e tamanhos um pouco diferentes. A praça do poço fica no meio (sem casas nos primeiros 15 m).
+	var espec := {}                                       # vagas especiais: taverna e igreja
+	for lado_rua in [[reg.estradas[0], 66.0], [reg.estradas[1], 70.0]]:
+		var linha: PackedVector2Array = lado_rua[0]; var ate: float = lado_rua[1]
+		var s_pos := 15.0
+		while s_pos < ate:
+			var pr := _ponto_na_linha(linha, s_pos)
+			var pt: Vector2 = pr[0]; var tg: Vector2 = pr[1]
+			var nrm := Vector2(-tg.y, tg.x)
+			for lado in [-1.0, 1.0]:
+				var w := rng.randf_range(4.6, 6.6); var d := rng.randf_range(4.0, 5.2); var h := rng.randf_range(2.6, 3.3)
+				var parede: Material = null; var telhado: Material = null
+				var e_taverna: bool = linha == reg.estradas[0] and lado < 0 and not espec.has("taverna")
+				var e_igreja: bool = linha == reg.estradas[1] and lado > 0 and s_pos > 52.0 and not espec.has("igreja")
+				if e_taverna: w = 10.0; d = 7.5; h = 5.2; espec["taverna"] = true
+				if e_igreja: w = 7.5; d = 12.0; h = 5.0; parede = mat("pedra"); telhado = mat("madeira", 1.0, Color(0.55, 0.5, 0.55)); espec["igreja"] = true
+				if not (e_taverna or e_igreja) and rng.randf() < 0.18: continue      # alguns vãos entre as casas (quintais)
+				var recuo := 2.6 + d * 0.5 + rng.randf_range(1.8, 6.0)
+				var c: Vector2 = pt + nrm * lado * recuo + tg * rng.randf_range(-1.2, 1.2)
+				if perto_de_casa(c.x, c.y, maxf(w, d) * 0.5 + 0.8): continue
+				var ang := atan2(pt.x - c.x, pt.y - c.y) + rng.randf_range(-0.18, 0.18)   # porta virada para a rua (quase reta)
+				_casa(Vector3(c.x, 0, c.y), ang, w, d, h, parede, telhado)
+				if e_igreja: _torre_igreja(ang)
+			s_pos += rng.randf_range(10.5, 13.0)
+	# grupos de casas no fim das trilhas: sítio a oeste, casas a leste, casa de pescador no rio, casa ao norte
+	for g in [[Vector2(-58, -36), 3], [Vector2(-46, -54), 3], [Vector2(-64, -48), 3], [Vector2(38, 50), 1], [Vector2(52, 38), 1],
+			[Vector2(100, -74), 2], [Vector2(32, -88), 3]]:
+		var c: Vector2 = g[0]
+		if perto_de_casa(c.x, c.y, 4.0): continue
+		var fim := _fim_trilha(g[1]); var ang := atan2(fim.x - c.x, fim.y - c.y)
+		_casa(Vector3(c.x, 0, c.y), ang, rng.randf_range(4.6, 6.0), rng.randf_range(4.0, 4.8), rng.randf_range(2.6, 3.0))
+	_pier_rio()
+	_poco(Vector3(0, reg.aplanar(Vector2.ZERO, Vector2(1.6, 1.6), 0.0, 2.0) - 0.1, 0))
+	for b in [[3.5, 2.0], [4.2, 2.6], [-3.0, 3.6], [6.0, -9.0]]:
+		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
+	_ferraria()
+	lugares.append([Vector2.ZERO, 22.0])
+
+# ponto a "s" metros ao longo de uma linha (e a direção dela ali)
+func _ponto_na_linha(linha: PackedVector2Array, s_pos: float) -> Array:
+	var acum := 0.0
+	for i in linha.size() - 1:
+		var seg := linha[i].distance_to(linha[i + 1])
+		if acum + seg >= s_pos: return [linha[i].lerp(linha[i + 1], (s_pos - acum) / seg), (linha[i + 1] - linha[i]).normalized()]
+		acum += seg
+	return [linha[linha.size() - 1], (linha[linha.size() - 1] - linha[linha.size() - 2]).normalized()]
+
+func _fim_trilha(i: int) -> Vector2:
+	var t: PackedVector2Array = reg.trilhas[i]; return t[t.size() - 1]
+
+func _torre_igreja(ang_ig: float) -> void:
 	var pig: Vector3 = casas[casas.size() - 1][0]
 	var torre := Vector3(pig.x, 0, pig.z) + Vector3(0, 0, -7.5).rotated(Vector3.UP, ang_ig)
 	torre.y = reg.aplanar(Vector2(torre.x, torre.z), Vector2(2.4, 2.4), -ang_ig, 3.0) - 0.3
@@ -271,11 +312,32 @@ func _vila() -> void:
 	cilindro(st, Vector3(0, 10.0, 0), 2.7, 0.0, 4.5, 4); st.set_material(mat("madeira", 1.0, Color(0.55, 0.5, 0.55))); st.commit(mesh)
 	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.position = torre; mi.rotation.y = ang_ig + PI / 4.0; raiz.add_child(mi)
 	_colisor_caixa(torre, Vector3(3.6, 10, 3.6), ang_ig)
-	_poco(Vector3(0, reg.aplanar(Vector2.ZERO, Vector2(1.6, 1.6), 0.0, 2.0) - 0.1, 0))
-	for b in [[3.5, 2.0], [4.2, 2.6], [-3.0, 3.6], [6.0, -9.0], [-26, -16], [-25, -15.2]]:
-		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
-	_ferraria()
-	lugares.append([Vector2.ZERO, 50.0])
+	casas.append([torre, ang_ig, 3.6, 3.6])
+
+# píer de madeira no fim da trilha do rio, entrando na água, com um barquinho amarrado
+func _pier_rio() -> void:
+	var ini := _fim_trilha(2) + Vector2(-2, 0)
+	var dir := Vector2(1, 0)
+	var na_agua := ini
+	for k in 40:
+		na_agua = ini + dir * k
+		if reg.dist_rio(na_agua.x, na_agua.y) < reg.largura_rio(0.4) * 0.5 - 1.0: break
+	var comp := ini.distance_to(na_agua) + 4.0
+	var y := maxf(reg.altura(ini.x, ini.y), reg.agua(na_agua.x, na_agua.y)) + 0.45
+	var st := _st()
+	var n := int(comp / 1.2)
+	for i in n:
+		var q := ini + dir * (i * 1.2 + 0.6)
+		_caixa(st, Vector3(q.x, y, q.y), Vector3(1.2, 0.14, 2.2))
+		if i % 2 == 0:
+			for lz in [-1.0, 1.0]: _caixa(st, Vector3(q.x, y - 1.4, q.y + lz), Vector3(0.22, 2.8, 0.22))
+	_peca(st, mat("madeira"), Vector3.ZERO)
+	var meio := ini + dir * comp * 0.5
+	_colisor_caixa(Vector3(meio.x, y - 0.12, meio.y), Vector3(2.2, 0.15, comp), PI / 2)
+	var bp := ini + dir * (comp - 1.0) + Vector2(0, 2.4)
+	st = _st(); _caixa(st, Vector3(0, 0.25, 0), Vector3(3.8, 0.55, 1.4)); _caixa(st, Vector3(2.0, 0.32, 0), Vector3(0.6, 0.4, 0.8))
+	_peca(st, mat("madeira", 1.0, Color(0.75, 0.6, 0.5)), Vector3(bp.x, reg.agua(bp.x, bp.y) - 0.05, bp.y), 0.15)
+	lugares.append([meio, comp * 0.5 + 2.0])
 
 # ferraria: telheiro aberto de madeira (4 esteios e telhado inclinado de tábuas), fornalha de pedra com
 # chaminé e fogo aceso, bigorna sobre um toco, tina d'água, monte de carvão e um suporte de ferramentas.
@@ -287,7 +349,7 @@ func _ferraria() -> void:
 	for t in 80:
 		var a := deg_to_rad(120.0 + t * 37.0); var r := 30.0 + (t % 5) * 5.0
 		var q := Vector2(cos(a), sin(a)) * r
-		if not perto_de_casa(q.x, q.y, 6.0) and reg.dist_estrada(q.x, q.y) > 9.0: c = q; break
+		if not perto_de_casa(q.x, q.y, 6.0) and reg.folga_caminho(q.x, q.y) > 5.0: c = q; break
 	var ang := atan2(-c.x, -c.y)                         # frente aberta virada para a praça
 	var livre := _longe_da_estrada(c, Vector2(4.5, 3.5), ang)
 	c = livre; ferraria_pos = c; ferraria_ang = ang
@@ -802,17 +864,16 @@ func _checar_estrada() -> void:
 
 # empurra um retângulo para longe da estrada até sobrar "folga" metros entre ele e a beira da estrada
 func _longe_da_estrada(c: Vector2, meia: Vector2, ang: float, folga := 1.5) -> Vector2:
-	var precisa := 2.6 + folga
 	for it in 120:
 		var pior := INF; var ponto := c
 		for j in 5: for i in 5:
 			var q: Vector2 = c + (Vector2(lerp(-1.0, 1.0, i / 4.0), lerp(-1.0, 1.0, j / 4.0)) * meia).rotated(-ang)
-			var dq := reg.dist_estrada(q.x, q.y)
+			var dq := reg.folga_caminho(q.x, q.y)
 			if dq < pior: pior = dq; ponto = q
-		if pior >= precisa: return c
+		if pior >= folga: return c
 		var e := 0.6
-		var g := Vector2(reg.dist_estrada(ponto.x + e, ponto.y) - reg.dist_estrada(ponto.x - e, ponto.y),
-			reg.dist_estrada(ponto.x, ponto.y + e) - reg.dist_estrada(ponto.x, ponto.y - e))
+		var g := Vector2(reg.folga_caminho(ponto.x + e, ponto.y) - reg.folga_caminho(ponto.x - e, ponto.y),
+			reg.folga_caminho(ponto.x, ponto.y + e) - reg.folga_caminho(ponto.x, ponto.y - e))
 		if g.length() < 0.001: g = (c - ponto)
 		if g.length() < 0.001: g = Vector2(1, 0)
 		c += g.normalized() * 0.5
@@ -847,6 +908,11 @@ func _modo_teste() -> void:
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
+	if args.has("cima"):         # teste: vista de cima (--cima=altura[,x,z])
+		var pc := String(args.cima).split(",")
+		var cx := float(pc[1]) if pc.size() > 2 else 0.0; var cz := float(pc[2]) if pc.size() > 2 else 0.0
+		jogador.set_physics_process(false); jogador.global_position = Vector3(cx, float(pc[0]), cz); jogador.rotation.y = 0
+		jogador.pescoco.rotation.x = -PI / 2; jogador.mao.visible = false; set_physics_process(false)
 	if args.has("falar") and args.falar == "1":
 		get_tree().create_timer(3.0).timeout.connect(func():
 			for c in get_children():
