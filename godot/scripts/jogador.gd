@@ -81,6 +81,7 @@ var _parado := 0.0               # 0..1: quanto está parado (idle)
 var _giro := 0.0                 # câmera: vira um pouco junto com o golpe (graus)
 var _queda := 0.0; var _no_chao := true
 var _pulo_pedido := 0.0; var _coyote := 0.0
+var bloqueando := false
 var congelar := -1.0             # teste: para a ação nesse ponto (0..1)
 var pose_fixa := false           # teste: mãos paradas numa pose (mostrar_pose)
 
@@ -240,6 +241,7 @@ func _girar(d: Vector2) -> void:
 # ---------- ações ----------
 func iniciar(nome: String) -> void:
 	_acao = nome; _passo_acao = 0; _t_acao = 0.0; _fase = 0
+	if GOLPES.has(nome): get_tree().call_group("lobos", "heroina_atacou", global_position, -global_transform.basis.z)
 	_sp = _hp; _sd = _hd; _sn = _hn
 	_ini_e = piv_e.transform
 
@@ -294,7 +296,9 @@ func _tocar_golpe(delta: float, base: Array = MAO["repouso"]) -> void:
 			# o corpo vai junto: câmera avança e gira com a lâmina
 			_tranco = _tranco.lerp(g.tranco * Vector3(0.6, 0.8, 1.0) * e, 0.35)
 			_giro = lerp(_giro, float(g.get("giro", 0.0)) * e * 1.4, 0.35)
-			if _t_acao + delta >= dur and congelar < 0.0: impacto(0.07 if _acao != "forte" else 0.12)
+			if _t_acao + delta >= dur and congelar < 0.0:
+				impacto(0.07 if _acao != "forte" else 0.12)
+				get_tree().call_group("lobos", "golpe_da_heroina", global_position, -global_transform.basis.z, 2.0 if _acao == "forte" else 1.0)
 		2:   # seguir: o embalo leva a lâmina além do corte e ela para devagar (peso)
 			var b: Vector3 = g.b; var c: Vector3 = g.c
 			var e := 1.0 - pow(1.0 - u, 3.0)
@@ -339,6 +343,7 @@ func _physics_process(delta: float) -> void:
 		_girar(controles.consumir_olhar() * SENS_TOQUE)
 		if controles.consumir_pulo(): _pulo_pedido = 0.2     # guarda o pedido um pouquinho
 		correr = controles.correndo(); bloquear = controles.bloqueando(); atacar = controles.atacando()
+	bloqueando = bloquear
 	correr = correr and dir.y < -0.3 and not bloquear
 	var vel := VEL_CORRER if correr else (VEL * 0.55 if bloquear else VEL)
 	if GOLPES.has(_acao): vel *= 0.45                # atacando: o corpo pesa, anda devagar

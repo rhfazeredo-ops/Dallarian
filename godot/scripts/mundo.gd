@@ -51,7 +51,9 @@ func _ready() -> void:
 	_ultima = jogador.position
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
-	var hud := Hud.new(); cl.add_child(hud); hud.montar()
+	hud = Hud.new(); cl.add_child(hud); hud.montar()
+	_tela_dano = ColorRect.new(); _tela_dano.color = Color(0.7, 0.0, 0.0, 1.0); _tela_dano.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_tela_dano.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tela_dano.modulate.a = 0.0; cl.add_child(_tela_dano)
 	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self)
 	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
 	var bus := Bussola.new(); cl.add_child(bus)
@@ -89,11 +91,91 @@ func _moradores() -> void:
 			mo.montar(self, 1000 + n, g[0], g[1]); n += 1
 	_profissionais()
 	_criancas()
+	_lobos()
 	# já começam algumas conversas na vila
 	var vila := []
 	for mo in raiz.get_children():
 		if mo is Morador and Vector2(mo.position.x, mo.position.z).length() < 45.0: vila.append(mo)
 	for k in range(0, mini(vila.size() - 1, 4), 2): vila[k].convidar(vila[k + 1])
+
+# ---------- lobos ----------
+# matilhas de 4 a 6 com um líder preto (maior): brancos só nas montanhas, marrons só nas florestas.
+var hud: Hud
+var heroina_desmaiada := false
+var _tela_dano: ColorRect
+var matilhas := []
+func _lobos() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 404
+	var montanha := []; var mata := []
+	for i in 2500:
+		var q := Vector2(rng.randf_range(-540, 540), rng.randf_range(-540, 540))
+		if q.length() < 150.0 or reg.folga_caminho(q.x, q.y) < 14.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
+		var longe_barraca := true
+		for b in barracas: if q.distance_to(b) < 60.0: longe_barraca = false
+		if not longe_barraca: continue
+		var h0 := reg.altura(q.x, q.y); var desn := 0.0
+		for o in [Vector2(5, 0), Vector2(-5, 0), Vector2(0, 5), Vector2(0, -5)]:
+			desn = maxf(desn, absf(reg.altura(q.x + o.x, q.y + o.y) - h0))
+		if desn > 2.2: continue
+		if h0 - reg.base(q.y) > 5.0: montanha.append(q)
+		elif reg.floresta(q.x, q.y) > 0.6: mata.append(q)
+	var escolhidos := []
+	for lista in [[montanha, "branco", 3], [mata, "marrom", 5]]:
+		var cands: Array = lista[0]; var feitos := 0
+		cands.shuffle()
+		for q in cands:
+			if feitos >= lista[2]: break
+			var ok := true
+			for e in escolhidos: if q.distance_to(e) < 130.0: ok = false
+			if not ok: continue
+			escolhidos.append(q); feitos += 1
+			_matilha(q, lista[1], rng)
+
+func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator) -> void:
+	var n := rng.randi_range(4, 6)
+	var g := {"casa": c, "membros": [], "alerta": false, "atacante": null, "tipo": tipo}
+	for i in n:
+		var lobo := Lobo.new(); lobo.grupo = g
+		var a := TAU * i / n + rng.randf() * 0.4; var r := 0.0 if i == 0 else rng.randf_range(3.0, 6.0)
+		var p := c + Vector2(cos(a), sin(a)) * r
+		raiz.add_child(lobo); lobo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
+		lobo.vaga = TAU * i / n
+		lobo.montar(self, "preto" if i == 0 else tipo, i == 0, rng.randi())
+		lobo.rotation.y = rng.randf() * TAU
+		g.membros.append(lobo)
+	matilhas.append(g)
+
+# mordida do lobo: com o escudo levantado e de frente, bloqueia (devolve true)
+func ferir_heroina(dano: float, de: Vector3) -> bool:
+	if heroina_desmaiada: return false
+	var fr := -jogador.global_transform.basis.z; var d := de - jogador.global_position; d.y = 0.0
+	if jogador.bloqueando and fr.dot(d.normalized()) > 0.3:
+		jogador.impacto(0.05); return true
+	hud.vida = maxf(0.0, hud.vida - dano)
+	if args.has("lobos"): print("MORDIDA: vida %d  t=%.2f  fps=%d" % [hud.vida, Lobo._relogio(), Engine.get_frames_per_second()])
+	jogador._tranco += Vector3(-2.5, randf_range(-3.0, 3.0), 0.0)
+	_tela_dano.modulate.a = 0.35
+	var tw := _tela_dano.create_tween(); tw.tween_property(_tela_dano, "modulate:a", 0.0, 0.4)
+	if hud.vida <= 0.0: _desmaiar()
+	return false
+
+# vida zerou: tela escurece e a Rachel acorda na vila com a vida cheia
+func _desmaiar() -> void:
+	heroina_desmaiada = true
+	for g in matilhas: g.alerta = false; g.atacante = null
+	_tela_dano.color = Color(0, 0, 0, 1)
+	var tw := _tela_dano.create_tween()
+	tw.tween_property(_tela_dano, "modulate:a", 1.0, 1.0)
+	tw.tween_callback(func():
+		jogador.global_position = Vector3(-4, altura(-4, 48) + 0.3, 48); jogador.velocity = Vector3.ZERO
+		hud.vida = hud.vida_max)
+	tw.tween_interval(1.2)
+	tw.tween_property(_tela_dano, "modulate:a", 0.0, 1.2)
+	tw.tween_callback(func(): _tela_dano.color = Color(0.7, 0, 0, 1); heroina_desmaiada = false)
+
+func lobo_morreu(l: Lobo) -> void:
+	hud.ganhar_xp(40.0 if l.lider else 15.0)
 
 # crianças brincando de pega-pega num pedaço livre da vila (o lugar com mais espaço sem casas perto da praça)
 var brincadeira_pos := Vector2.ZERO
@@ -1117,6 +1199,38 @@ func _modo_teste() -> void:
 				if c is CanvasLayer:
 					for i in c.get_children(): if i is Interacao: i._descansar())
 		get_tree().create_timer(4.5).timeout.connect(func(): print("HORA depois de descansar: ", hora))
+	if args.has("lobos"):          # teste: --lobos=N (matilha N), --lobo_anim=correr|atacar|esquivar[:u]
+		var g: Dictionary = matilhas[int(args.lobos) % matilhas.size()]
+		var c: Vector2 = g.casa
+		if args.has("lobo_pos"): var lp := String(args.lobo_pos).split(","); c = Vector2(float(lp[0]), float(lp[1]))
+		print("MATILHAS: ", matilhas.map(func(x): return [x.tipo, x.casa, x.membros.size()]))
+		if args.has("lobo_anim"):
+			var pa := String(args.lobo_anim).split(":")
+			var k := 0
+			for lo in g.membros:
+				var q := c + Vector2((k - 1) * 3.2, 0)
+				lo.global_position = Vector3(q.x, altura_malha(q.x, q.y), q.y); lo.rotation.y = PI * 0.5
+				lo.anim_fixa = pa[0]; lo.u_fixo = float(pa[1]) if pa.size() > 1 else -1.0
+				if pa.size() > 2: lo._fase = float(pa[2]) + k * 2.1
+				if k > 2 or (args.has("lobo_um") and k != int(args.lobo_um)): lo.visible = false
+				k += 1
+			var pj := c + Vector2(0, float(args.get("dist", "7")))
+			jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y); jogador.rotation.y = 0.0
+			jogador.mao.visible = false; jogador.set_physics_process(false)
+			jogador.global_position.x += (float(args.lobo_um) - 1.0) * 3.2 if args.has("lobo_um") else 0.0
+		else:
+			var pj := c + Vector2(0, float(args.get("dist", "16")))
+			jogador.global_position = Vector3(pj.x, altura(pj.x, pj.y) + 0.3, pj.y); jogador.rotation.y = 0.0
+		_ultima = jogador.global_position
+		if args.has("lobo_log"):
+			for t in 14:
+				if args.has("lutar"):        # teste: a Rachel golpeia o lobo mais perto
+					var perto: Lobo = null
+					for l in g.membros: if is_instance_valid(l) and l.estado != "morto" and (perto == null or l.global_position.distance_to(jogador.global_position) < perto.global_position.distance_to(jogador.global_position)): perto = l
+					if perto: var dl := perto.global_position - jogador.global_position; jogador.rotation.y = atan2(-dl.x, -dl.z)
+					controles._seg["atacar"] = true; await get_tree().create_timer(0.12).timeout; controles._seg["atacar"] = false
+				await get_tree().create_timer(0.9).timeout
+				print("t=%d alerta=%s atac=%s " % [t, g.alerta, g.atacante != null], g.membros.map(func(l): return "%s %.1f" % [l.estado, Vector2(l.global_position.x - jogador.global_position.x, l.global_position.z - jogador.global_position.z).length()] if is_instance_valid(l) else "-"))
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0
