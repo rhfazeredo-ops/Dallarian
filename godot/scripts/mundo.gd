@@ -55,7 +55,9 @@ func _ready() -> void:
 	_carregar_progresso()
 	_tela_dano = ColorRect.new(); _tela_dano.color = Color(0.7, 0.0, 0.0, 1.0); _tela_dano.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_tela_dano.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tela_dano.modulate.a = 0.0; cl.add_child(_tela_dano)
-	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self)
+	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self); interacao = inter
+	inventario = Inventario.new(); cl.add_child(inventario); inventario.montar(self)
+	loja_ui = Loja.new(); cl.add_child(loja_ui); loja_ui.montar(self)
 	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
 	var bus := Bussola.new(); cl.add_child(bus)
 	bus.descobriu.connect(func(_n): hud.ganhar_xp(35.0))      # descobrir um local dá XP
@@ -108,6 +110,9 @@ var heroina_desmaiada := false
 var _tela_dano: ColorRect
 var matilhas := []
 var fauna: Fauna
+var interacao: Interacao
+var inventario: Inventario
+var loja_ui: Loja
 func _lobos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
@@ -182,8 +187,9 @@ func _desmaiar() -> void:
 func lobo_morreu(l: Lobo) -> void:
 	hud.ganhar_xp(25.0 if l.lider else 20.0)
 	var n := 2 if l.lider else 1
-	bolsa.pegar("dentes_garras", n)
-	hud.avisar("+%d %s" % [n, Bolsa.ITENS["dentes_garras"][0]], Color(0.85, 0.9, 1.0))
+	var sobra := bolsa.pegar("dentes_garras", n)
+	if n - sobra > 0: hud.avisar("+%d %s" % [n - sobra, Bolsa.ITENS["dentes_garras"].nome], Color(0.62, 0.62, 0.62))
+	if sobra > 0: hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3))
 
 # progresso salvo no aparelho (nível, XP, dinheiro e itens); nos testes com print não carrega nem salva
 var bolsa := Bolsa.new()
@@ -1270,17 +1276,24 @@ func _modo_teste() -> void:
 			for b in fauna.bandos:
 				var a: float = randf() * TAU
 				b.pos = jogador.global_position + Vector3(-sin(jogador.rotation.y) * 45.0 + cos(a) * 8.0, 0, -cos(jogador.rotation.y) * 45.0 + sin(a) * 8.0); b.pos.y = 0.0)
-	if args.has("loja"):           # teste: dá itens e abre a loja do ferreiro
-		bolsa.pegar("dentes_garras", int(args.loja)); bolsa.cobre = 12345
+	if args.has("loja") or args.has("inv"):      # teste: --loja=N (itens e abre a loja) / --inv=1 (abre as bolsas)
+		bolsa.pegar("dentes_garras", int(args.get("itens", args.get("loja", "27")))); bolsa.cobre = int(args.get("dinheiro", "1234"))
+		if args.has("bolsas"):
+			bolsa.pegar("bolsa_16"); bolsa.pegar("bolsa_30")
+			for i in range(9, -1, -1):
+				var sl = bolsa.slot(0, i)
+				if sl != null and Bolsa.eh_bolsa(sl[0]): bolsa.equipar_bolsa(0, i)
+			bolsa.pegar("dentes_garras", 30)
+		if args.has("recompra"): bolsa.vender_slot(0, 0)
 		var f3 := Vector3(ferraria_pos.x, 0, ferraria_pos.y); var dirf := (Vector3.ZERO - f3).normalized()
 		var pj := f3 + dirf * 3.0; jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z)
 		jogador.rotation.y = atan2(dirf.x, dirf.z)
 		get_tree().create_timer(2.0).timeout.connect(func():
-			for c in get_children():
-				if c is CanvasLayer:
-					for i in c.get_children(): if i is Interacao:
-						i._abrir_loja()
-						if args.has("vender"): i._vender("dentes_garras", 9999); print("VENDEU: ", bolsa.cobre, " itens ", bolsa.itens))
+			if args.has("loja"): interacao._abrir_loja()
+			else: inventario.abrir()
+			if args.has("dica"):
+				var jan: Control = inventario._janelas.get_child(1)
+				inventario._tocar(0, 0, jan.find_children("*", "Panel", true, false)[0]))
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

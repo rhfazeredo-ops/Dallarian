@@ -115,6 +115,12 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - **Dinheiro:** ouro, prata e cobre (100 cobre = 1 prata, 100 prata = 1 ouro). Itens fracos do começo valem cobre.
 - Lobo morto deixa **dentes e garras de lobo** (líder: 2) — vende por 12 cobre cada.
 - **Ferreiro:** botões CRIAR (em breve), LOJA (vende itens: 1 ou todos) e CONVERSAR.
+- **Inventário estilo WoW:** até **3 bolsas** equipadas (10 a 50 espaços); começa com uma de 10. Itens em pilhas
+  (dentes e garras: 20 por espaço). Bolsas empilhadas no canto direito, barra com os 3 lugares de bolsa e o
+  dinheiro; tocar num item mostra a dica (nome na cor da qualidade, descrição, preço) com EQUIPAR/VENDER.
+- **Vendedor estilo WoW:** retrato e nome, mercadorias em 2 colunas (10 por página), abas COMPRAR e RECOMPRAR;
+  vender = tocar no item da bolsa e em VENDER (pilha toda). O Bram vende bolsas de 10, 16, 20 e 30 espaços;
+  as de 40 e 50 ficam para mercadores de cidade.
 - O progresso (nível, XP, dinheiro, itens) fica salvo no aparelho.
 
 ## 7.2 Interface

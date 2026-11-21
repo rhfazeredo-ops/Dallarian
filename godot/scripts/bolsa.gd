@@ -1,50 +1,165 @@
-# Bolsa da Rachel: itens (nome → quantidade) e dinheiro. O dinheiro é guardado em COBRE:
-# 100 cobre = 1 prata, 100 prata = 1 ouro. Também salva o progresso (nível, XP, dinheiro, itens) no aparelho.
+# Inventário da Rachel no estilo do WoW: até 3 bolsas equipadas (de 10 a 50 espaços cada); cada espaço guarda
+# uma pilha de um item. Começa com uma bolsa de 10. Dinheiro guardado em COBRE (100 cobre = 1 prata,
+# 100 prata = 1 ouro). Também salva o progresso (nível, XP, dinheiro, bolsas) no aparelho.
 extends RefCounted
 class_name Bolsa
 
-# itens do jogo: id → [nome, preço de venda em cobre, descrição]
+const MAX_BOLSAS := 3
+# qualidade (cor do nome, como no WoW): lixo = cinza, comum = branco, incomum = verde, raro = azul
+const CORES := {"lixo": Color(0.62, 0.62, 0.62), "comum": Color(1, 1, 1), "incomum": Color(0.12, 1.0, 0.0), "raro": Color(0.0, 0.44, 0.87)}
+# itens: id → nome, venda (cobre), compra (cobre, 0 = não se compra), pilha, qualidade, espaços (bolsas), descrição
 const ITENS := {
-	"dentes_garras": ["Dentes e garras de lobo", 12, "Um punhado de presas e garras. O ferreiro paga uns cobres."],
+	"dentes_garras": {"nome": "Dentes e garras de lobo", "venda": 12, "compra": 0, "pilha": 20, "qual": "lixo",
+		"desc": "Um punhado de presas e garras amarradas. O ferreiro paga uns cobres."},
+	"bolsa_10": {"nome": "Bolsa de couro pequena", "venda": 20, "compra": 80, "pilha": 1, "qual": "comum", "espacos": 10,
+		"desc": "Bolsa de couro cru, costurada à mão."},
+	"bolsa_16": {"nome": "Bolsa de couro", "venda": 75, "compra": 300, "pilha": 1, "qual": "comum", "espacos": 16,
+		"desc": "Couro curtido e alça reforçada."},
+	"bolsa_20": {"nome": "Bolsa de viajante", "venda": 200, "compra": 800, "pilha": 1, "qual": "comum", "espacos": 20,
+		"desc": "Feita para longas estradas."},
+	"bolsa_30": {"nome": "Mochila de caçador", "venda": 750, "compra": 3000, "pilha": 1, "qual": "incomum", "espacos": 30,
+		"desc": "Mochila larga com fivelas de ferro."},
+	"bolsa_40": {"nome": "Mochila reforçada", "venda": 2500, "compra": 10000, "pilha": 1, "qual": "incomum", "espacos": 40,
+		"desc": "Lona dupla e cantos de couro."},
+	"bolsa_50": {"nome": "Mochila do mercador", "venda": 7500, "compra": 30000, "pilha": 1, "qual": "raro", "espacos": 50,
+		"desc": "Cabe uma feira inteira aqui dentro."},
 }
 const ARQUIVO := "user://progresso.json"
 signal mudou
-var itens := {}
+var bolsas := []                  # [{id, slots: [null ou [id, qtd]]}, ou null] — 3 lugares
 var cobre := 0
+var recompra := []                # últimos vendidos: [id, qtd, preço total]
 
-func pegar(id: String, qtd := 1) -> void:
-	itens[id] = int(itens.get(id, 0)) + qtd; mudou.emit()
+func _init() -> void:
+	bolsas = [_bolsa_nova("bolsa_10"), null, null]
 
-func vender(id: String, qtd: int) -> int:
-	var tem := int(itens.get(id, 0)); qtd = mini(qtd, tem)
-	if qtd <= 0: return 0
-	itens[id] = tem - qtd
-	if itens[id] == 0: itens.erase(id)
-	var ganho: int = ITENS[id][1] * qtd
-	cobre += ganho; mudou.emit()
+static func _bolsa_nova(id: String) -> Dictionary:
+	var s := []; s.resize(int(ITENS[id].espacos))
+	return {"id": id, "slots": s}
+
+static func info(id: String) -> Dictionary: return ITENS[id]
+static func eh_bolsa(id: String) -> bool: return ITENS[id].has("espacos")
+
+func espacos_total() -> int:
+	var t := 0
+	for b in bolsas: if b: t += b.slots.size()
+	return t
+
+func espacos_livres() -> int:
+	var t := 0
+	for b in bolsas:
+		if b:
+			for s in b.slots: if s == null: t += 1
+	return t
+
+func cabe(id: String, qtd: int) -> bool:
+	var falta := qtd; var pilha: int = ITENS[id].pilha
+	for b in bolsas:
+		if b == null: continue
+		for s in b.slots:
+			if s == null: falta -= pilha
+			elif s[0] == id: falta -= pilha - int(s[1])
+			if falta <= 0: return true
+	return falta <= 0
+
+# guarda o item (completa as pilhas e depois os espaços vazios); devolve o que não coube
+func pegar(id: String, qtd := 1) -> int:
+	var pilha: int = ITENS[id].pilha
+	for b in bolsas:
+		if b == null: continue
+		for s in b.slots:
+			if qtd > 0 and s != null and s[0] == id and int(s[1]) < pilha:
+				var n := mini(qtd, pilha - int(s[1])); s[1] = int(s[1]) + n; qtd -= n
+	for b in bolsas:
+		if b == null: continue
+		for i in b.slots.size():
+			if qtd > 0 and b.slots[i] == null:
+				var n := mini(qtd, pilha); b.slots[i] = [id, n]; qtd -= n
+	mudou.emit()
+	return qtd
+
+func slot(b: int, i: int):
+	if b < 0 or b >= bolsas.size() or bolsas[b] == null: return null
+	return bolsas[b].slots[i]
+
+# vende a pilha inteira do espaço (como o clique direito no vendedor do WoW)
+func vender_slot(b: int, i: int) -> int:
+	var s = slot(b, i)
+	if s == null: return 0
+	var ganho: int = int(ITENS[s[0]].venda) * int(s[1])
+	bolsas[b].slots[i] = null; cobre += ganho
+	recompra.push_front([s[0], int(s[1]), ganho])
+	if recompra.size() > 12: recompra.pop_back()
+	mudou.emit()
 	return ganho
 
+func recomprar(k: int) -> String:
+	if k >= recompra.size(): return ""
+	var r: Array = recompra[k]
+	if cobre < r[2]: return "Dinheiro insuficiente."
+	if not cabe(r[0], r[1]): return "Suas bolsas estão cheias."
+	cobre -= r[2]; pegar(r[0], r[1]); recompra.remove_at(k); mudou.emit()
+	return ""
+
+func comprar(id: String) -> String:
+	var preco: int = ITENS[id].compra
+	if cobre < preco: return "Dinheiro insuficiente."
+	if not cabe(id, 1): return "Suas bolsas estão cheias."
+	cobre -= preco; pegar(id, 1)
+	return ""
+
+# equipa a bolsa que está no espaço (b, i) num lugar de bolsa vazio
+func equipar_bolsa(b: int, i: int) -> String:
+	var s = slot(b, i)
+	if s == null or not eh_bolsa(s[0]): return ""
+	var livre := bolsas.find(null)
+	if livre < 0: return "Você já usa %d bolsas (o máximo)." % MAX_BOLSAS
+	bolsas[b].slots[i] = null
+	bolsas[livre] = _bolsa_nova(s[0]); mudou.emit()
+	return ""
+
+# tira uma bolsa equipada (só se estiver vazia e não for a única) e guarda nas outras
+func desequipar_bolsa(k: int) -> String:
+	if bolsas[k] == null: return ""
+	var cheias := 0
+	for b in bolsas: if b: cheias += 1
+	if cheias <= 1: return "Você precisa de pelo menos uma bolsa."
+	for s in bolsas[k].slots: if s != null: return "Esvazie a bolsa antes de tirá-la."
+	var id: String = bolsas[k].id
+	bolsas[k] = null
+	if pegar(id, 1) > 0: bolsas[k] = _bolsa_nova(id); return "Não há espaço para guardar a bolsa."
+	return ""
+
 static func texto_dinheiro(c: int) -> String:
-	var ouro := c / 10000; var prata := (c / 100) % 100; var cob := c % 100
-	var partes := []
-	if ouro > 0: partes.append("%d ouro" % ouro)
-	if prata > 0: partes.append("%d prata" % prata)
-	if cob > 0 or partes.is_empty(): partes.append("%d cobre" % cob)
+	var mo := moedas(c); var partes := []
+	if mo[0] > 0: partes.append("%d ouro" % mo[0])
+	if mo[1] > 0: partes.append("%d prata" % mo[1])
+	if mo[2] > 0 or partes.is_empty(): partes.append("%d cobre" % mo[2])
 	return "  ".join(partes)
 
-# [ouro, prata, cobre]
 static func moedas(c: int) -> Array: return [c / 10000, (c / 100) % 100, c % 100]
 
 func salvar(nivel: int, xp: float) -> void:
 	var f := FileAccess.open(ARQUIVO, FileAccess.WRITE)
-	if f: f.store_string(JSON.stringify({"nivel": nivel, "xp": xp, "cobre": cobre, "itens": itens}))
+	if f: f.store_string(JSON.stringify({"nivel": nivel, "xp": xp, "cobre": cobre, "bolsas": bolsas}))
 
 func carregar() -> Dictionary:
 	if not FileAccess.file_exists(ARQUIVO): return {}
 	var d = JSON.parse_string(FileAccess.get_file_as_string(ARQUIVO))
 	if typeof(d) != TYPE_DICTIONARY: return {}
 	cobre = int(d.get("cobre", 0))
-	itens = {}
-	var it: Dictionary = d.get("itens", {})
-	for k in it.keys(): if ITENS.has(k): itens[k] = int(it[k])
+	if d.has("bolsas"):
+		var bs: Array = d.bolsas
+		for k in MAX_BOLSAS:
+			bolsas[k] = null
+			if k < bs.size() and bs[k] is Dictionary and ITENS.has(bs[k].get("id", "")):
+				var nb := _bolsa_nova(bs[k].id)
+				var ss: Array = bs[k].get("slots", [])
+				for i in mini(ss.size(), nb.slots.size()):
+					if ss[i] is Array and ITENS.has(ss[i][0]): nb.slots[i] = [ss[i][0], int(ss[i][1])]
+				bolsas[k] = nb
+		if bolsas[0] == null and bolsas[1] == null and bolsas[2] == null: bolsas[0] = _bolsa_nova("bolsa_10")
+	elif d.has("itens"):                                  # progresso antigo (antes das bolsas)
+		var it: Dictionary = d.itens
+		for k in it.keys(): if ITENS.has(k): pegar(k, int(it[k]))
 	return d
