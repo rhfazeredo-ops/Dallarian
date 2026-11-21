@@ -58,14 +58,15 @@ func _ready() -> void:
 	bus.montar(self, [
 		["Vila do Vale", Vector2(0, 0), "vila", 45.0],
 		["Ferraria do Bram", ferraria_pos, "ferraria", 12.0],
-		["Mosteiro da Ilha", Vector2(Regiao.ILHA.x, Regiao.ILHA.y), "mosteiro", 30.0],
-		["Porto dos Pescadores", porto_pos, "porto", 30.0],
-		["Píer do Rio", pier_pos, "pier", 14.0],
+		["Mosteiro da Ilha", Vector2(Regiao.ILHA.x, Regiao.ILHA.y), "torre", 30.0],
+		["Porto dos Pescadores", porto_pos, "farol", 30.0],
+		["Píer do Rio", pier_pos, "agua", 14.0],
+		["Moinho", Vector2(-244, 100), "moinho", 18.0],
 		["Torre em Ruínas", Vector2(220, -260), "ruinas", 25.0],
-		["Serraria", Vector2(286, -170), "serraria", 22.0],
+		["Serraria", Vector2(286, -170), "arvore", 22.0],
 		["Acampamento de Bandidos", Vector2(-330, 300), "bandidos", 25.0],
 		["Caverna do Oeste", caverna_pos, "caverna", 18.0],
-		["Desfiladeiro do Norte", Vector2(0, -468), "passagem", 40.0],
+		["Desfiladeiro do Norte", Vector2(0, -468), "montanhas", 40.0],
 	])
 	_musica()
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return

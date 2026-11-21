@@ -13,6 +13,7 @@ var locais := []                # [nome, posição Vector2, tipo, raio de descob
 var aviso: Label
 var aviso_nome: Label
 var fonte: Font
+var _icones := {}
 
 func montar(mundo, lista: Array) -> void:
 	m = mundo
@@ -88,6 +89,17 @@ func _draw() -> void:
 
 # ícones simples desenhados em linhas (conhecido: cheio e claro; desconhecido: só contorno, apagado)
 func _icone(tipo: String, c: Vector2, aceso: bool, fade: float) -> void:
+	# ícones desenhados (arte em assets/ui/icones); se faltar algum, usa o desenho em linhas
+	if not _icones.has(tipo):
+		var cam := "res://assets/ui/icones/%s.png" % tipo
+		_icones[tipo] = load(cam) if ResourceLoader.exists(cam) else null
+	var tx: Texture2D = _icones[tipo]
+	if tx:
+		var t := 34.0
+		var r := Rect2(c - Vector2(t, t) * 0.5, Vector2(t, t))
+		draw_texture_rect(tx, Rect2(r.position + Vector2(1.5, 1.5), r.size), false, Color(0, 0, 0, fade * (0.6 if aceso else 0.3)))
+		draw_texture_rect(tx, r, false, Color(1, 0.97, 0.88, fade) if aceso else Color(0.8, 0.8, 0.8, fade * 0.4))
+		return
 	var cor := Color(1, 0.97, 0.88, fade) if aceso else Color(0.75, 0.75, 0.75, fade * 0.55)
 	var sombra := Color(0, 0, 0, fade * (0.75 if aceso else 0.4))
 	var formas := _formas(tipo, c, 0.75)
