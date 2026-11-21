@@ -19,11 +19,19 @@ const NOME_HEROINA := "Dallarian"
 const DIALOGOS_FERREIRO := [
 	[["heroina", "Bom dia, mestre ferreiro. Que barulho bonito esse do martelo.", "res://assets/voz/heroina_01.ogg"],
 	 ["ferreiro", "Ferro quente não espera ninguém, garota. Se quer ser cavaleira, comece aprendendo que toda boa lâmina nasceu de mil marteladas.", "res://assets/voz/ferreiro_01.ogg"]],
-	[["heroina", "Um dia vou ter uma espada digna de um cavaleiro. Você faria uma pra mim?", ""],
-	 ["ferreiro", "Uma espada não faz o cavaleiro... mas um cavaleiro sem uma boa espada vira história curta. Volte quando tiver moedas.", ""]],
-	[["heroina", "Como você sabe quando uma lâmina está pronta?", ""],
-	 ["ferreiro", "Escuta o som do martelo? Quando ele canta limpo, o aço está pronto. Quando ele chia, alguém vai morrer com essa lâmina.", ""]],
+	[["heroina", "Um dia vou ter uma espada digna de um cavaleiro. Você faria uma pra mim?", "res://assets/voz/heroina_02.ogg"],
+	 ["ferreiro", "Uma espada não faz o cavaleiro... mas um cavaleiro sem uma boa espada vira história curta. Volte quando tiver moedas.", "res://assets/voz/ferreiro_02.ogg"]],
+	[["heroina", "Como você sabe quando uma lâmina está pronta?", "res://assets/voz/heroina_03.ogg"],
+	 ["ferreiro", "Escuta o som do martelo? Quando ele canta limpo, o aço está pronto. Quando ele chia, alguém vai morrer com essa lâmina.", "res://assets/voz/ferreiro_03.ogg"]],
 ]
+# falas soltas do Bram: quando a Dallarian chega perto e quando vai embora (legenda pequena + voz 3D)
+const CHEGA := [["Cuidado com as faíscas!", "res://assets/voz/ferreiro_chega_01.ogg"],
+	["Precisa de alguma coisa? Fala logo, o ferro tá esfriando.", "res://assets/voz/ferreiro_chega_02.ogg"]]
+const TCHAU := ["Vai com os deuses... e com um bom aço.", "res://assets/voz/ferreiro_tchau_01.ogg"]
+var _chega_i := 0
+var _ultima_solta := -100.0
+var _conversou := false
+var legenda: Label
 var _dialogo: Array = []
 var _fala := 0
 var _tempo_fala := 0.0
@@ -63,6 +71,12 @@ func montar(mundo) -> void:
 	aviso.offset_left = -500; aviso.offset_right = 500; aviso.offset_top = -400; aviso.offset_bottom = -350
 	aviso.modulate.a = 0.0; add_child(aviso)
 	voz = AudioStreamPlayer.new(); voz.volume_db = 0.0; voz.bus = "Voz"; add_child(voz)
+	legenda = Label.new(); legenda.add_theme_font_size_override("font_size", 30); legenda.add_theme_constant_override("outline_size", 9)
+	legenda.add_theme_color_override("font_outline_color", Color.BLACK); legenda.add_theme_color_override("font_color", Color(1.0, 0.86, 0.55))
+	legenda.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; legenda.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	legenda.anchor_left = 0.5; legenda.anchor_right = 0.5; legenda.anchor_top = 1; legenda.anchor_bottom = 1
+	legenda.offset_left = -560; legenda.offset_right = 560; legenda.offset_top = -470; legenda.offset_bottom = -350
+	legenda.modulate.a = 0.0; add_child(legenda)
 
 func _botao(txt: String, ativo: bool, f: Callable) -> Button:
 	var b := Button.new(); b.text = txt; b.add_theme_font_size_override("font_size", 34)
@@ -78,8 +92,17 @@ func _aviso(t: String) -> void:
 	aviso.text = t; aviso.modulate.a = 1.0
 	var tw := aviso.create_tween(); tw.tween_interval(1.8); tw.tween_property(aviso, "modulate:a", 0.0, 0.5)
 
+# fala solta (sem abrir a caixa): legenda curta embaixo e a voz
+func _fala_solta(f: Array, sempre := false) -> void:
+	if _falando or (not sempre and m._tempo_jogo() - _ultima_solta < 12.0): return
+	_ultima_solta = m._tempo_jogo()
+	legenda.text = "Bram: " + f[0]; legenda.modulate.a = 1.0
+	voz.stream = load(f[1]); voz.play()
+	var tw := legenda.create_tween(); tw.tween_interval(voz.stream.get_length() + 0.8); tw.tween_property(legenda, "modulate:a", 0.0, 0.5)
+
 func _conversar() -> void:
 	if npc == null: return
+	_conversou = true; legenda.modulate.a = 0.0
 	_falando = true; painel.visible = false
 	_dialogo = DIALOGOS_FERREIRO[_fala_i % DIALOGOS_FERREIRO.size()]; _fala_i += 1
 	_fala = 0; caixa.visible = true
@@ -116,6 +139,11 @@ func _process(_d: float) -> void:
 			perto = mo
 	if perto != npc:
 		if npc and _falando: _fechar()
+		if perto != null and npc == null:
+			_conversou = false
+			_fala_solta(CHEGA[_chega_i % CHEGA.size()]); _chega_i += 1
+		elif perto == null and npc != null and _conversou:
+			_fala_solta(TCHAU, true)
 		npc = perto
 	painel.visible = npc != null and not _falando
 	Audio.falando = _falando and voz.playing

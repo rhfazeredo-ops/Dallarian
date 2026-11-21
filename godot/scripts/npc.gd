@@ -36,7 +36,7 @@ var ao_bater: Callable            # chamado no instante do golpe (faíscas/lasca
 const MODELOS_PROF := { "ferreiro": "res://assets/modelos/ferreiro.glb", "lenhador": "res://assets/modelos/lenhador.glb", "fazendeiro": "res://assets/modelos/fazendeiro.glb" }
 # ferramentas: [arquivo, eixo do cabo no arquivo (para a cabeça), ponto de pegada, direção da lâmina/face, comprimento no arquivo, comprimento real (m)]
 const FERRAMENTAS := {
-	"martelo": ["res://assets/modelos/martelo.glb", Vector3(-0.856, 0.508, 0.093), Vector3(-0.13, 0.071, 0.033) + Vector3(0.856, -0.508, -0.093) * 0.56, Vector3(-0.085, 0.039, -0.996), 1.073, 0.38],
+	"martelo": ["res://assets/modelos/martelo.glb", Vector3(-0.856, 0.508, 0.093), Vector3(-0.13, 0.071, 0.033) + Vector3(0.856, -0.508, -0.093) * 0.56, Vector3(0.085, -0.039, 0.996), 1.073, 0.38],   # face: o lado grosso (oposto à ponta fina)
 	"machado": ["res://assets/modelos/machado.glb", Vector3(-0.433, 0.694, 0.575), Vector3(-0.023, 0.026, -0.024) + Vector3(-0.433, 0.694, 0.575) * -0.56, Vector3(0.228, -0.533, 0.815), 1.29, 0.85],
 }
 
@@ -317,6 +317,16 @@ func _animar(delta: float, anda: float) -> void:
 		else:            # escuta: braços cruzados ou na cintura e balança a cabeça concordando de vez em quando
 			_pose_cruzados(alvo, resp)
 			alvo["Head"] = _q(Vector3(0, 0, 1), -0.06 + (sin(_t * 5.0) * 0.08 if sin(_t * 0.7) > 0.6 else 0.0))
+	elif falando_com != null and profissao == "ferreiro":
+		# segura o martelo abaixado ao lado do corpo (parado) e fala com a mão esquerda
+		alvo["R_Upperarm"] = _zx(0.08, 0.3); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.3)
+		if gesticula:
+			var g := sin(_t * 3.1) * 0.5 + 0.5
+			alvo["L_Upperarm"] = _zx(0.55 + 0.12 * sin(_t * 2.3), -0.2); alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 1.15 + 0.3 * g)
+			alvo["Head"] = _q(Vector3(0, 0, 1), 0.06 + sin(_t * 4.0) * 0.04)
+		else:
+			alvo["L_Upperarm"] = _zx(0.0, -0.32); alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.2)
+			alvo["Head"] = _q(Vector3(0, 0, 1), -0.04 + (sin(_t * 5.0) * 0.07 if sin(_t * 0.9) > 0.5 else 0.0))
 	elif falando_com != null and not gesticula:   # escutando a Dallarian: braços cruzados, concorda com a cabeça
 		_pose_cruzados(alvo, resp)
 		alvo["Head"] = _q(Vector3(0, 0, 1), -0.04 + (sin(_t * 5.0) * 0.07 if sin(_t * 0.9) > 0.5 else 0.0))

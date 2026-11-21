@@ -173,6 +173,7 @@ func _physics_process(_d: float) -> void:
 	elif jogador.is_on_floor():
 		_ultima = p
 
+func _tempo_jogo() -> float: return Time.get_ticks_msec() / 1000.0
 func altura(x: float, z: float) -> float: return reg.altura(x, z)
 func cor_chao(x: float, z: float, h: float, ny: float) -> Color: return reg.cor(x, z, h, ny)
 func altura_malha(x: float, z: float) -> float: return terreno.altura_malha(x, z)
@@ -339,13 +340,19 @@ func _ferraria() -> void:
 	add.call(st, mat("", 1.0, Color(0.2, 0.32, 0.42)))
 	col.call(Vector3(3.2, -0.1, -2.2), Vector3(1.3, 0.85, 1.3))
 	st = _st(); cilindro(st, Vector3(-3.6, -0.1, 1.2), 0.9, 0.0, 0.7, 6); add.call(st, mat("", 1.0, Color(0.13, 0.12, 0.12)))
-	# suporte de ferramentas na parede do fundo (tenazes e martelos como silhuetas)
+	# parede de tábuas no fundo (à direita da fornalha), onde fica o suporte de ferramentas
 	st = _st()
-	_caixa(st, Vector3(1.6, 1.6, -3.05), Vector3(2.2, 0.12, 0.12))
+	_caixa(st, Vector3(1.25, 1.0, -3.3), Vector3(5.9, 2.6, 0.12))
+	for k in 6: _caixa(st, Vector3(-1.4 + k * 1.06, 1.0, -3.22), Vector3(0.09, 2.6, 0.06))      # frestas entre tábuas
+	add.call(st, mat("madeira", 1.0, Color(0.72, 0.62, 0.55)))
+	col.call(Vector3(1.25, -0.3, -3.3), Vector3(5.9, 2.6, 0.2))
+	# suporte de ferramentas preso na parede (tenazes e martelos pendurados)
+	st = _st()
+	_caixa(st, Vector3(1.6, 1.6, -3.15), Vector3(2.2, 0.12, 0.12))
 	for k in 5:
 		var x := 0.8 + k * 0.4
-		_caixa(st, Vector3(x, 1.25, -3.0), Vector3(0.05, 0.7, 0.05))
-		_caixa(st, Vector3(x, 0.92, -3.0), Vector3(0.16, 0.1, 0.08))
+		_caixa(st, Vector3(x, 1.25, -3.12), Vector3(0.05, 0.7, 0.05))
+		_caixa(st, Vector3(x, 0.92, -3.12), Vector3(0.16, 0.1, 0.08))
 	add.call(st, mat("", 1.0, Color(0.32, 0.3, 0.3)))
 	lugares.append([c, 7.0])
 
@@ -850,7 +857,7 @@ func _modo_teste() -> void:
 				if "arado" in partes: mo._alvo = Vector2(mo.global_position.x, mo.global_position.z); mo._tempo_estado = 1000.0
 				var alvo3: Vector3 = mo.global_position
 				var ang_v: float = mo.rotation.y + (PI * 0.5 if "lado" in partes else PI * 0.15)
-				var pj := alvo3 + Vector3(-sin(ang_v), 0, -cos(ang_v)) * 3.2
+				var pj := alvo3 + Vector3(-sin(ang_v), 0, -cos(ang_v)) * float(args.get("dist", "3.2"))
 				jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); _ultima = jogador.global_position
 				var d3 := alvo3 - pj; jogador.rotation.y = atan2(-d3.x, -d3.z); break
 	if args.has("ferraria"):
