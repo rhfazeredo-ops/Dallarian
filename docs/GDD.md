@@ -84,6 +84,8 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - **Moradores**: homens e mulheres de vários corpos (gorda, forte/alto, idosos que andam devagar) e duas crianças
   brincando de pega-pega perto da praça.
 
+- **Chuva:** de vez em quando (tempo bom 4–9 min, chuva 2–4 min): céu fecha, luz cinza-azulada, gotas e som de chuva.
+
 ## 7.1.1b Vida no mundo
 - **Peixes** no rio e no lago (silhuetas escuras embaixo d'água): um grande e lento sozinho, ou cardumes de 4 a 6
   pequenos e rápidos que dão arrancadas (às vezes um pequeno sozinho).
@@ -97,6 +99,7 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
   nas montanhas/morros** e **marrons só nas florestas**; longe da vila, das estradas e dos acampamentos.
 - Passeiam e farejam perto da toca; viram a Rachel a 20 m e a matilha toda caça. Cercam em roda (5,5 m, com espaço
   entre eles), só **um ataca de cada vez** e a matilha respira 1–2 s entre ataques. Desistem se ela se afastar.
+- **Rosnam**: rosnado longo quando a matilha vê a Rachel, curtos ao atacar (líder mais grave).
 - Em **fúria**: depois de morder ou apanhar não foge — fica colado na Rachel atacando (até 2 ao mesmo tempo).
 - Animações: **correr** (trote/galope), **atacar** (agacha, salta e morde) e **esquivar** (pulo para o lado — quando
   a Rachel começa um golpe na frente deles, ou depois de morder).

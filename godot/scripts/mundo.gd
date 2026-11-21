@@ -75,6 +75,8 @@ func _ready() -> void:
 		["Desfiladeiro do Norte", Vector2(0, -468), "montanhas", 40.0],
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	fauna.montar(self)
+	_montar_chuva()
+	if args.has("chuva"): _chuva_alvo = float(args.chuva); chuva = _chuva_alvo
 	_musica()
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
 	if args.has("checar"): _checar_chao()
@@ -424,6 +426,8 @@ func _dia_noite(delta: float) -> void:
 	var crep := clampf(1.0 - absf(noite - 0.45) * 2.6, 0.0, 1.0)
 	var dia := Color(1, 1, 1); var tarde := Color(1.0, 0.72, 0.52); var escuro := Color(0.2, 0.25, 0.45)
 	var c := dia.lerp(escuro, noite).lerp(tarde * (1.0 - noite * 0.5), crep * 0.55)
+	_tempo_chuva(delta)
+	c = c.lerp(c * Color(0.62, 0.66, 0.74), chuva)                  # chovendo: tudo mais escuro e azulado
 	RenderingServer.global_shader_parameter_set("luz_ambiente", Vector3(c.r, c.g, c.b))
 	RenderingServer.global_shader_parameter_set("noite", noite)
 	var acesa := smoothstep(0.25, 0.6, noite)
@@ -439,6 +443,48 @@ func _dia_noite(delta: float) -> void:
 		if i < ordem.size() and acesa > 0.0:
 			var q: Vector3 = ordem[i]; v = Vector4(q.x, q.y, q.z, acesa * (0.9 + 0.1 * sin(_tempo_jogo() * 7.0 + i)))
 		RenderingServer.global_shader_parameter_set("lanterna%d" % i, v)
+
+# ---------- chuva ----------
+# de vez em quando chove: o céu fecha, a luz fica cinza-azulada, cai chuva em volta da Rachel e o som entra
+# devagar (e sai devagar quando para). Tempo bom de 4 a 9 min, chuva de 2 a 4 min (tempo de verdade).
+var chuva := 0.0
+var _chuva_alvo := 0.0
+var _prox_troca := 0.0
+var _gotas: CPUParticles3D
+var _som_chuva: AudioStreamPlayer
+var _mat_gotas: StandardMaterial3D
+func _montar_chuva() -> void:
+	_prox_troca = randf_range(240.0, 540.0)
+	_gotas = CPUParticles3D.new(); _gotas.amount = 700; _gotas.lifetime = 0.9; _gotas.emitting = false
+	_gotas.local_coords = false
+	_gotas.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX; _gotas.emission_box_extents = Vector3(16, 1, 16)
+	_gotas.direction = Vector3(0.08, -1, 0.03); _gotas.spread = 3.0
+	_gotas.initial_velocity_min = 17.0; _gotas.initial_velocity_max = 21.0; _gotas.gravity = Vector3.ZERO
+	_gotas.visibility_aabb = AABB(Vector3(-20, -25, -20), Vector3(40, 30, 40))
+	var q := QuadMesh.new(); q.size = Vector2(0.035, 0.6)
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mt.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y; mt.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mt.albedo_color = Color(0.78, 0.84, 0.95, 0.45); q.material = mt; _gotas.mesh = q; _mat_gotas = mt
+	raiz.add_child(_gotas)
+	_som_chuva = AudioStreamPlayer.new(); var st: AudioStreamOggVorbis = load("res://assets/som/chuva.ogg"); st.loop = true
+	_som_chuva.stream = st; _som_chuva.bus = "Efeitos"; _som_chuva.volume_db = -60.0; add_child(_som_chuva)
+
+func _tempo_chuva(delta: float) -> void:
+	if _gotas == null: return
+	if not args.has("chuva"):
+		_prox_troca -= delta
+		if _prox_troca <= 0.0:
+			_chuva_alvo = 1.0 - _chuva_alvo
+			_prox_troca = randf_range(120.0, 240.0) if _chuva_alvo > 0.5 else randf_range(240.0, 540.0)
+	chuva = move_toward(chuva, _chuva_alvo, delta / 25.0)                # entra e sai em ~25 s
+	RenderingServer.global_shader_parameter_set("chuva", chuva)
+	if jogador: _gotas.global_position = jogador.global_position + Vector3(0, 13, 0)
+	_gotas.emitting = chuva > 0.15
+	_mat_gotas.albedo_color.a = 0.45 * clampf((chuva - 0.1) / 0.9, 0.1, 1.0)     # chuva fraca no começo/fim
+	if chuva > 0.01:
+		if not _som_chuva.playing: _som_chuva.play()
+		_som_chuva.volume_db = linear_to_db(chuva) - 4.0
+	elif _som_chuva.playing: _som_chuva.stop()
 
 # postes de madeira com lanterna ao longo da rua principal e na praça (lanterna virada para a rua)
 func _postes() -> void:

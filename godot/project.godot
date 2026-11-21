@@ -52,6 +52,10 @@ noite={
 "type": "float",
 "value": 0.0
 }
+chuva={
+"type": "float",
+"value": 0.0
+}
 relampago={
 "type": "float",
 "value": 0.0

@@ -198,6 +198,7 @@ func _physics_process(delta: float) -> void:
 	# viu a Rachel: a matilha toda entra na caça
 	if not grupo.alerta and (estado == "vagar" or estado == "parado") and dist < 20.0 and not m.heroina_desmaiada:
 		grupo.alerta = true
+		_rosnar(true)                                     # quem viu primeiro solta o rosnado longo
 	if grupo.alerta and (estado == "vagar" or estado == "parado"): _mudar("cacar")
 	if not grupo.alerta and estado == "cacar": _novo_passeio()
 	# espaço entre os lobos (a luta fica legível)
@@ -223,6 +224,7 @@ func _iniciar_ataque(alvo: Vector2) -> void:
 	var p := Vector2(global_position.x, global_position.z)
 	_dir_salto = (alvo - p).normalized(); _dist_salto = clampf(p.distance_to(alvo) - 0.6, 1.2, 3.0)
 	_mordeu = false; _mudar("atacar")
+	if rng.randf() < 0.6: _rosnar(false)
 
 # ataque: agacha (0–0,3 s), salta mordendo (0,3–0,6 s), cai e se recompõe (0,6–0,9 s)
 func _tocar_ataque(_delta: float, ppj: Vector2) -> void:
@@ -239,6 +241,22 @@ func _tocar_ataque(_delta: float, ppj: Vector2) -> void:
 		_recarga = rng.randf_range(1.6, 2.6); furioso = true          # mordeu: fica no ataque (não foge)
 		grupo.pausa = _relogio() + rng.randf_range(1.2, 2.2)
 		_mudar("cacar")
+
+# rosnado em 3D (o líder mais grave); cada lobo espera um pouco entre um rosnado e outro
+static var _sons := []
+var _voz: AudioStreamPlayer3D
+var _prox_rosnado := 0.0
+func _rosnar(longo: bool) -> void:
+	if _relogio() < _prox_rosnado or estado == "morto": return
+	if _sons.is_empty(): _sons = [load("res://assets/som/rosnado_longo.ogg"), load("res://assets/som/rosnado_1.ogg"), load("res://assets/som/rosnado_2.ogg")]
+	if _voz == null:
+		_voz = AudioStreamPlayer3D.new(); _voz.bus = "Efeitos"; _voz.position = Vector3(0, 0.6, -_comp * 0.35)
+		_voz.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE; _voz.unit_size = 5.0; _voz.max_distance = 45.0
+		_voz.volume_db = -3.0; add_child(_voz)
+	_voz.stream = _sons[0] if longo else _sons[1 + rng.randi() % 2]
+	_voz.pitch_scale = rng.randf_range(0.78, 0.86) if lider else rng.randf_range(0.95, 1.12)
+	_voz.play()
+	_prox_rosnado = _relogio() + (5.0 if longo else rng.randf_range(2.5, 4.0))
 
 func _atacando_agora() -> int:
 	var n := 0
