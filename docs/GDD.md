@@ -66,7 +66,9 @@ monstros, política e traição, onde ainda existem amor, amizade e gente boa pe
   texturas 128–256 px.
 - Arte: ChatGPT (folhas com 4 vistas) → Tripo 3D (Multiview, Low Poly, GLB) → redução no projeto.
 
-## 7.1 A região inicial (feita)
+## 7.1 A região inicial: Vale de Aldren (feita)
+Primeiro mapa do continente de Dallarian; os próximos mapas se conectam a ele (saída do desfiladeiro do norte).
+
 Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - **Limites:** montanhas ao norte (com um desfiladeiro fechado por uma paliçada — saída futura) e a oeste,
   mar a leste, pântano e morros escuros ao sul.

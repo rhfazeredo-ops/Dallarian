@@ -5,6 +5,8 @@ class_name Mapa
 
 var m
 var aberto := false
+# nome deste mapa (região inicial); Dallarian é o continente. Cada mapa novo terá o seu nome.
+const NOME := "Vale de Aldren"
 var _tex: Texture2D = load("res://assets/ui/mapa.png")
 var _botao: BotaoAcao
 var _tecla_antes := false
@@ -51,7 +53,7 @@ func _draw() -> void:
 	draw_rect(_quadro.grow(5), Color(0.45, 0.35, 0.2), false, 3.0)
 	draw_texture_rect(_tex, _quadro, false)
 	var fonte := ThemeDB.fallback_font
-	var tit := "Dallarian — Vale"
+	var tit := NOME
 	var w := fonte.get_string_size(tit, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x
 	draw_string_outline(fonte, Vector2(tela.x * 0.5 - w * 0.5, _quadro.position.y - 24), tit, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, 8, Color(0, 0, 0, 0.9))
 	draw_string(fonte, Vector2(tela.x * 0.5 - w * 0.5, _quadro.position.y - 24), tit, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, UI.AMARELO)
