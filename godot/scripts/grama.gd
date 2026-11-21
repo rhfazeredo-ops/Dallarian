@@ -10,12 +10,14 @@ var m
 var mat: ShaderMaterial
 var malhas := {}
 var camadas := [
-	{ "bloco": 8, "raio": 20.0, "dens": 5.0, "esc": 1.0, "malha": "perto", "ativos": {} },
-	{ "bloco": 16, "raio": 50.0, "dens": 0.8, "esc": 1.4, "malha": "longe", "ativos": {} },
+	{ "bloco": 12, "raio": 17.0, "dens": 3.8, "esc": 1.05, "malha": "perto", "ativos": {} },
+	{ "bloco": 24, "raio": 40.0, "dens": 0.6, "esc": 1.45, "malha": "longe", "ativos": {} },
 ]
 
 func montar(mundo) -> void:
 	m = mundo
+	if m.celular:
+		camadas[0].raio = 14.0; camadas[0].dens = 3.0; camadas[1].raio = 32.0; camadas[1].dens = 0.45
 	mat = ShaderMaterial.new(); mat.shader = load("res://shaders/grama.gdshader")
 	mat.set_shader_parameter("neblina", m.NEBLINA)
 	# folhas por tufo: perto mais folhas finas; longe menos folhas, um pouco mais largas

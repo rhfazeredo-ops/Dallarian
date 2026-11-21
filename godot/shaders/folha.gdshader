@@ -6,7 +6,7 @@ render_mode unshaded, cull_disabled;
 uniform vec3 sol = vec3(0.45, 0.6, 0.35);
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
 uniform float neb_ini = 40.0;
-uniform float neb_fim = 330.0;
+uniform float neb_fim = 270.0;
 global uniform float relampago;
 varying vec3 cor;
 varying float nb;

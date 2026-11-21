@@ -81,6 +81,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 		if orig: sm.set_shader_parameter("tex", orig.albedo_texture)
 		_regioes(mi)
 		mi.material_override = sm
+		mi.visibility_range_end = 90.0
 	sm.set_shader_parameter("neblina", m.NEBLINA)
 	sm.set_shader_parameter("original", skin > 0)
 	sm.set_shader_parameter("cor_pele", PELES[rng.randi() % PELES.size()])
@@ -197,6 +198,8 @@ func livre_para_conversar() -> bool:
 
 func _physics_process(delta: float) -> void:
 	if m == null: return
+	_dist_j = global_position.distance_to(m.jogador.global_position) if m.jogador else 0.0
+	if _dist_j > 95.0 and falando_com == null: return          # longe e fora de vista: nem pensa
 	_t += delta; _prox_conversa -= delta
 	var p := Vector2(global_position.x, global_position.z)
 	var quer_andar := false
@@ -262,7 +265,11 @@ func _physics_process(delta: float) -> void:
 		if estado == "trabalho": _alvo = p; return
 		if _depois_andar == "conversa" and par: estado = "conversa"          # já está perto o bastante
 		else: estado = "atividade"; atividade = "olhar"; _tempo_estado = rng.randf_range(2.0, 4.0); _olhar_para = _alvo
-	_animar(delta, clampf(vel_real / (VEL * ritmo), 0.0, 1.0))
+	# animação nos ossos é cara: de longe atualiza menos vezes (o tempo acumulado vai junto)
+	_anim_acum += delta; _anim_quadro += 1
+	var passo := 1 if _dist_j < 22.0 else (3 if _dist_j < 45.0 else 5)
+	if _anim_quadro % passo == 0:
+		_animar(_anim_acum, clampf(vel_real / (VEL * ritmo), 0.0, 1.0)); _anim_acum = 0.0
 
 # crianças: pega-pega. Uma é o pegador e corre atrás da outra, que foge dando voltas pela área; quando pega,
 # os papéis trocam (o novo pegador conta um pouco antes de correr). De vez em quando param para tomar fôlego.
@@ -352,6 +359,9 @@ const OSSOS := ["Hip", "Pelvis", "Waist", "Spine01", "Spine02", "L_Thigh", "R_Th
 var _pose := {}            # osso → Quaternion atual (suavizado)
 var _hip_y := 0.0
 var _anda_suave := 0.0
+var _anim_acum := 0.0
+var _anim_quadro := 0
+var _dist_j := 0.0
 
 func _q(eixo: Vector3, ang: float) -> Quaternion: return Quaternion(eixo, ang)
 func _zx(z: float, x: float) -> Quaternion: return _q(Vector3(0, 0, 1), z) * _q(Vector3(1, 0, 0), x)

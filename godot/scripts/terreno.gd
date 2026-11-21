@@ -8,7 +8,7 @@ class_name Terreno
 const PED := 64.0
 const CEL := 32
 const PASSO := PED / CEL
-const RAIO := 170.0          # pedaços detalhados até aqui (distância do centro do pedaço)
+const RAIO := 140.0          # pedaços detalhados até aqui (distância do centro do pedaço)
 const LONGE := 125.0         # a versão simples só aparece a partir daqui
 var m
 var reg: Regiao
@@ -19,7 +19,7 @@ var _primeira := true
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
 	var n := int(ceil(2.0 * Regiao.LIM / PED))
-	for j in n: for i in n: _simples(Vector2i(i, j))
+	for j in range(0, n, 2): for i in range(0, n, 2): _simples_bloco(i, j, n)
 
 func _origem(k: Vector2i) -> Vector2: return Vector2(k.x * PED - Regiao.LIM, k.y * PED - Regiao.LIM)
 func pedaco(x: float, z: float) -> Vector2i:
@@ -73,7 +73,7 @@ func _malha(k: Vector2i, cel: int, desce: bool) -> ArrayMesh:
 	var a := alturas(k) if not desce else PackedFloat32Array()
 	for j in cel + 1: for i in cel + 1:
 		var x := o.x + i * passo; var z := o.y + j * passo
-		var h := a[j * (CEL + 1) + i] if not desce else reg.altura(x, z) - 0.35
+		var h := a[j * (CEL + 1) + i] if not desce else reg.altura(x, z) - 0.55
 		if desce and (reg.dist_rio(x, z) < 16.0 or abs(Vector2(x - Regiao.LAGO.x, z - Regiao.LAGO.y).length()) < Regiao.LAGO.z + 8.0): h -= 2.5
 		hs[j * (cel + 1) + i] = h
 	var cores := []; cores.resize((cel + 1) * (cel + 1))
@@ -98,6 +98,21 @@ func _malha(k: Vector2i, cel: int, desce: bool) -> ArrayMesh:
 				st.set_normal(nrm); st.set_color(cores[id[q]])
 				st.set_uv(Vector2(vs[q].x + o.x, vs[q].z + o.y) / 4.0); st.add_vertex(vs[q])
 	return st.commit()
+
+# versão simples em blocos de 2×2 pedaços (128 m): 4× menos objetos para desenhar ao longe
+func _simples_bloco(i0: int, j0: int, n: int) -> void:
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var centro := _origem(Vector2i(i0, j0)) + Vector2(PED, PED)
+	for dj in 2:
+		for di in 2:
+			var k := Vector2i(i0 + di, j0 + dj)
+			if k.x >= n or k.y >= n: continue
+			var c := _origem(k) + Vector2(PED, PED) * 0.5 - centro
+			st.append_from(_malha(k, 8, true), 0, Transform3D(Basis(), Vector3(c.x, 0, c.y)))
+	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = m.mat("terreno")
+	mi.position = Vector3(centro.x, 0, centro.y)
+	mi.visibility_range_begin = LONGE - 35.0
+	add_child(mi)
 
 func _simples(k: Vector2i) -> void:
 	var mi := MeshInstance3D.new(); mi.mesh = _malha(k, 8, true); mi.material_override = m.mat("terreno")

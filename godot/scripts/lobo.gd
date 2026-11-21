@@ -31,6 +31,8 @@ var _dir_salto := Vector2.ZERO
 var _dist_salto := 0.0
 var _lado := 1.0
 var _mordeu := false
+var _anim_acum := 0.0
+var _anim_quadro := 0
 var furioso := false               # em fúria: não volta para a roda, fica atacando a Rachel
 var _flash := 0.0
 var anim_fixa := ""               # teste: prende uma animação (correr, atacar, esquivar) para print
@@ -63,7 +65,7 @@ func montar(mundo, t: String, e_lider: bool, semente: int) -> void:
 	sm.set_shader_parameter("neblina", m.NEBLINA)
 	for nome in ["pivo_x", "pivo_z", "y_quadril", "y_joelho", "pivo_cab", "pivo_cauda"]: sm.set_shader_parameter(nome, pv[nome])
 	mi.material_override = sm
-	mi.visibility_range_end = 170.0
+	mi.visibility_range_end = 110.0
 	# corpo: cápsula deitada ao longo do lobo
 	var cs := CollisionShape3D.new(); var cap := CapsuleShape3D.new()
 	cap.radius = comp * 0.15; cap.height = comp * 0.62
@@ -219,7 +221,10 @@ func _physics_process(delta: float) -> void:
 	if (foco - p).length() > 0.05:
 		var dl := foco - p
 		rotation.y = lerp_angle(rotation.y, atan2(-dl.x, -dl.y), 1.0 - exp(-8.0 * delta))
-	_animar(delta, Vector2(get_real_velocity().x, get_real_velocity().z).length())
+	_anim_acum += delta; _anim_quadro += 1
+	var passo := 1 if dist < 30.0 else (2 if dist < 60.0 else 3)
+	if _anim_quadro % passo == 0:
+		_animar(_anim_acum, Vector2(get_real_velocity().x, get_real_velocity().z).length()); _anim_acum = 0.0
 
 func _iniciar_ataque(alvo: Vector2) -> void:
 	var p := Vector2(global_position.x, global_position.z)

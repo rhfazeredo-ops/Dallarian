@@ -9,6 +9,8 @@ extends Node
 
 const REDUCAO := 4          # a imagem 3D é desenhada em 1/4 da resolução da tela
 const NEBLINA := Color(0.74, 0.83, 0.94)
+# celular: corta mais distância e densidade (o mesmo jogo, mais leve). PC: "--celular" para testar assim.
+var celular := OS.has_feature("mobile") or OS.get_cmdline_user_args().has("--celular")
 const TEMPESTADE := false     # céu limpo; true = relâmpagos (clima de tempestade)
 
 var vp: SubViewport
@@ -41,7 +43,9 @@ func _ready() -> void:
 	_lugares()                      # antes do terreno: as construções aplanam o chão embaixo delas
 	terreno.montar(self)
 	for f in _depois: f.call()        # cercas, muros e blocos: assentados na malha final do terreno
+	_agua_feita = false
 	_agua()
+	_juntar_estaticos()
 	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self)
 	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
 	var grama := Grama.new(); raiz.add_child(grama); grama.montar(self)
@@ -369,6 +373,35 @@ func perto_de_lugar(x: float, z: float, folga: float) -> bool:
 		if Vector2(x, z).distance_to(l[0]) < l[1] + folga: return true
 	return false
 
+# junta as peças paradas (paredes, telhados, cercas, pedras...) do mesmo material em blocos de 96 m:
+# o celular desenha muito menos objetos por quadro (cada objeto é uma "chamada de desenho")
+var _agua_feita := false
+func _juntar_estaticos() -> void:
+	var grupos := {}
+	var pular := {}
+	for mo in moinhos: pular[mo] = true
+	for c in raiz.get_children():
+		if not (c is MeshInstance3D) or pular.has(c) or c.get_child_count() > 0 or c.mesh == null: continue
+		var mi: MeshInstance3D = c
+		if mi.mesh.get_surface_count() != 1 or mi.material_override == null or not mi.visible: continue
+		var p := mi.global_position
+		var chave := [mi.material_override, int(floor(p.x / 96.0)), int(floor(p.z / 96.0))]
+		if not grupos.has(chave): grupos[chave] = []
+		grupos[chave].append(mi)
+	var antes := 0; var depois := 0
+	for chave in grupos.keys():
+		var lista: Array = grupos[chave]
+		antes += lista.size()
+		if lista.size() < 2: depois += 1; continue
+		var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var base: Vector3 = lista[0].global_position
+		for mi in lista:
+			st.append_from(mi.mesh, 0, Transform3D(Basis(), -base) * mi.global_transform)
+			mi.queue_free()
+		var novo := MeshInstance3D.new(); novo.mesh = st.commit(); novo.material_override = chave[0]
+		novo.position = base; raiz.add_child(novo); depois += 1
+	if args.has("perf"): print("JUNTOU peças paradas: %d → %d objetos" % [antes, depois])
+
 # ---------- tela: 3D em resolução baixa + filtro de paleta ----------
 func _tela() -> void:
 	var cont := SubViewportContainer.new()
@@ -458,7 +491,7 @@ var _som_chuva: AudioStreamPlayer
 var _mat_gotas: StandardMaterial3D
 func _montar_chuva() -> void:
 	_prox_troca = randf_range(240.0, 540.0)
-	_gotas = CPUParticles3D.new(); _gotas.amount = 700; _gotas.lifetime = 0.9; _gotas.emitting = false
+	_gotas = CPUParticles3D.new(); _gotas.amount = 380 if celular else 700; _gotas.lifetime = 0.9; _gotas.emitting = false
 	_gotas.local_coords = false
 	_gotas.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX; _gotas.emission_box_extents = Vector3(16, 1, 16)
 	_gotas.direction = Vector3(0.08, -1, 0.03); _gotas.spread = 3.0
@@ -1399,6 +1432,42 @@ func _modo_teste() -> void:
 			if args.has("dica"):
 				var jan: Control = inventario._janelas.get_child(1)
 				inventario._tocar(0, 0, jan.find_children("*", "Panel", true, false)[0]))
+	if args.has("tris"):           # teste: triângulos por grupo (perto da câmera)
+		get_tree().create_timer(5.0).timeout.connect(func():
+			var cam := jogador.cam.global_position
+			var grupos := {}; var dcs := {}; var cache := {}
+			var tri_de := func(me: Mesh) -> int:
+				if cache.has(me): return cache[me]
+				var tt := 0
+				for si in me.get_surface_count():
+					var arr := me.surface_get_arrays(si)
+					tt += (arr[Mesh.ARRAY_INDEX].size() if arr[Mesh.ARRAY_INDEX] else arr[Mesh.ARRAY_VERTEX].size()) / 3
+				cache[me] = tt; return tt
+			for n in raiz.find_children("*", "GeometryInstance3D", true, false):
+				var g: GeometryInstance3D = n
+				if not g.is_visible_in_tree(): continue
+				var pos: Vector3 = g.global_transform * g.get_aabb().get_center()
+				var dd := pos.distance_to(cam) - g.get_aabb().size.length() * 0.5
+				if (g.visibility_range_end > 0.0 and pos.distance_to(cam) > g.visibility_range_end) or dd > 270.0: continue
+				if g.visibility_range_begin > 0.0 and pos.distance_to(cam) < g.visibility_range_begin: continue
+				var dono: Node = g
+				while dono.get_parent() != raiz and dono.get_parent() != null: dono = dono.get_parent()
+				var nome: String = dono.get_class() + ":" + (dono.get_script().resource_path.get_file() if dono.get_script() else dono.name.left(12))
+				var t := 0
+				if g is MeshInstance3D and g.mesh: t = tri_de.call(g.mesh)
+				elif g is MultiMeshInstance3D and g.multimesh and g.multimesh.mesh:
+					var mm: MultiMesh = g.multimesh; var tm: int = tri_de.call(mm.mesh)
+					t = tm * (mm.visible_instance_count if mm.visible_instance_count >= 0 else mm.instance_count)
+				grupos[nome] = grupos.get(nome, 0) + t; dcs[nome] = dcs.get(nome, 0) + 1
+			var ks := grupos.keys(); ks.sort_custom(func(a, b): return grupos[a] > grupos[b])
+			for k in ks.slice(0, 18): print("TRIS %-40s %8d  (%d nós)" % [k, grupos[k], dcs[k]]))
+	if args.has("perf"):           # teste: mede o custo do quadro (draw calls, triângulos, tempo de script)
+		for rep in 5: get_tree().create_timer(float(args.get("perf_t", "3")) + rep * 1.5).timeout.connect(func():
+			var P := Performance
+			print("PERF draw=%d objetos=%d prim=%d  process=%.1fms physics=%.1fms  nos=%d" % [
+				P.get_monitor(P.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), P.get_monitor(P.RENDER_TOTAL_OBJECTS_IN_FRAME),
+				P.get_monitor(P.RENDER_TOTAL_PRIMITIVES_IN_FRAME), P.get_monitor(P.TIME_PROCESS) * 1000.0,
+				P.get_monitor(P.TIME_PHYSICS_PROCESS) * 1000.0, P.get_monitor(P.OBJECT_NODE_COUNT)]))
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

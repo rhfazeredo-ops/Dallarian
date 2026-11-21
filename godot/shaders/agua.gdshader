@@ -5,7 +5,7 @@ render_mode unshaded, cull_disabled;
 #include "res://shaders/noite.gdshaderinc"
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
 uniform float neb_ini = 40.0;
-uniform float neb_fim = 330.0;
+uniform float neb_fim = 270.0;
 uniform vec3 ceu_alto : source_color = vec3(0.2, 0.42, 0.82);
 uniform vec3 ceu_meio : source_color = vec3(0.42, 0.64, 0.94);
 uniform vec3 ceu_horiz : source_color = vec3(0.76, 0.86, 0.96);

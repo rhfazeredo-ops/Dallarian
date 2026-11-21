@@ -11,7 +11,8 @@ extends Node3D
 class_name Floresta
 
 const PED := 128.0
-const VISTA := 320.0
+var VISTA := 230.0           # árvores desenhadas até aqui (a neblina esconde o corte)
+var PERTO := 95.0            # até aqui a copa completa; depois a versão simplificada (LOD)
 const COLIDE := 120.0
 var m
 var reg: Regiao
@@ -24,6 +25,7 @@ const PONTAS := [Vector3(1.4, 4.2, 0.3), Vector3(-1.2, 4.7, -0.5), Vector3(0.2, 
 
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
+	if m.celular: VISTA = 185.0; PERTO = 70.0
 	_mat_cartao = {
 		"folhagem": _material(_tex_folhagem(192, 11)),
 		"folhagem2": _material(_tex_folhagem(192, 21)),
@@ -39,11 +41,11 @@ func montar(mundo) -> void:
 		for k in _mat_cartao.keys():
 			var tx: ImageTexture = _mat_cartao[k].get_shader_parameter("tex"); tx.get_image().save_png("user://cartao_%s.png" % k)
 	malhas = {
-		"copa_a": [_tronco_copa(), _cartoes_copa(1)],
-		"copa_b": [null, _cartoes_copa(2, "folhagem2")],
-		"copa_c": [null, _cartoes_copa(5)],
-		"copa_d": [null, _cartoes_copa(6, "folhagem2")],
-		"pinho": [_tronco_pinho(), _cartoes_pinho(3)],
+		"copa_a": [_tronco_copa(), _cartoes_copa(1), _cartoes_copa(1, "folhagem", 9)],
+		"copa_b": [null, _cartoes_copa(2, "folhagem2"), _cartoes_copa(2, "folhagem2", 9)],
+		"copa_c": [null, _cartoes_copa(5), _cartoes_copa(5, "folhagem", 9)],
+		"copa_d": [null, _cartoes_copa(6, "folhagem2"), _cartoes_copa(6, "folhagem2", 9)],
+		"pinho": [_tronco_pinho(), _cartoes_pinho(3), _cartoes_pinho(3, 5)],
 		"arbusto": [null, _cartoes_arbusto(4)],
 		"flor_a": [null, _cartoes_arbusto(7, "flor_a")],
 		"flor_b": [null, _cartoes_arbusto(8, "flor_b")],
@@ -191,14 +193,15 @@ func _tronco_copa(cor := Color.WHITE) -> ArrayMesh:
 	var mesh := ArrayMesh.new(); st.set_material(m.mat("casca", 1.0, cor)); st.commit(mesh)
 	return mesh
 
-func _cartoes_copa(seed: int, tex := "folhagem") -> ArrayMesh:
+func _cartoes_copa(seed: int, tex := "folhagem", n_cartoes := 24) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var centro := Vector3(0, 4.9, 0)
 	# um cartão em cada ponta de galho + ~24 cruzados pela copa (casca externa e miolo)
 	var pontos := []
 	for p in PONTAS: pontos.append(p + Vector3(0, 0.3, 0))
-	for k in 24:
+	var simples := n_cartoes < 24          # versão de longe: poucos cartões, maiores, sem os cruzados
+	for k in n_cartoes:
 		var d := Vector3(rng.randfn(0, 1), rng.randfn(0, 0.65), rng.randfn(0, 1)).normalized()
 		pontos.append(centro + d * Vector3(2.0, 1.35, 2.0) * rng.randf_range(0.25, 0.95))
 	for p in pontos:
@@ -209,9 +212,10 @@ func _cartoes_copa(seed: int, tex := "folhagem") -> ArrayMesh:
 		if lado.length() < 0.1: lado = Vector3(1, 0, 0)
 		var tam := rng.randf_range(0.65, 1.0) if rng.randf() < 0.4 else (rng.randf_range(1.0, 1.5) if rng.randf() < 0.7 else rng.randf_range(1.5, 2.0))
 		var tom := clampf(0.72 + 0.3 * ((p.y - centro.y) / 1.35 * 0.5 + 0.5) + fora.length() * 0.0, 0.6, 1.08)
+		if simples: tam *= 1.55
 		_cartao(st, p, lado, cima, Vector2(tam, tam), tom)
 		# cruzado: o mesmo lugar, girado 90° em volta do "cima" (vê-se cheio de qualquer lado)
-		if rng.randf() < 0.55: _cartao(st, p, lado.rotated(cima, PI / 2), cima, Vector2(tam, tam) * 0.9, tom * 0.92)
+		if rng.randf() < (0.3 if simples else 0.55): _cartao(st, p, lado.rotated(cima, PI / 2), cima, Vector2(tam, tam) * 0.9, tom * 0.92)
 	var mesh := ArrayMesh.new(); st.set_material(_mat_cartao[tex]); st.commit(mesh)
 	return mesh
 
@@ -224,15 +228,16 @@ func _tronco_pinho() -> ArrayMesh:
 
 # pinheiro: andares de galhos em volta do tronco; cada galho é um cartão dobrado em "telhado" (as duas metades
 # caem para os lados) e curvado para baixo (a ponta cai mais que a base), como galho de pinheiro pesado.
-func _cartoes_pinho(seed: int) -> ArrayMesh:
+func _cartoes_pinho(seed: int, andares := 11) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new(); rng.seed = seed
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var andares := 11
+	var largo := 1.0 if andares >= 11 else 1.35
 	for a in andares:
 		var t := float(a) / (andares - 1)
 		var y: float = lerp(1.6, 7.6, t) + rng.randf_range(-0.12, 0.12)
 		var comp: float = lerp(2.7, 0.55, pow(t, 0.9)) * rng.randf_range(0.9, 1.1)
 		var n := 7 if t < 0.5 else (6 if t < 0.8 else 4)
+		if andares < 11: n = 4 if t < 0.6 else 3
 		var giro := rng.randf() * TAU
 		for k in n:
 			var ang := giro + TAU * k / n + rng.randf_range(-0.25, 0.25)
@@ -240,7 +245,7 @@ func _cartoes_pinho(seed: int) -> ArrayMesh:
 			var lado := fora.cross(Vector3.UP).normalized()
 			var desce := deg_to_rad(rng.randf_range(12, 24) + t * 8.0)       # o galho sai inclinado para baixo
 			var tom: float = lerp(0.7, 1.02, t) * rng.randf_range(0.9, 1.06)
-			_galho_pinho(st, Vector3(0, y, 0), fora, lado, desce, comp, comp * 0.42, tom)
+			_galho_pinho(st, Vector3(0, y, 0), fora, lado, desce, comp, comp * 0.42 * largo, tom)
 	# ponta: dois cartões em pé, cruzados
 	for k in 2:
 		var lado := Vector3(cos(k * PI / 2), 0, sin(k * PI / 2))
@@ -456,7 +461,7 @@ func _pedaco(k: Vector2i) -> void:
 				var tipo := "arbusto"; var cor := _verde(rng, f) * 0.9
 				var r := rng.randf()
 				if f > 0.45 and r < 0.45: tipo = "samambaia"; s *= 1.1
-				elif r < 0.2: tipo = ["flor_a", "flor_b", "flor_c"][rng.randi() % 3]; cor = Color(1, 1, 1) * rng.randf_range(0.88, 1.06)
+				elif r < 0.2: tipo = ["flor_a", "flor_b", "flor_c"][absi(k.x * 7 + k.y * 3) % 3]; cor = Color(1, 1, 1) * rng.randf_range(0.88, 1.06)
 				grupos[tipo].append([Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(0.8, 1.2), s)), Vector3(x, h - 0.05, z)), cor])
 				continue
 			var sorteio := rng.randf()
@@ -470,7 +475,7 @@ func _pedaco(k: Vector2i) -> void:
 			else:
 				var larg := s * rng.randf_range(0.85, 1.2)          # umas mais largas, outras mais altas
 				var t := Transform3D(giro.scaled(Vector3(larg, s * rng.randf_range(0.85, 1.2), larg)), base)
-				grupos[["copa_a", "copa_b", "copa_c", "copa_d"][rng.randi() % 4]].append([t, _cor_copa(rng, x, z)]); lista.append([base, 0.32 * s])
+				grupos[["copa_a", "copa_b"][rng.randi() % 2] if (k.x + k.y) % 2 == 0 else ["copa_c", "copa_d"][rng.randi() % 2]].append([t, _cor_copa(rng, x, z)]); lista.append([base, 0.32 * s])
 	arvores[k] = lista
 	var no := Node3D.new(); add_child(no)
 	for nome in grupos.keys():
@@ -480,7 +485,10 @@ func _pedaco(k: Vector2i) -> void:
 		# copa_b usa o tronco da copa_a
 		var tronco: ArrayMesh = par[0] if par[0] != null else (malhas["copa_a"][0] if nome.begins_with("copa") else null)
 		if tronco: no.add_child(_mm(tronco, itens, false))
-		if par[1]: no.add_child(_mm(par[1], itens, true))
+		if par.size() > 2:                         # copa completa perto, simplificada longe
+			var perto := _mm(par[1], itens, true); perto.visibility_range_end = PERTO; no.add_child(perto)
+			var longe := _mm(par[2], itens, true); longe.visibility_range_begin = PERTO; no.add_child(longe)
+		elif par[1]: no.add_child(_mm(par[1], itens, true))
 
 func _mm(malha: ArrayMesh, itens: Array, cores: bool) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = cores; mm.mesh = malha

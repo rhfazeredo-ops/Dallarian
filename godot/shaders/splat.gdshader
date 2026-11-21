@@ -9,7 +9,7 @@ uniform float corte = 0.3;
 uniform bool brilha = false;   // chamas/lanternas: não escurecem de noite
 uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
 uniform float neb_ini = 40.0;
-uniform float neb_fim = 330.0;
+uniform float neb_fim = 270.0;
 uniform float balanco = 0.0;      // vento (grama/folhas)
 global uniform float forca_vento;
 uniform bool quadrado = false;    // folhas: partículas quadradas

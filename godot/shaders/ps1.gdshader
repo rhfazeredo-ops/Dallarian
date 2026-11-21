@@ -12,7 +12,7 @@ uniform vec3 luz_sol : source_color = vec3(0.95, 0.88, 0.72);
 uniform vec3 luz_amb : source_color = vec3(0.5, 0.54, 0.64);
 uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
 uniform float neb_ini = 40.0;
-uniform float neb_fim = 330.0;
+uniform float neb_fim = 270.0;
 uniform float escala_uv = 1.0;
 global uniform float relampago;
 varying vec3 luz;

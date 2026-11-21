@@ -8,7 +8,7 @@ uniform sampler2D tex : source_color, filter_nearest_mipmap, repeat_disable;
 uniform vec3 sol = vec3(0.45, 0.6, 0.35);
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
 uniform float neb_ini = 40.0;
-uniform float neb_fim = 330.0;
+uniform float neb_fim = 270.0;
 uniform float vento = 1.0;
 global uniform float forca_vento;
 global uniform float relampago;

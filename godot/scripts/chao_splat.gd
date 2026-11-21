@@ -15,13 +15,15 @@ var mat: ShaderMaterial
 var _luz := FastNoiseLite.new()
 # bloco (m), alcance (m), splats por m², tamanho mín/máx (m), altura acima do chão (m), flores?
 var camadas := [
-	{ "bloco": 8, "raio": 18.0, "dens": 18.0, "tam": Vector2(0.18, 0.38), "alt": 0.06, "flores": true, "ativos": {} },
-	{ "bloco": 16, "raio": 55.0, "dens": 2.2, "tam": Vector2(0.28, 0.55), "alt": 0.035, "flores": false, "ativos": {} },
-	{ "bloco": 32, "raio": 150.0, "dens": 0.2, "tam": Vector2(1.4, 3.0), "alt": 0.012, "flores": false, "ativos": {} },
+	{ "bloco": 8, "raio": 15.0, "dens": 13.0, "tam": Vector2(0.18, 0.38), "alt": 0.06, "flores": true, "ativos": {} },
+	{ "bloco": 24, "raio": 42.0, "dens": 1.6, "tam": Vector2(0.28, 0.55), "alt": 0.035, "flores": false, "ativos": {} },
+	{ "bloco": 64, "raio": 120.0, "dens": 0.16, "tam": Vector2(1.4, 3.0), "alt": 0.012, "flores": false, "ativos": {} },
 ]
 
 func montar(mundo) -> void:
 	m = mundo
+	if m.celular:
+		camadas[0].raio = 12.0; camadas[0].dens = 10.0; camadas[1].raio = 34.0; camadas[1].dens = 1.2; camadas[2].raio = 95.0
 	_luz.seed = 3; _luz.frequency = 0.03
 	mat = ShaderMaterial.new(); mat.shader = load("res://shaders/splat_chao.gdshader")
 	mat.set_shader_parameter("neblina", m.NEBLINA)
