@@ -21,6 +21,9 @@ var estrada: PackedVector2Array      # estrada que sai da vila para o sul (poça
 var casas := [] # [pos, ang, w, d]
 var lugares := []                    # [centro Vector2, raio] — as árvores não nascem aqui
 var moinhos := []
+var porto_pos := Vector2.ZERO
+var caverna_pos := Vector2.ZERO
+var pier_pos := Vector2.ZERO
 var _depois: Array[Callable] = []    # peças montadas depois do terreno (precisam da altura exata da malha)
 var args := {}
 var _mats := {}
@@ -49,6 +52,20 @@ func _ready() -> void:
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
 	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self)
+	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
+	var bus := Bussola.new(); cl.add_child(bus)
+	bus.montar(self, [
+		["Vila do Vale", Vector2(0, 0), "vila", 45.0],
+		["Ferraria do Bram", ferraria_pos, "ferraria", 12.0],
+		["Mosteiro da Ilha", Vector2(Regiao.ILHA.x, Regiao.ILHA.y), "mosteiro", 30.0],
+		["Porto dos Pescadores", porto_pos, "porto", 30.0],
+		["Píer do Rio", pier_pos, "pier", 14.0],
+		["Torre em Ruínas", Vector2(220, -260), "ruinas", 25.0],
+		["Serraria", Vector2(286, -170), "serraria", 22.0],
+		["Acampamento de Bandidos", Vector2(-330, 300), "bandidos", 25.0],
+		["Caverna do Oeste", caverna_pos, "caverna", 18.0],
+		["Desfiladeiro do Norte", Vector2(0, -468), "passagem", 40.0],
+	])
 	_musica()
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
 	if args.has("checar"): _checar_chao()
@@ -337,7 +354,7 @@ func _pier_rio() -> void:
 	var bp := ini + dir * (comp - 1.0) + Vector2(0, 2.4)
 	st = _st(); _caixa(st, Vector3(0, 0.25, 0), Vector3(3.8, 0.55, 1.4)); _caixa(st, Vector3(2.0, 0.32, 0), Vector3(0.6, 0.4, 0.8))
 	_peca(st, mat("madeira", 1.0, Color(0.75, 0.6, 0.5)), Vector3(bp.x, reg.agua(bp.x, bp.y) - 0.05, bp.y), 0.15)
-	lugares.append([meio, comp * 0.5 + 2.0])
+	lugares.append([meio, comp * 0.5 + 2.0]); pier_pos = meio
 
 # ferraria: telheiro aberto de madeira (4 esteios e telhado inclinado de tábuas), fornalha de pedra com
 # chaminé e fogo aceso, bigorna sobre um toco, tina d'água, monte de carvão e um suporte de ferramentas.
@@ -617,7 +634,7 @@ func _porto() -> void:
 		_casa(Vector3(p.x, altura(p.x, p.y) - 0.2, p.y), atan2(xc - p.x, z - p.y) + PI, 5.0, 4.4, 2.7)
 	for b in [[xc - 2.0, z + 3.0], [xc - 1.0, z + 3.6], [xc - 3.0, z - 3.0]]:
 		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
-	lugares.append([Vector2(xc - 20.0, z), 45.0])
+	lugares.append([Vector2(xc - 20.0, z), 45.0]); porto_pos = Vector2(xc - 10.0, z)
 
 func _mosteiro() -> void:
 	var c := Vector2(Regiao.ILHA.x, Regiao.ILHA.y); var y := reg.aplanar(c + Vector2(2.5, -1.5), Vector2(8.0, 6.0), 0.0, 3.0)
@@ -719,7 +736,7 @@ func _caverna() -> void:
 	st = _st(); _quad(st, Vector3(0, 0, 2.2), Vector3(0, 0, -2.2), Vector3(0, 4.3, -2.2), Vector3(0, 4.3, 2.2), 1, 1)
 	_peca(st, mat("", 1.0, Color(0.02, 0.02, 0.03)), Vector3(x + 4.6, y - 0.5, z))
 	_colisor_caixa(Vector3(x + 4.0, y - 0.5, z), Vector3(2.0, 6.0, 9.0), 0.0)
-	lugares.append([Vector2(x + 5.0, z), 8.0])
+	lugares.append([Vector2(x + 5.0, z), 8.0]); caverna_pos = Vector2(x + 5.0, z)
 
 func base_vale(z: float) -> float: return reg.base(z)
 

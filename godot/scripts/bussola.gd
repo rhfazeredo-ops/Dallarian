@@ -1,0 +1,130 @@
+# Bússola no topo da tela (estilo RPG de mundo aberto): uma faixa que gira com a câmera mostrando
+# N, NE, L, SE, S, SO, O, NO, marquinhas a cada 15° e os graus. Os locais importantes aparecem como ícones:
+#  - ainda não descoberto: ícone apagado (só contorno), quando está a até 140 m;
+#  - descoberto (chegou a menos do raio do local): ícone aceso até 400 m, e aparece "LOCAL DESCOBERTO".
+extends Control
+class_name Bussola
+
+const LARG := 960.0
+const ALT := 46.0
+const CAMPO := 120.0            # graus visíveis na faixa
+var m
+var locais := []                # [nome, posição Vector2, tipo, raio de descoberta, descoberto?]
+var aviso: Label
+var aviso_nome: Label
+var fonte: Font
+
+func montar(mundo, lista: Array) -> void:
+	m = mundo
+	for l in lista: locais.append([l[0], l[1], l[2], l[3], false])
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fonte = ThemeDB.fallback_font
+	aviso = _rotulo(34, Color(0.95, 0.88, 0.7), 150.0); aviso.text = "LOCAL DESCOBERTO"
+	aviso_nome = _rotulo(52, Color(1, 1, 1), 192.0)
+
+func _rotulo(tam: int, cor: Color, y: float) -> Label:
+	var l := Label.new(); l.add_theme_font_size_override("font_size", tam); l.add_theme_color_override("font_color", cor)
+	l.add_theme_constant_override("outline_size", 10); l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.anchor_left = 0.5; l.anchor_right = 0.5; l.offset_left = -700; l.offset_right = 700; l.offset_top = y; l.offset_bottom = y + 70
+	l.modulate.a = 0.0; add_child(l); return l
+
+func _rumo() -> float:            # para onde a câmera olha, em graus (N = 0, L = 90)
+	return fposmod(-rad_to_deg(m.jogador.rotation.y), 360.0)
+
+func _process(_d: float) -> void:
+	if m == null or m.jogador == null: return
+	var p := Vector2(m.jogador.global_position.x, m.jogador.global_position.z)
+	for l in locais:
+		if not l[4] and p.distance_to(l[1]) < l[3]:
+			l[4] = true; _anunciar(l[0])
+	queue_redraw()
+
+func _anunciar(nome: String) -> void:
+	aviso_nome.text = nome
+	for lb in [aviso, aviso_nome]:
+		lb.modulate.a = 0.0
+		var tw: Tween = lb.create_tween(); tw.tween_property(lb, "modulate:a", 1.0, 0.6); tw.tween_interval(2.6); tw.tween_property(lb, "modulate:a", 0.0, 1.0)
+
+func _draw() -> void:
+	if m == null or m.jogador == null: return
+	var cx := get_viewport_rect().size.x * 0.5; var y0 := 26.0
+	var x0 := cx - LARG * 0.5
+	# faixa: fundo escuro que some nas pontas, linha dourada fina embaixo e pontas decoradas
+	var passos := 80
+	for i in passos:
+		var u0 := float(i) / passos; var u1 := float(i + 1) / passos
+		var a := 0.55 * (1.0 - pow(abs((u0 + u1) - 1.0), 2.0))
+		draw_rect(Rect2(x0 + LARG * u0, y0, LARG / passos + 1, ALT), Color(0.05, 0.04, 0.04, a))
+	draw_line(Vector2(x0 + 30, y0 + ALT), Vector2(x0 + LARG - 30, y0 + ALT), Color(0.85, 0.72, 0.45, 0.7), 2.0)
+	for lado in [-1.0, 1.0]:
+		var px: float = cx + lado * (LARG * 0.5 - 6)
+		draw_colored_polygon(PackedVector2Array([Vector2(px, y0 + ALT * 0.5 - 10), Vector2(px + 8 * lado, y0 + ALT * 0.5), Vector2(px, y0 + ALT * 0.5 + 10), Vector2(px - 8 * lado, y0 + ALT * 0.5)]), Color(0.85, 0.72, 0.45, 0.8))
+	var rumo := _rumo()
+	var px_por_grau := LARG / CAMPO
+	var letras := {0: "N", 45: "NE", 90: "L", 135: "SE", 180: "S", 225: "SO", 270: "O", 315: "NO"}
+	for g in range(0, 360, 15):
+		var rel := wrapf(g - rumo, -180.0, 180.0)
+		if abs(rel) > CAMPO * 0.5 - 4: continue
+		var x := cx + rel * px_por_grau
+		var fade := 1.0 - pow(abs(rel) / (CAMPO * 0.5), 3.0)
+		if letras.has(g):
+			var t: String = letras[g]; var tam := 34 if t.length() == 1 else 26
+			var cor := Color(1, 0.9, 0.7, fade) if g == 0 else Color(1, 1, 1, fade)
+			var w := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+			draw_string_outline(fonte, Vector2(x - w * 0.5, y0 + ALT * 0.5 + tam * 0.36), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 6, Color(0, 0, 0, fade * 0.8))
+			draw_string(fonte, Vector2(x - w * 0.5, y0 + ALT * 0.5 + tam * 0.36), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, cor)
+		else:
+			draw_line(Vector2(x, y0 + ALT - 12), Vector2(x, y0 + ALT - 3), Color(1, 1, 1, fade * 0.7), 2.0)
+			var num := str(g); var w2 := fonte.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+			draw_string(fonte, Vector2(x - w2 * 0.5, y0 + 17), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.85, 0.82, 0.75, fade * 0.65))
+	# locais
+	var p := Vector2(m.jogador.global_position.x, m.jogador.global_position.z)
+	for l in locais:
+		var d: Vector2 = l[1] - p; var dist := d.length()
+		var conhecido: bool = l[4]
+		if dist < 6.0 or dist > (400.0 if conhecido else 140.0): continue
+		var rel := wrapf(rad_to_deg(atan2(d.x, -d.y)) - rumo, -180.0, 180.0)
+		if abs(rel) > CAMPO * 0.5 - 4: continue
+		var x := cx + rel * px_por_grau
+		var fade := 1.0 - pow(abs(rel) / (CAMPO * 0.5), 3.0)
+		_icone(l[2], Vector2(x, y0 + ALT * 0.5 + 2), conhecido, fade)
+	# marcador do centro (para onde está olhando)
+	draw_colored_polygon(PackedVector2Array([Vector2(cx - 7, y0 + ALT + 10), Vector2(cx + 7, y0 + ALT + 10), Vector2(cx, y0 + ALT + 2)]), Color(0.95, 0.82, 0.5, 0.9))
+
+# ícones simples desenhados em linhas (conhecido: cheio e claro; desconhecido: só contorno, apagado)
+func _icone(tipo: String, c: Vector2, aceso: bool, fade: float) -> void:
+	var cor := Color(1, 0.97, 0.88, fade) if aceso else Color(0.75, 0.75, 0.75, fade * 0.55)
+	var sombra := Color(0, 0, 0, fade * (0.75 if aceso else 0.4))
+	var formas := _formas(tipo, c)
+	for f in formas:                                     # contorno escuro por baixo
+		draw_polyline(f, sombra, 5.0, true)
+	for f in formas:
+		if aceso and f.size() > 3 and f[0] == f[f.size() - 1]: draw_colored_polygon(f, Color(cor.r, cor.g, cor.b, fade * 0.35))
+		draw_polyline(f, cor, 2.2, true)
+
+func _formas(tipo: String, c: Vector2) -> Array:
+	var P := func(pts: Array) -> PackedVector2Array:
+		var r := PackedVector2Array()
+		for q in pts: r.append(c + q)
+		return r
+	match tipo:
+		"vila":       # casinha com telhado
+			return [P.call([Vector2(-10, 10), Vector2(-10, -1), Vector2(0, -11), Vector2(10, -1), Vector2(10, 10), Vector2(-10, 10)]), P.call([Vector2(-3, 10), Vector2(-3, 3), Vector2(3, 3), Vector2(3, 10)])]
+		"ferraria":   # bigorna
+			return [P.call([Vector2(-12, -5), Vector2(10, -5), Vector2(6, 0), Vector2(3, 0), Vector2(3, 5), Vector2(8, 10), Vector2(-8, 10), Vector2(-3, 5), Vector2(-3, 0), Vector2(-8, 0), Vector2(-12, -5)])]
+		"mosteiro":   # torre com cruz
+			return [P.call([Vector2(-6, 11), Vector2(-6, -3), Vector2(0, -8), Vector2(6, -3), Vector2(6, 11), Vector2(-6, 11)]), P.call([Vector2(0, -8), Vector2(0, -15)]), P.call([Vector2(-3, -12), Vector2(3, -12)])]
+		"porto", "pier":   # barco com vela
+			return [P.call([Vector2(-11, 4), Vector2(11, 4), Vector2(7, 10), Vector2(-7, 10), Vector2(-11, 4)]), P.call([Vector2(0, 4), Vector2(0, -12), Vector2(8, 1), Vector2(0, 1)])]
+		"ruinas":     # torre quebrada
+			return [P.call([Vector2(-8, 11), Vector2(-8, -8), Vector2(-4, -5), Vector2(-1, -11), Vector2(3, -4), Vector2(8, -7), Vector2(8, 11), Vector2(-8, 11)])]
+		"serraria":   # tora com machado
+			return [P.call([Vector2(-11, 3), Vector2(9, 3), Vector2(9, 10), Vector2(-11, 10), Vector2(-11, 3)]), P.call([Vector2(-2, 3), Vector2(4, -11)]), P.call([Vector2(2, -9), Vector2(8, -12), Vector2(8, -6), Vector2(3, -6)])]
+		"bandidos":   # tenda
+			return [P.call([Vector2(-11, 10), Vector2(0, -11), Vector2(11, 10), Vector2(-11, 10)]), P.call([Vector2(0, -11), Vector2(0, 10)]), P.call([Vector2(-4, 10), Vector2(0, 2), Vector2(4, 10)])]
+		"caverna":    # arco de pedra
+			return [P.call([Vector2(-12, 10), Vector2(-9, -3), Vector2(-3, -9), Vector2(3, -9), Vector2(9, -3), Vector2(12, 10), Vector2(-12, 10)]), P.call([Vector2(-5, 10), Vector2(-4, 1), Vector2(0, -3), Vector2(4, 1), Vector2(5, 10)])]
+		"passagem":   # montanhas
+			return [P.call([Vector2(-13, 10), Vector2(-5, -6), Vector2(0, 2), Vector2(5, -10), Vector2(13, 10), Vector2(-13, 10)])]
+	return [P.call([Vector2(-6, 0), Vector2(0, -6), Vector2(6, 0), Vector2(0, 6), Vector2(-6, 0)])]

@@ -76,6 +76,12 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
   **serraria**, **acampamento de bandidos** (sudoeste), **caverna** no pé das montanhas a oeste.
 - Floresta de carvalhos, bétulas e pinheiros (algumas copas de outono), árvores mortas no pântano.
 
+## 7.2 Interface
+- **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados
+  quando ainda não descobertos (até 140 m), acesos depois de descobertos (até 400 m), com o aviso "LOCAL
+  DESCOBERTO". Locais: Vila do Vale, Ferraria do Bram, Mosteiro da Ilha, Porto dos Pescadores, Píer do Rio,
+  Torre em Ruínas, Serraria, Acampamento de Bandidos, Caverna do Oeste, Desfiladeiro do Norte (nomes provisórios).
+
 ## 8. Primeiros passos de produção
 1. Base jogável: câmera em primeira pessoa, filtro PS1, chão e casas low poly, grama e árvores em splats,
    céu de tempestade, espada e escudo provisórios.
