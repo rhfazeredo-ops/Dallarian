@@ -11,6 +11,7 @@ const VEL_ANDAR := 1.7
 const VEL_CORRER := 6.6
 var tipo := "marrom"
 var lider := false
+var nivel := 2
 var m                              # o mundo
 var grupo: Dictionary              # compartilhado pela matilha: casa, membros, alerta, atacante
 var vaga := 0.0                    # ângulo do lugar dele na roda em volta da Rachel
@@ -310,6 +311,9 @@ func golpe_da_heroina(pos: Vector3, frente: Vector3, dano: float) -> bool:
 func _vel_teste() -> float:
 	if anim_fixa == "correr": return VEL_CORRER
 	if anim_fixa == "andar": return VEL_ANDAR
+	if anim_fixa == "morto":
+		estado = "morto"; _t = u_fixo * 1.6 if u_fixo >= 0.0 else fmod(_t, 2.5)
+		return 0.0
 	if anim_fixa == "atacar" or anim_fixa == "esquivar":
 		estado = anim_fixa
 		var dur := 0.9 if anim_fixa == "atacar" else 0.5
@@ -366,10 +370,21 @@ func _animar(delta: float, spd: float) -> void:
 			cab = Vector2(0.1 * e, _lado * 0.3 * e); cau = Vector2(-0.2, -_lado * 0.5 * e)
 		"ferido":
 			cab = Vector2(0.3, 0.2); pitch = 0.12; q = Vector4(0.3, 0.3, 0.0, 0.0)
-		"morto":                     # cai de lado com as patas duras
-			var e := _rampa(0.0, 0.45, _t)
-			roll = 1.45 * e; q = Vector4(0.35, 0.25, -0.3, -0.2) * e; j = Vector4(-0.2, -0.1, 0.2, 0.1) * e
-			cab = Vector2(-0.1 * e, 0.0); cau = Vector2(0.4 * e, 0.0); vy = -0.12 * e
+		"morto":
+			# morte: tranco para trás com a cabeça para cima, as patas cedem (as da frente primeiro), o corpo
+			# desce até o chão e então tomba devagar de lado, a cabeça e a cauda caindo, as patas soltas
+			var t := _t
+			var a := _rampa(0.0, 0.22, t) * (1.0 - _rampa(0.22, 0.5, t))         # tranco
+			var cede := _rampa(0.2, 0.75, t)                                    # patas cedendo
+			var cede_tras := _rampa(0.35, 0.85, t)
+			var tomba := _rampa(0.8, 1.5, t)                                    # tomba de lado
+			cab = Vector2(0.35 * a - 0.3 * cede - 0.15 * tomba, 0.15 * tomba)
+			pitch = 0.14 * a - 0.18 * (cede - cede_tras) 
+			q = Vector4(0.25, 0.25, -0.35, -0.35) * cede + Vector4(0.25, 0.15, -0.15, -0.25) * tomba
+			j = Vector4(-1.5 * cede, -1.4 * cede, 1.3 * cede_tras, 1.2 * cede_tras) * (1.0 - 0.55 * tomba)
+			vy = -0.36 * maxf(cede, cede_tras) * (1.0 - tomba)
+			roll = 1.3 * tomba
+			cau = Vector2(0.45 * cede, 0.0)
 	var fq := 1.0 - exp(-26.0 * delta)
 	_q = _q.lerp(q, fq); _j = _j.lerp(j, fq); _cab = _cab.lerp(cab, fq); _cau = _cau.lerp(cau, fq)
 	_vy = lerpf(_vy, vy, fq); _pitch = lerpf(_pitch, pitch, fq); _roll = lerpf(_roll, roll, 1.0 - exp(-12.0 * delta))

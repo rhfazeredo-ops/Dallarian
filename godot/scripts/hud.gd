@@ -10,7 +10,7 @@ var hora := 9.0                    # relógio do jogo (vem do mundo)
 var nivel := 1
 var vida := 100.0; var vida_max := 100.0
 var mana := 100.0; var mana_max := 100.0
-var xp := 0.0; var xp_max := 80.0
+var xp := 0.0; var xp_max := 400.0
 var _xp_vis := 0.0
 var _xp_texto_alfa := 0.0          # o texto da barra de XP só aparece um pouco quando ganha XP
 var _nivel_alfa := 0.0             # aviso de "NÍVEL X" no meio da tela
@@ -103,7 +103,20 @@ func _draw() -> void:
 # 80, 230, 420, 640 ... ~12.500 no 29. Cada nível: +8 de vida e +5 de mana, e enche as duas.
 const NIVEL_MAX := 30
 signal mudou                       # XP/nível mudaram (o mundo salva o progresso)
-static func xp_do_nivel(n: int) -> float: return roundf(80.0 * pow(n, 1.5) / 10.0) * 10.0
+# tabela do WoW Classic (XP para passar do nível n para o n+1)
+const TABELA_XP := [400, 900, 1400, 2100, 2800, 3600, 4500, 5400, 6500, 7600, 8800, 10100, 11400, 12900, 14400,
+	16000, 17700, 19400, 21300, 23200, 25200, 27300, 29400, 31700, 34000, 36400, 38900, 41400, 44300]
+static func xp_do_nivel(n: int) -> float: return float(TABELA_XP[clampi(n, 1, TABELA_XP.size()) - 1])
+
+# XP por matar um bicho, como no Classic: 45 + 5×nível dele, +5% por nível acima da Rachel (até +4),
+# menos conforme ele é mais fraco ("zona de diferença"), e nada se ele for "cinza" (fraco demais)
+static func xp_por_matar(nv_bicho: int, nv_heroi: int) -> float:
+	var base := 45.0 + 5.0 * nv_bicho
+	if nv_bicho >= nv_heroi: return roundf(base * (1.0 + 0.05 * mini(nv_bicho - nv_heroi, 4)))
+	var cinza := 0 if nv_heroi <= 5 else nv_heroi - int(nv_heroi / 10.0) - 5
+	if nv_bicho <= cinza: return 0.0
+	var zd := 5 if nv_heroi <= 7 else (6 if nv_heroi <= 9 else (7 if nv_heroi <= 11 else (8 if nv_heroi <= 15 else (9 if nv_heroi <= 19 else 11))))
+	return roundf(base * maxf(0.0, 1.0 - float(nv_heroi - nv_bicho) / zd))
 
 func ganhar_xp(qtd: float) -> void:
 	if nivel >= NIVEL_MAX: return
@@ -117,7 +130,7 @@ func ganhar_xp(qtd: float) -> void:
 
 # põe o progresso salvo (nível e XP) sem avisos
 func definir_nivel(n: int, x: float) -> void:
-	nivel = clampi(n, 1, NIVEL_MAX); xp_max = xp_do_nivel(nivel); xp = x
+	nivel = clampi(n, 1, NIVEL_MAX); xp_max = xp_do_nivel(nivel); xp = clampf(x, 0.0, xp_max - 1.0)
 	vida_max = 100.0 + (nivel - 1) * 8.0; mana_max = 100.0 + (nivel - 1) * 5.0; vida = vida_max; mana = mana_max
 	_xp_vis = xp / xp_max; _vida_vis = 1.0
 

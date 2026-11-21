@@ -64,7 +64,7 @@ func _ready() -> void:
 	loja_ui = Loja.new(); cl.add_child(loja_ui); loja_ui.montar(self)
 	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
 	var bus := Bussola.new(); cl.add_child(bus)
-	bus.descobriu.connect(func(_n): hud.ganhar_xp(35.0))      # descobrir um local dá XP
+	bus.descobriu.connect(func(_n): hud.ganhar_xp(roundf(40.0 + 20.0 * hud.nivel)))      # descobrir um local dá XP
 	bus.montar(self, [
 		["Vila do Vale", Vector2(0, 0), "vila", 45.0],
 		["Ferraria do Bram", ferraria_pos, "ferraria", 12.0],
@@ -151,12 +151,15 @@ func _lobos() -> void:
 func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator) -> void:
 	var n := rng.randi_range(4, 6)
 	var g := {"casa": c, "membros": [], "alerta": false, "atacante": null, "tipo": tipo}
+	# nível: marrons (floresta) 2–3, brancos (montanha) 4–6; o líder um nível acima do maior
+	var nv_min := 2 if tipo == "marrom" else 4; var nv_max := 3 if tipo == "marrom" else 6
 	for i in n:
 		var lobo := Lobo.new(); lobo.grupo = g
 		var a := TAU * i / n + rng.randf() * 0.4; var r := 0.0 if i == 0 else rng.randf_range(3.0, 6.0)
 		var p := c + Vector2(cos(a), sin(a)) * r
 		raiz.add_child(lobo); lobo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 		lobo.vaga = TAU * i / n
+		lobo.nivel = nv_max + 1 if i == 0 else rng.randi_range(nv_min, nv_max)
 		lobo.montar(self, "preto" if i == 0 else tipo, i == 0, rng.randi())
 		lobo.rotation.y = rng.randf() * TAU
 		g.membros.append(lobo)
@@ -192,8 +195,10 @@ func _desmaiar() -> void:
 
 # lobo morto: XP (o líder dá um pouco mais) e deixa dentes e garras na bolsa
 func lobo_morreu(l: Lobo) -> void:
-	hud.ganhar_xp(25.0 if l.lider else 20.0)
-	var n := 2 if l.lider else 1
+	var ganho := Hud.xp_por_matar(l.nivel, hud.nivel)
+	if ganho > 0.0: hud.ganhar_xp(ganho)
+	if randf() > 0.4: return                                  # deixa dentes e garras em ~40% das vezes
+	var n := randi_range(1, 2) if l.lider else 1
 	var sobra := bolsa.pegar("dentes_garras", n)
 	if n - sobra > 0: hud.avisar("+%d %s" % [n - sobra, Bolsa.ITENS["dentes_garras"].nome], Color(0.62, 0.62, 0.62))
 	if sobra > 0: hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3))
@@ -384,6 +389,9 @@ func _juntar_estaticos() -> void:
 		if not (c is MeshInstance3D) or pular.has(c) or c.get_child_count() > 0 or c.mesh == null: continue
 		var mi: MeshInstance3D = c
 		if mi.mesh.get_surface_count() != 1 or mi.material_override == null or not mi.visible: continue
+		# só as construções (material PS1); água, splats e o resto ficam como estão
+		var smat := mi.material_override as ShaderMaterial
+		if smat == null or smat.shader == null or not smat.shader.resource_path.ends_with("ps1.gdshader") or mi.mesh is PrimitiveMesh: continue
 		var p := mi.global_position
 		var chave := [mi.material_override, int(floor(p.x / 96.0)), int(floor(p.z / 96.0))]
 		if not grupos.has(chave): grupos[chave] = []

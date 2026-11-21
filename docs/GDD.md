@@ -102,6 +102,7 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - Passeiam e farejam perto da toca; viram a Rachel a 20 m e a matilha toda caça. Cercam em roda (5,5 m, com espaço
   entre eles), só **um ataca de cada vez** e a matilha respira 1–2 s entre ataques. Desistem se ela se afastar.
 - **Rosnam**: rosnado longo quando a matilha vê a Rachel, curtos ao atacar (líder mais grave).
+- **Morte:** tranco para trás, as patas cedem (as da frente primeiro), deita e tomba devagar de lado.
 - Em **fúria**: depois de morder ou apanhar não foge — fica colado na Rachel atacando (até 2 ao mesmo tempo).
 - Animações: **correr** (trote/galope), **atacar** (agacha, salta e morde) e **esquivar** (pulo para o lado — quando
   a Rachel começa um golpe na frente deles, ou depois de morder).
@@ -115,11 +116,12 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - Equipamento inicial da Rachel: **espada e escudo de madeira**.
 
 ## 7.1.3 Progresso, dinheiro e loja
-- **Níveis 1 a 30** (máximo por enquanto). XP para passar do nível n: 80·n^1,5 (80, 230, 420, 640…). Cada nível dá
-  +8 de vida e +5 de mana e enche as duas.
-- XP: lobo 20, líder 25; descobrir local 35. Avisos curtos no lado esquerdo (+XP, itens, dinheiro).
+- **Níveis 1 a 30** (máximo por enquanto) com a **tabela de XP do WoW Classic** (400, 900, 1.400, 2.100… 44.300;
+  499 mil no total). Cada nível dá +8 de vida e +5 de mana e enche as duas.
+- XP por matar como no Classic: 45 + 5×nível do bicho, +5% por nível acima (até +4), menos se for mais fraco
+  e nada se for "cinza". Lobos marrons nível 2–3, brancos 4–6, líder preto um nível acima. Descobrir local: 40 + 20×nível. Avisos curtos no lado esquerdo (+XP, itens, dinheiro).
 - **Dinheiro:** ouro, prata e cobre (100 cobre = 1 prata, 100 prata = 1 ouro). Itens fracos do começo valem cobre.
-- Lobo morto deixa **dentes e garras de lobo** (líder: 2) — vende por 12 cobre cada.
+- Lobo morto deixa **dentes e garras de lobo** em ~40% das vezes (líder: 1 ou 2) — vende por 12 cobre cada.
 - **Ferreiro:** botões CRIAR (em breve), LOJA (vende itens: 1 ou todos) e CONVERSAR.
 - **Inventário estilo WoW:** até **3 bolsas** equipadas (10 a 50 espaços); começa com uma de 10. Itens em pilhas
   (dentes e garras: 20 por espaço). Bolsas empilhadas no canto direito, barra com os 3 lugares de bolsa e o
