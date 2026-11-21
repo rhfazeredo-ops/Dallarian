@@ -9,6 +9,10 @@ var nome := "Rachel"
 var nivel := 1
 var vida := 100.0; var vida_max := 100.0
 var mana := 100.0; var mana_max := 100.0
+var xp := 0.0; var xp_max := 100.0
+var _xp_vis := 0.0
+var _xp_texto_alfa := 0.0          # o texto da barra de XP só aparece um pouco quando ganha XP
+var _nivel_alfa := 0.0             # aviso de "NÍVEL X" no meio da tela
 var _vida_vis := 1.0; var _mana_vis := 1.0
 var retrato: Texture2D
 var fonte: Font
@@ -46,6 +50,9 @@ func _tirar_retrato() -> void:
 func _process(delta: float) -> void:
 	_vida_vis = move_toward(_vida_vis, vida / vida_max, delta * 0.8)
 	_mana_vis = move_toward(_mana_vis, mana / mana_max, delta * 0.8)
+	_xp_vis = move_toward(_xp_vis, xp / xp_max, delta * 0.6)
+	_xp_texto_alfa = maxf(0.0, _xp_texto_alfa - delta * 0.35)
+	_nivel_alfa = maxf(0.0, _nivel_alfa - delta * 0.3)
 	queue_redraw()
 
 # artes (ChatGPT): plaqueta 2172×724 e moldura 1254×1254, ambas com fundo transparente.
@@ -60,6 +67,7 @@ func _draw() -> void:
 	var pw := 2172.0 * k; var ph := 724.0 * k
 	var p0 := Vector2(tela.x - pw - 24.0, 18.0)               # canto superior esquerdo da plaqueta
 	var P := func(x: float, y: float) -> Vector2: return p0 + Vector2(x, y) * k
+	_desenhar_xp(tela)
 	draw_texture_rect(tex_plaqueta, Rect2(p0, Vector2(pw, ph)), false)
 	# barras dentro dos trilhos
 	_barra(Rect2(P.call(418, 337), Vector2(2042 - 418, 458 - 337) * k), _vida_vis, Color(0.42, 0.78, 0.22), Color(0.62, 0.92, 0.36), "%d / %d" % [vida, vida_max])
@@ -85,6 +93,39 @@ func _draw() -> void:
 	draw_colored_polygon(pts, Color(0.12, 0.16, 0.3), uvs)
 	if retrato: draw_colored_polygon(pts, Color.WHITE, uvs, retrato)
 	draw_texture_rect(tex_moldura, Rect2(c - Vector2(627, 627) * km, Vector2(1254, 1254) * km), false)
+
+# ganhar XP: enche a barra; ao completar, sobe de nível (o que sobra passa para o próximo; cada nível pede 50% a mais)
+func ganhar_xp(qtd: float) -> void:
+	xp += qtd; _xp_texto_alfa = 1.0
+	while xp >= xp_max:
+		xp -= xp_max; nivel += 1; xp_max = round(xp_max * 1.5); _xp_vis = 0.0; _nivel_alfa = 1.0
+
+# barra de XP: uma linha fina no rodapé, quase invisível; brilha um pouco e mostra o texto quando ganha XP
+func _desenhar_xp(tela: Vector2) -> void:
+	var m := 260.0; var h := 6.0
+	var r := Rect2(m, tela.y - h - 6.0, tela.x - m * 2.0, h)
+	draw_rect(r.grow(1), Color(0, 0, 0, 0.45))
+	draw_rect(r, Color(0.1, 0.09, 0.08, 0.55))
+	var f := Rect2(r.position, Vector2(r.size.x * clampf(_xp_vis, 0, 1), h))
+	var brilho := 0.75 + 0.25 * _xp_texto_alfa
+	draw_rect(f, Color(0.86, 0.66, 0.28, brilho))
+	draw_rect(Rect2(f.position, Vector2(f.size.x, 2)), Color(1, 0.88, 0.55, brilho))
+	for i in range(1, 10):                                   # divisórias discretas a cada 10%
+		var x := r.position.x + r.size.x * i / 10.0
+		draw_line(Vector2(x, r.position.y), Vector2(x, r.end.y), Color(0, 0, 0, 0.35), 1.0)
+	if _xp_texto_alfa > 0.0:
+		var t := "%d / %d XP" % [xp, xp_max]
+		var w := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+		var pos := Vector2(tela.x * 0.5 - w * 0.5, r.position.y - 8)
+		draw_string_outline(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 5, Color(0, 0, 0, 0.8 * minf(1.0, _xp_texto_alfa * 2.0)))
+		draw_string(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.9, 0.65, minf(1.0, _xp_texto_alfa * 2.0)))
+	if _nivel_alfa > 0.0:
+		var a := minf(1.0, _nivel_alfa * 2.5)
+		var t2 := "NÍVEL %d" % nivel
+		var w2 := fonte.get_string_size(t2, HORIZONTAL_ALIGNMENT_LEFT, -1, 56).x
+		var p2 := Vector2(tela.x * 0.5 - w2 * 0.5, tela.y * 0.36)
+		draw_string_outline(fonte, p2, t2, HORIZONTAL_ALIGNMENT_LEFT, -1, 56, 10, Color(0, 0, 0, 0.8 * a))
+		draw_string(fonte, p2, t2, HORIZONTAL_ALIGNMENT_LEFT, -1, 56, Color(1, 0.86, 0.5, a))
 
 func _barra(r: Rect2, frac: float, cor: Color, brilho: Color, texto: String) -> void:
 	var f := Rect2(r.position, Vector2(r.size.x * clampf(frac, 0, 1), r.size.y))

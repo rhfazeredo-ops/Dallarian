@@ -55,6 +55,7 @@ func _ready() -> void:
 	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self)
 	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
 	var bus := Bussola.new(); cl.add_child(bus)
+	bus.descobriu.connect(func(_n): hud.ganhar_xp(35.0))      # descobrir um local dá XP
 	bus.montar(self, [
 		["Vila do Vale", Vector2(0, 0), "vila", 45.0],
 		["Ferraria do Bram", ferraria_pos, "ferraria", 12.0],
@@ -927,6 +928,10 @@ func _modo_teste() -> void:
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
+	if args.has("xp"):
+		for c in get_children():
+			if c is CanvasLayer:
+				for h in c.get_children(): if h is Hud: h.ganhar_xp(float(args.xp))
 	if args.has("cima"):         # teste: vista de cima (--cima=altura[,x,z])
 		var pc := String(args.cima).split(",")
 		var cx := float(pc[1]) if pc.size() > 2 else 0.0; var cz := float(pc[2]) if pc.size() > 2 else 0.0

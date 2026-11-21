@@ -14,6 +14,7 @@ var aviso: Label
 var aviso_nome: Label
 var fonte: Font
 var _icones := {}
+signal descobriu(nome: String)
 
 func montar(mundo, lista: Array) -> void:
 	m = mundo
@@ -38,7 +39,7 @@ func _process(_d: float) -> void:
 	var p := Vector2(m.jogador.global_position.x, m.jogador.global_position.z)
 	for l in locais:
 		if not l[4] and p.distance_to(l[1]) < l[3]:
-			l[4] = true; _anunciar(l[0])
+			l[4] = true; _anunciar(l[0]); descobriu.emit(l[0])
 	queue_redraw()
 
 func _anunciar(nome: String) -> void:
