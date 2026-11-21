@@ -7,6 +7,7 @@ uniform float neb_ini = 40.0;
 uniform float neb_fim = 330.0;
 uniform vec3 jogador = vec3(0.0, -100.0, 0.0);
 uniform float vento = 1.0;
+global uniform float forca_vento;   // rajadas do vento (script mundo.gd)
 global uniform float relampago;
 varying vec3 cor;
 varying float nb;
@@ -21,7 +22,7 @@ void vertex() {
   // vento: rajadas que atravessam o campo + tremida rápida
   float raj = noise(raiz.xz * 0.12 + vec2(TIME * 0.35, TIME * 0.2));
   float tre = sin(TIME * 4.0 + raiz.x * 3.1 + raiz.z * 2.7 + UV.x * 2.0);
-  w.xz += vec2(0.8, 0.45) * (raj * 0.32 + tre * 0.03) * k * vento * length(MODEL_MATRIX[1].xyz);
+  w.xz += vec2(0.8, 0.45) * (raj * 0.32 + tre * 0.03) * k * vento * forca_vento * length(MODEL_MATRIX[1].xyz);
   // abre caminho para o jogador
   vec2 d = raiz.xz - jogador.xz;
   float dist = length(d);

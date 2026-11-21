@@ -76,6 +76,7 @@ func _ready() -> void:
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	fauna.montar(self)
 	_montar_chuva()
+	_montar_vento()
 	if args.has("chuva"): _chuva_alvo = float(args.chuva); chuva = _chuva_alvo
 	_musica()
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
@@ -427,6 +428,8 @@ func _dia_noite(delta: float) -> void:
 	var dia := Color(1, 1, 1); var tarde := Color(1.0, 0.72, 0.52); var escuro := Color(0.2, 0.25, 0.45)
 	var c := dia.lerp(escuro, noite).lerp(tarde * (1.0 - noite * 0.5), crep * 0.55)
 	_tempo_chuva(delta)
+	_vento(delta)
+	if hud: hud.hora = hora
 	c = c.lerp(c * Color(0.62, 0.66, 0.74), chuva)                  # chovendo: tudo mais escuro e azulado
 	RenderingServer.global_shader_parameter_set("luz_ambiente", Vector3(c.r, c.g, c.b))
 	RenderingServer.global_shader_parameter_set("noite", noite)
@@ -485,6 +488,42 @@ func _tempo_chuva(delta: float) -> void:
 		if not _som_chuva.playing: _som_chuva.play()
 		_som_chuva.volume_db = linear_to_db(chuva) - 4.0
 	elif _som_chuva.playing: _som_chuva.stop()
+
+# ---------- vento ----------
+# vento leve o tempo todo, com rajadas de vez em quando (mais forte na chuva): a grama, as árvores e as
+# folhas balançam mais (uniform global forca_vento), folhinhas voam em volta da Rachel e o som acompanha.
+var vento := 1.0
+var _folhas: CPUParticles3D
+var _som_vento: AudioStreamPlayer
+const DIR_VENTO := Vector3(1.0, 0.0, 0.55)
+func _montar_vento() -> void:
+	_folhas = CPUParticles3D.new(); _folhas.amount = 26; _folhas.lifetime = 4.5; _folhas.local_coords = false
+	_folhas.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX; _folhas.emission_box_extents = Vector3(12, 2.5, 12)
+	_folhas.direction = DIR_VENTO.normalized() + Vector3(0, 0.15, 0); _folhas.spread = 25.0
+	_folhas.initial_velocity_min = 2.0; _folhas.initial_velocity_max = 4.0; _folhas.gravity = Vector3(0, -0.35, 0)
+	_folhas.angle_min = 0.0; _folhas.angle_max = 360.0; _folhas.angular_velocity_min = -220.0; _folhas.angular_velocity_max = 220.0
+	_folhas.scale_amount_min = 0.7; _folhas.scale_amount_max = 1.3
+	_folhas.visibility_aabb = AABB(Vector3(-25, -6, -25), Vector3(50, 14, 50))
+	var q := QuadMesh.new(); q.size = Vector2(0.09, 0.06)
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mt.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES; mt.vertex_color_use_as_albedo = true; mt.cull_mode = BaseMaterial3D.CULL_DISABLED
+	q.material = mt; _folhas.mesh = q
+	var g := Gradient.new(); g.set_color(0, Color(0.45, 0.62, 0.25)); g.add_point(0.5, Color(0.85, 0.65, 0.25)); g.set_color(2, Color(0.6, 0.35, 0.15))
+	_folhas.color_initial_ramp = g
+	raiz.add_child(_folhas)
+	_som_vento = AudioStreamPlayer.new(); var st: AudioStreamOggVorbis = load("res://assets/som/vento.ogg"); st.loop = true
+	_som_vento.stream = st; _som_vento.bus = "Efeitos"; _som_vento.volume_db = -30.0; add_child(_som_vento); _som_vento.play()
+
+func _vento(delta: float) -> void:
+	if _folhas == null: return
+	var t := Lobo._relogio()
+	var raj := clampf(0.5 + 0.6 * sin(t * 0.19) * sin(t * 0.47 + 1.3) + 0.15 * sin(t * 1.3), 0.0, 1.0)
+	vento = lerpf(vento, 0.65 + raj * 0.85 + chuva * 0.6, 1.0 - exp(-0.8 * delta))
+	RenderingServer.global_shader_parameter_set("forca_vento", vento)
+	if jogador: _folhas.global_position = jogador.global_position + Vector3(0, 1.5, 0) - DIR_VENTO * 6.0
+	_folhas.emitting = vento > 1.05 and chuva < 0.6 and hora > 5.5 and hora < 20.0
+	_folhas.speed_scale = clampf(vento * 0.8, 0.6, 1.6)
+	_som_vento.volume_db = linear_to_db(clampf((vento - 0.45) / 1.5, 0.08, 1.0)) - 7.0
 
 # postes de madeira com lanterna ao longo da rua principal e na praça (lanterna virada para a rua)
 func _postes() -> void:

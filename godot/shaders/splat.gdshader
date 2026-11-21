@@ -11,6 +11,7 @@ uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
 uniform float neb_ini = 40.0;
 uniform float neb_fim = 330.0;
 uniform float balanco = 0.0;      // vento (grama/folhas)
+global uniform float forca_vento;
 uniform bool quadrado = false;    // folhas: partículas quadradas
 global uniform float relampago;
 varying float nb;
@@ -21,7 +22,7 @@ void vertex() {
   vec3 dir = INV_VIEW_MATRIX[0].xyz;
   vec3 cima = em_pe ? vec3(0.0, 1.0, 0.0) : INV_VIEW_MATRIX[1].xyz;
   if (em_pe) dir = normalize(vec3(dir.x, 0.0, dir.z));
-  float vento = sin(TIME * 1.7 + centro.x * 0.31 + centro.z * 0.27) * balanco * (UV.y < 0.5 ? 1.0 : 0.0);
+  float vento = sin(TIME * 1.7 + centro.x * 0.31 + centro.z * 0.27) * balanco * forca_vento * (UV.y < 0.5 ? 1.0 : 0.0);
   vec2 v = VERTEX.xy;
   if (quadrado) {                   // cada folha girada um pouco (pelo lugar)
     float a = fract(sin(dot(centro.xz, vec2(12.9898, 78.233))) * 43758.5453) * 1.2 - 0.6;

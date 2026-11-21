@@ -6,6 +6,7 @@ extends Control
 class_name Hud
 
 var nome := "Rachel"
+var hora := 9.0                    # relógio do jogo (vem do mundo)
 var nivel := 1
 var vida := 100.0; var vida_max := 100.0
 var mana := 100.0; var mana_max := 100.0
@@ -71,6 +72,7 @@ func _draw() -> void:
 	var P := func(x: float, y: float) -> Vector2: return p0 + Vector2(x, y) * k
 	_desenhar_xp(tela)
 	_desenhar_avisos(tela)
+	_desenhar_relogio(tela)
 	draw_texture_rect(tex_plaqueta, Rect2(p0, Vector2(pw, ph)), false)
 	# barras dentro dos trilhos
 	_barra(Rect2(P.call(418, 337), Vector2(2042 - 418, 458 - 337) * k), _vida_vis, Color(0.42, 0.78, 0.22), Color(0.62, 0.92, 0.36), "%d / %d" % [vida, vida_max])
@@ -118,6 +120,27 @@ func definir_nivel(n: int, x: float) -> void:
 	nivel = clampi(n, 1, NIVEL_MAX); xp_max = xp_do_nivel(nivel); xp = x
 	vida_max = 100.0 + (nivel - 1) * 8.0; mana_max = 100.0 + (nivel - 1) * 5.0; vida = vida_max; mana = mana_max
 	_xp_vis = xp / xp_max; _vida_vis = 1.0
+
+# relógio clean embaixo da bússola: sol ou lua + hora (de 5 em 5 minutos)
+func _desenhar_relogio(tela: Vector2) -> void:
+	var h := int(hora); var mi := int(fmod(hora, 1.0) * 60.0) / 5 * 5
+	var t := "%02d:%02d" % [h, mi]
+	var tam := 24
+	var w := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+	var c := Vector2(tela.x * 0.5, 84.0)
+	var ic := c + Vector2(-w * 0.5 - 16.0, -8.0)
+	var dia := hora >= 6.0 and hora < 18.5
+	if dia:
+		draw_circle(ic, 7.0, Color(0, 0, 0, 0.5)); draw_circle(ic, 5.5, Color(1.0, 0.85, 0.4))
+		for k in 8:
+			var a := TAU * k / 8.0; var d := Vector2(cos(a), sin(a))
+			draw_line(ic + d * 8.0, ic + d * 11.0, Color(1.0, 0.85, 0.4, 0.9), 2.0)
+	else:
+		draw_arc(ic, 6.5, PI * 0.42, PI * 1.58, 18, Color(0, 0, 0, 0.5), 6.0)     # lua crescente
+		draw_arc(ic, 6.0, PI * 0.45, PI * 1.55, 18, Color(0.9, 0.92, 1.0), 4.0)
+	var pos := Vector2(c.x - w * 0.5 + 6.0, c.y)
+	draw_string_outline(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 6, Color(0, 0, 0, 0.75))
+	draw_string(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, Color(1, 0.95, 0.85, 0.92))
 
 # avisos curtos que sobem no lado esquerdo (XP ganho, item pego, dinheiro)
 var _avisos := []                 # [texto, cor, tempo]

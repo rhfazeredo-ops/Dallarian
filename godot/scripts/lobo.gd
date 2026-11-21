@@ -178,6 +178,7 @@ func _physics_process(delta: float) -> void:
 				if ds.length() > 0.5:
 					dir = ds.normalized(); vel = clampf(ds.length() * 1.6, 1.2, VEL_CORRER)
 				olhar = ppj
+				if dist < 9.0 and rng.randf() < delta * 0.35: _rosnar(false)   # rosnando enquanto cerca
 		"atacar":
 			_tocar_ataque(delta, ppj)
 			if _t >= 0.3 and _t < 0.6: dir = _dir_salto; vel = _dist_salto / 0.3

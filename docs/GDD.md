@@ -84,6 +84,8 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
 - **Moradores**: homens e mulheres de vários corpos (gorda, forte/alto, idosos que andam devagar) e duas crianças
   brincando de pega-pega perto da praça.
 
+- **Vento** leve com rajadas: grama e árvores balançam mais, folhinhas voam, som de vento (mais forte na chuva).
+- **Relógio** embaixo da bússola (sol de dia, lua de noite).
 - **Chuva:** de vez em quando (tempo bom 4–9 min, chuva 2–4 min): céu fecha, luz cinza-azulada, gotas e som de chuva.
 
 ## 7.1.1b Vida no mundo
