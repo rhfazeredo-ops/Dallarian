@@ -149,6 +149,9 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
   DESCOBERTO". Locais: Vila do Vale, Ferraria do Bram, Mosteiro da Ilha, Porto dos Pescadores, Píer do Rio,
   Torre em Ruínas, Serraria, Acampamento de Bandidos, Caverna do Oeste, Desfiladeiro do Norte (nomes provisórios).
 
+- **Mapa** (botão ao lado do inventário; PC: tecla M): o vale inteiro desenhado a partir do terreno, sem lugares marcados
+  (eles só aparecem na bússola); a Rachel é uma setinha dourada apontando para onde olha.
+
 ## 8. Primeiros passos de produção
 1. Base jogável: câmera em primeira pessoa, filtro PS1, chão e casas low poly, grama e árvores em splats,
    céu de tempestade, espada e escudo provisórios.

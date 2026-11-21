@@ -64,6 +64,7 @@ func _ready() -> void:
 	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self); interacao = inter
 	inventario = Inventario.new(); cl.add_child(inventario); inventario.montar(self)
 	loja_ui = Loja.new(); cl.add_child(loja_ui); loja_ui.montar(self)
+	mapa = Mapa.new(); cl.add_child(mapa); mapa.montar(self)
 	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
 	var bus := Bussola.new(); cl.add_child(bus)
 	bus.descobriu.connect(func(_n): hud.ganhar_xp(roundf(40.0 + 20.0 * hud.nivel)))      # descobrir um local dá XP
@@ -122,6 +123,7 @@ var fauna: Fauna
 var interacao: Interacao
 var inventario: Inventario
 var loja_ui: Loja
+var mapa: Mapa
 func _lobos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
@@ -1593,6 +1595,7 @@ func _modo_teste() -> void:
 				P.get_monitor(P.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), P.get_monitor(P.RENDER_TOTAL_OBJECTS_IN_FRAME),
 				P.get_monitor(P.RENDER_TOTAL_PRIMITIVES_IN_FRAME), P.get_monitor(P.TIME_PROCESS) * 1000.0,
 				P.get_monitor(P.TIME_PHYSICS_PROCESS) * 1000.0, P.get_monitor(P.OBJECT_NODE_COUNT)]))
+	if args.has("mapa"): get_tree().create_timer(1.5).timeout.connect(func(): mapa.alternar())
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

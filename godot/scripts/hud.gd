@@ -139,6 +139,8 @@ func definir_nivel(n: int, x: float) -> void:
 
 # relógio clean embaixo da bússola: sol ou lua + hora (de 5 em 5 minutos)
 func _desenhar_relogio(tela: Vector2) -> void:
+	var cena = get_tree().current_scene
+	if cena and cena.get("mapa") and cena.mapa.aberto: return
 	var h := int(hora); var mi := int(fmod(hora, 1.0) * 60.0) / 5 * 5
 	var t := "%02d:%02d" % [h, mi]
 	var tam := 24
