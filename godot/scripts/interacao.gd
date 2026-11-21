@@ -71,10 +71,11 @@ func montar(mundo) -> void:
 	nome_lbl = Label.new(); nome_lbl.add_theme_font_size_override("font_size", 36); nome_lbl.add_theme_color_override("font_color", Color(0.98, 0.8, 0.42))
 	fala_lbl = Label.new(); fala_lbl.add_theme_font_size_override("font_size", 32); fala_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	fala_lbl.custom_minimum_size = Vector2(1100, 0)
-	var dica := Label.new(); dica.text = "toque para continuar"; dica.add_theme_font_size_override("font_size", 22); dica.add_theme_color_override("font_color", Color(0.7, 0.65, 0.58))
+	var dica := Label.new(); dica.text = ""; dica.add_theme_font_size_override("font_size", 22); dica.add_theme_color_override("font_color", Color(0.7, 0.65, 0.58))
 	dica.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v.add_child(nome_lbl); v.add_child(fala_lbl); v.add_child(dica)
-	caixa.gui_input.connect(func(e): if (e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed: _avancar())
+	# tocar na caixa nunca corta a fala: só passa adiante depois que a voz da fala atual terminou
+	caixa.gui_input.connect(func(e): if (e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed: _tocar_caixa())
 	caixa.visible = false; add_child(caixa)
 	aviso = Label.new(); aviso.add_theme_font_size_override("font_size", 30); aviso.add_theme_constant_override("outline_size", 8)
 	aviso.add_theme_color_override("font_outline_color", Color.BLACK); aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -163,9 +164,15 @@ func _mostrar_fala() -> void:
 	voz.stop()
 	if f[2] != "" and ResourceLoader.exists(f[2]):
 		voz.stream = load(f[2]); voz.play(); _tempo_fala = voz.stream.get_length() + 0.6
+		_inicio_fala = Time.get_ticks_msec()
 	else:
 		_tempo_fala = 1.5 + f[1].length() * 0.055
 
+func _tocar_caixa() -> void:
+	if voz.playing or Time.get_ticks_msec() - _inicio_fala < 600: return
+	_avancar()
+
+var _inicio_fala := 0
 func _avancar() -> void:
 	_fala += 1
 	if _fala >= _dialogo.size(): _fechar()
@@ -179,7 +186,7 @@ func _process(_d: float) -> void:
 	if m == null or m.jogador == null: return
 	var perto: Morador = null
 	for mo in m.raiz.get_children():
-		if mo is Morador and mo.profissao == "ferreiro" and mo.global_position.distance_to(m.jogador.global_position) < ALCANCE:
+		if mo is Morador and mo.profissao == "ferreiro" and mo.global_position.distance_to(m.jogador.global_position) < (ALCANCE if not _falando else 12.0):
 			perto = mo
 	if perto != npc:
 		if npc and _falando: _fechar()
@@ -196,10 +203,10 @@ func _process(_d: float) -> void:
 	Audio.falando = _falando and voz.playing
 	if _falando:
 		_tempo_fala -= _d
-		if _tempo_fala <= 0.0: _avancar()          # passa sozinho quando a fala termina
+		if _tempo_fala <= 0.0 and not voz.playing: _avancar()          # passa sozinho quando a fala termina
 	var f := Input.is_key_pressed(KEY_F)
 	if f and not _f_antes:
-		if _falando: _avancar()
+		if _falando: _tocar_caixa()
 		elif npc: _conversar()
 		elif na_barraca: _descansar()
 	_f_antes = f
