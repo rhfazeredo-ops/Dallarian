@@ -62,7 +62,7 @@ func montar(mundo) -> void:
 	aviso.anchor_left = 0.5; aviso.anchor_right = 0.5; aviso.anchor_top = 1; aviso.anchor_bottom = 1
 	aviso.offset_left = -500; aviso.offset_right = 500; aviso.offset_top = -400; aviso.offset_bottom = -350
 	aviso.modulate.a = 0.0; add_child(aviso)
-	voz = AudioStreamPlayer.new(); voz.volume_db = 2.0; add_child(voz)
+	voz = AudioStreamPlayer.new(); voz.volume_db = 0.0; voz.bus = "Voz"; add_child(voz)
 
 func _botao(txt: String, ativo: bool, f: Callable) -> Button:
 	var b := Button.new(); b.text = txt; b.add_theme_font_size_override("font_size", 34)
@@ -118,6 +118,7 @@ func _process(_d: float) -> void:
 		if npc and _falando: _fechar()
 		npc = perto
 	painel.visible = npc != null and not _falando
+	Audio.falando = _falando and voz.playing
 	if _falando:
 		_tempo_fala -= _d
 		if _tempo_fala <= 0.0: _avancar()          # passa sozinho quando a fala termina

@@ -88,7 +88,9 @@ func _profissionais() -> void:
 		var faisca := _particulas(Vector3(big.x, yb + 1.08, big.y), [Color(1.0, 0.8, 0.3), Color(1.0, 0.55, 0.15)], 16, 3.2, 0.45)
 		# som da martelada (3D: alto perto da ferraria, some ao longe); sorteia uma das batidas e varia o tom
 		var som := AudioStreamPlayer3D.new(); som.position = Vector3(big.x, yb + 1.0, big.y)
-		som.unit_size = 6.0; som.max_distance = 70.0; som.volume_db = -2.0; raiz.add_child(som)
+		som.unit_size = 6.0; som.max_distance = 70.0; som.volume_db = -4.0; som.bus = "Efeitos"
+		som.attenuation_filter_cutoff_hz = 9000.0; som.attenuation_filter_db = -12.0   # de longe fica abafado
+		raiz.add_child(som)
 		var batidas := []
 		for k in 4: batidas.append(load("res://assets/som/martelo_%d.ogg" % (k + 1)))
 		fe.ao_bater = func():
@@ -155,9 +157,10 @@ func perto_de_casa(x: float, z: float, folga: float) -> bool:
 
 # música de fundo ("Time Flows Ever Onward"), em volume bem baixo, repetindo
 func _musica() -> void:
-	var st: AudioStreamMP3 = load("res://assets/som/musica_vale.mp3")
+	Audio.montar()
+	var st: AudioStreamOggVorbis = load("res://assets/som/musica_vale.ogg")
 	st.loop = true
-	var mus := AudioStreamPlayer.new(); mus.stream = st; mus.volume_db = -20.0
+	var mus := AudioStreamPlayer.new(); mus.stream = st; mus.volume_db = -16.0; mus.bus = "Musica"
 	add_child(mus); mus.play()
 
 # o jogador não sai da região nem entra em água funda (volta para o último lugar bom)
@@ -205,6 +208,7 @@ func _ambiente() -> void:
 var _prox_raio := 4.0
 var _raio := 0.0
 func _process(delta: float) -> void:
+	Audio.atualizar(delta)
 	for mo in moinhos: mo.rotate_object_local(Vector3(0, 0, 1), delta * 0.6)
 	if not TEMPESTADE and not args.has("raio"): return
 	_prox_raio -= delta
