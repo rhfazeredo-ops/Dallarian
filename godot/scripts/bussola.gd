@@ -19,8 +19,8 @@ func montar(mundo, lista: Array) -> void:
 	for l in lista: locais.append([l[0], l[1], l[2], l[3], false])
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fonte = ThemeDB.fallback_font
-	aviso = _rotulo(34, Color(0.95, 0.88, 0.7), 150.0); aviso.text = "LOCAL DESCOBERTO"
-	aviso_nome = _rotulo(52, Color(1, 1, 1), 192.0)
+	aviso = _rotulo(26, Color(0.95, 0.88, 0.7), 140.0); aviso.text = "LOCAL DESCOBERTO"
+	aviso_nome = _rotulo(40, Color(1, 1, 1), 172.0)
 
 func _rotulo(tam: int, cor: Color, y: float) -> Label:
 	var l := Label.new(); l.add_theme_font_size_override("font_size", tam); l.add_theme_color_override("font_color", cor)
@@ -48,18 +48,14 @@ func _anunciar(nome: String) -> void:
 
 func _draw() -> void:
 	if m == null or m.jogador == null: return
-	var cx := get_viewport_rect().size.x * 0.5; var y0 := 26.0
-	var x0 := cx - LARG * 0.5
-	# faixa: fundo escuro que some nas pontas, linha dourada fina embaixo e pontas decoradas
-	var passos := 80
+	var cx := get_viewport_rect().size.x * 0.5; var y0 := 22.0
+	var meio := y0 + ALT * 0.5
+	# só uma linha fina dourada que some nas pontas (sem faixa de fundo)
+	var passos := 60
 	for i in passos:
 		var u0 := float(i) / passos; var u1 := float(i + 1) / passos
-		var a := 0.55 * (1.0 - pow(abs((u0 + u1) - 1.0), 2.0))
-		draw_rect(Rect2(x0 + LARG * u0, y0, LARG / passos + 1, ALT), Color(0.05, 0.04, 0.04, a))
-	draw_line(Vector2(x0 + 30, y0 + ALT), Vector2(x0 + LARG - 30, y0 + ALT), Color(0.85, 0.72, 0.45, 0.7), 2.0)
-	for lado in [-1.0, 1.0]:
-		var px: float = cx + lado * (LARG * 0.5 - 6)
-		draw_colored_polygon(PackedVector2Array([Vector2(px, y0 + ALT * 0.5 - 10), Vector2(px + 8 * lado, y0 + ALT * 0.5), Vector2(px, y0 + ALT * 0.5 + 10), Vector2(px - 8 * lado, y0 + ALT * 0.5)]), Color(0.85, 0.72, 0.45, 0.8))
+		var a := 0.5 * (1.0 - pow(abs((u0 + u1) - 1.0), 2.0))
+		draw_line(Vector2(cx - LARG * 0.5 + LARG * u0, meio + 14), Vector2(cx - LARG * 0.5 + LARG * u1, meio + 14), Color(0.92, 0.8, 0.55, a), 1.5)
 	var rumo := _rumo()
 	var px_por_grau := LARG / CAMPO
 	var letras := {0: "N", 45: "NE", 90: "L", 135: "SE", 180: "S", 225: "SO", 270: "O", 315: "NO"}
@@ -67,17 +63,15 @@ func _draw() -> void:
 		var rel := wrapf(g - rumo, -180.0, 180.0)
 		if abs(rel) > CAMPO * 0.5 - 4: continue
 		var x := cx + rel * px_por_grau
-		var fade := 1.0 - pow(abs(rel) / (CAMPO * 0.5), 3.0)
+		var fade := 1.0 - pow(abs(rel) / (CAMPO * 0.5), 2.0)
 		if letras.has(g):
-			var t: String = letras[g]; var tam := 34 if t.length() == 1 else 26
-			var cor := Color(1, 0.9, 0.7, fade) if g == 0 else Color(1, 1, 1, fade)
+			var t: String = letras[g]; var tam := 26 if t.length() == 1 else 19
+			var cor := Color(1, 0.86, 0.55, fade * 0.95) if g == 0 else Color(1, 1, 1, fade * (0.9 if t.length() == 1 else 0.7))
 			var w := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
-			draw_string_outline(fonte, Vector2(x - w * 0.5, y0 + ALT * 0.5 + tam * 0.36), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 6, Color(0, 0, 0, fade * 0.8))
-			draw_string(fonte, Vector2(x - w * 0.5, y0 + ALT * 0.5 + tam * 0.36), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, cor)
+			draw_string_outline(fonte, Vector2(x - w * 0.5, meio + tam * 0.36), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 5, Color(0, 0, 0, fade * 0.5))
+			draw_string(fonte, Vector2(x - w * 0.5, meio + tam * 0.36), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, cor)
 		else:
-			draw_line(Vector2(x, y0 + ALT - 12), Vector2(x, y0 + ALT - 3), Color(1, 1, 1, fade * 0.7), 2.0)
-			var num := str(g); var w2 := fonte.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
-			draw_string(fonte, Vector2(x - w2 * 0.5, y0 + 17), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.85, 0.82, 0.75, fade * 0.65))
+			draw_line(Vector2(x, meio + 10), Vector2(x, meio + 14), Color(1, 1, 1, fade * 0.45), 1.5)
 	# locais
 	var p := Vector2(m.jogador.global_position.x, m.jogador.global_position.z)
 	for l in locais:
@@ -87,26 +81,26 @@ func _draw() -> void:
 		var rel := wrapf(rad_to_deg(atan2(d.x, -d.y)) - rumo, -180.0, 180.0)
 		if abs(rel) > CAMPO * 0.5 - 4: continue
 		var x := cx + rel * px_por_grau
-		var fade := 1.0 - pow(abs(rel) / (CAMPO * 0.5), 3.0)
-		_icone(l[2], Vector2(x, y0 + ALT * 0.5 + 2), conhecido, fade)
-	# marcador do centro (para onde está olhando)
-	draw_colored_polygon(PackedVector2Array([Vector2(cx - 7, y0 + ALT + 10), Vector2(cx + 7, y0 + ALT + 10), Vector2(cx, y0 + ALT + 2)]), Color(0.95, 0.82, 0.5, 0.9))
+		var fade := 1.0 - pow(abs(rel) / (CAMPO * 0.5), 2.0)
+		_icone(l[2], Vector2(x, meio - 1), conhecido, fade * 0.9)
+	# marcador do centro: um tracinho
+	draw_line(Vector2(cx, meio + 12), Vector2(cx, meio + 20), Color(1, 0.86, 0.55, 0.85), 2.0)
 
 # ícones simples desenhados em linhas (conhecido: cheio e claro; desconhecido: só contorno, apagado)
 func _icone(tipo: String, c: Vector2, aceso: bool, fade: float) -> void:
 	var cor := Color(1, 0.97, 0.88, fade) if aceso else Color(0.75, 0.75, 0.75, fade * 0.55)
 	var sombra := Color(0, 0, 0, fade * (0.75 if aceso else 0.4))
-	var formas := _formas(tipo, c)
+	var formas := _formas(tipo, c, 0.75)
 	for f in formas:                                     # contorno escuro por baixo
-		draw_polyline(f, sombra, 5.0, true)
+		draw_polyline(f, sombra, 3.5, true)
 	for f in formas:
 		if aceso and f.size() > 3 and f[0] == f[f.size() - 1]: draw_colored_polygon(f, Color(cor.r, cor.g, cor.b, fade * 0.35))
-		draw_polyline(f, cor, 2.2, true)
+		draw_polyline(f, cor, 1.6, true)
 
-func _formas(tipo: String, c: Vector2) -> Array:
+func _formas(tipo: String, c: Vector2, k := 1.0) -> Array:
 	var P := func(pts: Array) -> PackedVector2Array:
 		var r := PackedVector2Array()
-		for q in pts: r.append(c + q)
+		for q in pts: r.append(c + q * k)
 		return r
 	match tipo:
 		"vila":       # casinha com telhado
