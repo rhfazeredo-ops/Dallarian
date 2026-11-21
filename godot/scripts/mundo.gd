@@ -86,7 +86,14 @@ func _profissionais() -> void:
 		raiz.add_child(fe); fe.position = Vector3(fe.posto.x, altura(fe.posto.x, fe.posto.y), fe.posto.y)
 		var yb := reg.altura(big.x, big.y)
 		var faisca := _particulas(Vector3(big.x, yb + 1.08, big.y), [Color(1.0, 0.8, 0.3), Color(1.0, 0.55, 0.15)], 16, 3.2, 0.45)
-		fe.ao_bater = func(): faisca.restart()
+		# som da martelada (3D: alto perto da ferraria, some ao longe); sorteia uma das batidas e varia o tom
+		var som := AudioStreamPlayer3D.new(); som.position = Vector3(big.x, yb + 1.0, big.y)
+		som.unit_size = 6.0; som.max_distance = 70.0; som.volume_db = -2.0; raiz.add_child(som)
+		var batidas := []
+		for k in 4: batidas.append(load("res://assets/som/martelo_%d.ogg" % (k + 1)))
+		fe.ao_bater = func():
+			faisca.restart()
+			som.stream = batidas[randi() % batidas.size()]; som.pitch_scale = randf_range(0.94, 1.06); som.play()
 		fe.montar(self, 5000 + n, fe.posto, 1.0); n += 1
 	# lenhador: tronco caído na beira da mata, perto da serraria
 	var serra := Vector2(286, -170); var lp := serra + Vector2(0, 22)
