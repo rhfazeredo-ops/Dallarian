@@ -66,6 +66,11 @@ func _moradores() -> void:
 				a = randf() * TAU; p = g[0] + Vector2(cos(a), sin(a)) * randf_range(4.0, g[1] * 0.8)
 			mo.position = Vector3(p.x, altura(p.x, p.y) + 0.3, p.y)
 			mo.montar(self, 1000 + n, g[0], g[1]); n += 1
+	# já começam algumas conversas na vila
+	var vila := []
+	for mo in raiz.get_children():
+		if mo is Morador and Vector2(mo.position.x, mo.position.z).length() < 45.0: vila.append(mo)
+	for k in range(0, mini(vila.size() - 1, 4), 2): vila[k].convidar(vila[k + 1])
 
 # ponto dentro (ou perto) de uma casa?
 func perto_de_casa(x: float, z: float, folga: float) -> bool:
@@ -765,10 +770,19 @@ func _modo_teste() -> void:
 			if mo is Morador and k < 5:
 				var q: Vector3 = jogador.global_position + fr * 4.5 + lado * (k - 2) * 1.3
 				mo.global_position = Vector3(q.x, altura(q.x, q.z) + 0.1, q.z); mo.rotation.y = jogador.rotation.y + PI
-				mo._espera = 100.0
-				if args.npc == "anda": mo._espera = 0.0; mo._alvo = Vector2(q.x, q.z) + Vector2(fr.x, fr.z) * -40.0
-				if args.npc == "lado": mo._espera = 0.0; mo._alvo = Vector2(q.x, q.z) + Vector2(lado.x, lado.z) * 40.0
+				mo.estado = "atividade"; mo._tempo_estado = 1000.0; mo._prox_conversa = 1000.0
+				mo.atividade = String(args.npc) if args.npc != "1" else "olhar"
+				mo._olhar_para = Vector2(jogador.global_position.x, jogador.global_position.z)
+				if args.has("perfil"): mo._olhar_para = Vector2(q.x, q.z) + Vector2(lado.x, lado.z) * 10.0; mo.rotation.y = jogador.rotation.y - PI / 2
+				if args.npc == "anda": mo.estado = "andar"; mo._alvo = Vector2(q.x, q.z) + Vector2(fr.x, fr.z) * -40.0
+				if args.npc == "lado": mo.estado = "andar"; mo._alvo = Vector2(q.x, q.z) + Vector2(lado.x, lado.z) * 40.0
 				k += 1
+		if args.npc == "conversa":
+			var ms := []
+			for mo in raiz.get_children(): if mo is Morador and ms.size() < 2: ms.append(mo)
+			for mo in raiz.get_children():
+				if mo is Morador and not (mo in ms): mo.visible = false; mo.process_mode = Node.PROCESS_MODE_DISABLED
+			ms[0]._prox_conversa = 0; ms[1]._prox_conversa = 0; ms[0].convidar(ms[1])
 	if args.has("andar"):        # teste de colisão: anda para a frente N segundos e diz onde parou
 		await get_tree().create_timer(2.0).timeout
 		var ini := jogador.global_position

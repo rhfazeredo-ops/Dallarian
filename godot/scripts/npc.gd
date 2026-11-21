@@ -10,8 +10,6 @@ var area_centro := Vector2.ZERO
 var area_raio := 40.0
 var esq: Skeleton3D
 var visual: Node3D
-var _alvo := Vector2.ZERO
-var _espera := 0.0
 var _t := 0.0
 var _fase := 0.0
 var _resto := {}          # osso → pose de repouso global (no espaço do esqueleto)
@@ -60,7 +58,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 		var i := esq.find_bone(b)
 		if i >= 0: _ids[b] = i; _resto[b] = esq.get_bone_global_rest(i)
 	_fase = rng.randf() * TAU
-	_novo_alvo()
+	_proxima_coisa()
 
 # marca no vértice quanto ele pertence à cabeça (r) e às mãos (g), pelo peso dos ossos — para separar pele
 # de túnica e cabelo de couro, que têm a mesma cor na textura. Feito uma vez e reaproveitado.
@@ -93,74 +91,226 @@ func _regioes(mi: MeshInstance3D) -> void:
 	nova.surface_set_material(0, mi.mesh.surface_get_material(0))
 	_malhas_prontas[skin] = nova; mi.mesh = nova
 
-func _novo_alvo() -> void:
-	for t in 30:
-		var a := rng.randf() * TAU; var d := sqrt(rng.randf()) * area_raio
-		var p := area_centro + Vector2(cos(a), sin(a)) * d
-		if not m.perto_de_casa(p.x, p.y, 1.2): _alvo = p; return
-	_alvo = area_centro
+# ---------- comportamento ----------
+# estados: "andar" (até um lugar), "atividade" (parado fazendo algo), "conversa" (com outro morador)
+var estado := "atividade"
+var atividade := "olhar"          # olhar, cruzados, debrucar (no poço), agachar, cintura, cocar
+var _alvo := Vector2.ZERO
+var _olhar_para := Vector2.ZERO   # para onde virar quando parado
+var _tempo_estado := 3.0
+var _travado := 0.0
+var par: Morador = null           # com quem conversa
+var falando := false
+var _troca_fala := 0.0
+var _depois_andar := ""           # o que fazer ao chegar: "atividade" ou "conversa"
+var _prox_conversa := 0.0
+
+# lugares de interesse perto da área do morador: [posição, para onde olhar, atividades possíveis]
+func _lugares_de_interesse() -> Array:
+	var l := []
+	for c in m.casas:
+		var p: Vector3 = c[0]
+		var porta := Vector2(p.x, p.z) + Vector2(0, c[3] * 0.5 + 1.3).rotated(-c[1])
+		if porta.distance_to(area_centro) < area_raio:
+			l.append([porta, Vector2(p.x, p.z) + (porta - Vector2(p.x, p.z)) * 3.0, ["olhar", "cruzados", "cintura", "cocar"]])
+	if area_centro.length() < 1.0:
+		for k in 5:
+			var a := TAU * k / 5.0; var q := Vector2(cos(a), sin(a)) * 1.9
+			l.append([q, Vector2.ZERO, ["debrucar"]])
+		var f: Vector2 = m.ferraria_pos
+		if f != Vector2.ZERO: l.append([f + (Vector2.ZERO - f).normalized() * 5.5, f, ["olhar", "cruzados", "cintura"]])
+	for k in 6:                                          # alguns cantos de chão livre
+		var a := rng.randf() * TAU; var q := area_centro + Vector2(cos(a), sin(a)) * rng.randf_range(4.0, area_raio * 0.8)
+		if not m.perto_de_casa(q.x, q.y, 1.5): l.append([q, q + Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1)), ["olhar", "agachar", "cruzados"]])
+	return l
+
+func _proxima_coisa() -> void:
+	par = null; falando = false
+	if rng.randf() < 0.75:
+		var l := _lugares_de_interesse()
+		if not l.is_empty():
+			var e: Array = l[rng.randi() % l.size()]
+			_alvo = e[0]; _olhar_para = e[1]
+			var ats: Array = e[2]; atividade = ats[rng.randi() % ats.size()]
+			estado = "andar"; _depois_andar = "atividade"; return
+	estado = "atividade"; atividade = ["olhar", "cruzados", "cintura"][rng.randi() % 3]
+	_olhar_para = Vector2(global_position.x, global_position.z) + Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1))
+	_tempo_estado = rng.randf_range(4.0, 9.0)
+
+# convite para conversar: os dois vão para um ponto entre eles e ficam de frente
+func convidar(outro: Morador) -> void:
+	var a := Vector2(global_position.x, global_position.z); var b := Vector2(outro.global_position.x, outro.global_position.z)
+	var meio := (a + b) * 0.5; var d := (b - a).normalized()
+	if d.length() < 0.1: d = Vector2(1, 0)
+	var dur := rng.randf_range(10.0, 22.0)
+	_ir_conversar(outro, meio - d * 0.65, meio, dur, true)
+	outro._ir_conversar(self, meio + d * 0.65, meio, dur, false)
+
+func _ir_conversar(outro: Morador, ponto: Vector2, meio: Vector2, dur: float, comeca: bool) -> void:
+	par = outro; _alvo = ponto; _olhar_para = meio; estado = "andar"; _depois_andar = "conversa"
+	_tempo_estado = dur; falando = comeca; _troca_fala = rng.randf_range(2.0, 4.0)
+
+func livre_para_conversar() -> bool:
+	return par == null and (estado == "atividade" or estado == "andar") and _prox_conversa <= 0.0
 
 func _physics_process(delta: float) -> void:
 	if m == null: return
-	_t += delta
+	_t += delta; _prox_conversa -= delta
 	var p := Vector2(global_position.x, global_position.z)
-	var anda := 0.0
-	if _espera > 0.0:
-		_espera -= delta
-		velocity.x = 0; velocity.z = 0
-	else:
-		var d := _alvo - p
-		if d.length() < 0.6:
-			_espera = rng.randf_range(2.0, 7.0); _novo_alvo()
-		else:
-			var dir := d.normalized()
-			velocity.x = dir.x * VEL; velocity.z = dir.y * VEL
-			var alvo_ang := atan2(-dir.x, -dir.y)
-			rotation.y = lerp_angle(rotation.y, alvo_ang, 1.0 - exp(-5.0 * delta))
-			anda = 1.0
-	velocity.y = 0.0
+	var quer_andar := false
+	match estado:
+		"andar":
+			var d := _alvo - p
+			if d.length() < 0.35:
+				if _depois_andar == "conversa":
+					estado = "conversa"
+				else:
+					estado = "atividade"; _tempo_estado = rng.randf_range(6.0, 15.0)
+			else:
+				var dir := d.normalized()
+				velocity = Vector3(dir.x, 0, dir.y) * VEL
+				_virar_para(p + dir, delta, 6.0)
+				quer_andar = true
+		"atividade":
+			velocity = Vector3.ZERO
+			_virar_para(_olhar_para, delta, 2.5)
+			_tempo_estado -= delta
+			if _tempo_estado <= 0.0: _proxima_coisa()
+			elif _prox_conversa <= 0.0 and rng.randf() < delta * 0.12: _procurar_conversa()
+		"conversa":
+			velocity = Vector3.ZERO
+			if par == null or not is_instance_valid(par) or par.par != self:
+				_prox_conversa = 8.0; _proxima_coisa()
+			else:
+				if par.estado == "conversa": _virar_para(Vector2(par.global_position.x, par.global_position.z), delta, 4.0)
+				else: _virar_para(_olhar_para, delta, 4.0)
+				_troca_fala -= delta
+				if _troca_fala <= 0.0 and falando and par.estado == "conversa":
+					falando = false; par.falando = true; _troca_fala = rng.randf_range(2.5, 5.0); par._troca_fala = _troca_fala
+				_tempo_estado -= delta
+				if _tempo_estado <= 0.0:
+					var o := par; _prox_conversa = rng.randf_range(15.0, 30.0); _proxima_coisa()
+					if is_instance_valid(o) and o.par == self: o._prox_conversa = rng.randf_range(15.0, 30.0); o._proxima_coisa()
 	move_and_slide()
-	global_position.y = m.altura_malha(global_position.x, global_position.z)   # pés sempre no chão
-	if anda > 0.0 and get_real_velocity().length() < 0.2 and _t > 1.0:
-		_novo_alvo()                                   # travou em algo: escolhe outro lugar
-	_animar(delta, anda)
+	global_position.y = m.altura_malha(global_position.x, global_position.z)
+	# travou (andando sem sair do lugar): desiste e escolhe outra coisa — nunca "anda parado"
+	var vel_real := Vector2(get_real_velocity().x, get_real_velocity().z).length()
+	if quer_andar and vel_real < 0.3: _travado += delta
+	else: _travado = 0.0
+	if _travado > 0.8:
+		_travado = 0.0
+		if _depois_andar == "conversa" and par: estado = "conversa"          # já está perto o bastante
+		else: estado = "atividade"; atividade = "olhar"; _tempo_estado = rng.randf_range(2.0, 4.0); _olhar_para = _alvo
+	_animar(delta, clampf(vel_real / VEL, 0.0, 1.0))
+
+func _virar_para(alvo: Vector2, delta: float, vel: float) -> void:
+	var d := alvo - Vector2(global_position.x, global_position.z)
+	if d.length() < 0.05: return
+	rotation.y = lerp_angle(rotation.y, atan2(-d.x, -d.y), 1.0 - exp(-vel * delta))
+
+func _procurar_conversa() -> void:
+	var melhor: Morador = null; var dm := 14.0
+	for o in get_parent().get_children():
+		if o is Morador and o != self and o.livre_para_conversar():
+			var dd := global_position.distance_to(o.global_position)
+			if dd < dm: dm = dd; melhor = o
+	if melhor: convidar(melhor)
 
 # ---------- animação nos ossos ----------
-# no espaço do esqueleto (antes do giro do modelo): frente = +X, cima = +Y; giro em Z positivo leva para a frente
+# no espaço do esqueleto: frente = +X, cima = +Y. Giro +Z leva um membro que aponta para baixo para a frente
+# (e inclina o tronco/cabeça para trás); braços: giro em X fecha o braço junto ao corpo (L: -, R: +).
+const OSSOS := ["Hip", "Pelvis", "Waist", "Spine01", "Spine02", "L_Thigh", "R_Thigh", "L_Calf", "R_Calf", "L_Upperarm", "R_Upperarm", "L_Forearm", "R_Forearm", "NeckTwist01", "Head"]
+var _pose := {}            # osso → Quaternion atual (suavizado)
+var _hip_y := 0.0
 var _anda_suave := 0.0
+
+func _q(eixo: Vector3, ang: float) -> Quaternion: return Quaternion(eixo, ang)
+func _zx(z: float, x: float) -> Quaternion: return _q(Vector3(0, 0, 1), z) * _q(Vector3(1, 0, 0), x)
+
 func _animar(delta: float, anda: float) -> void:
-	_anda_suave = lerp(_anda_suave, anda, 1.0 - exp(-6.0 * delta))
+	_anda_suave = lerp(_anda_suave, anda, 1.0 - exp(-8.0 * delta))
 	var a := _anda_suave
 	_fase += delta * TAU * 0.95 * a
 	var s := sin(_fase); var c := cos(_fase)
-	var resp := sin(_t * 1.4 + _fase)
-	var rots := {}
-	rots["L_Thigh"] = Basis(Vector3(0, 0, 1), 0.42 * s * a)
-	rots["R_Thigh"] = Basis(Vector3(0, 0, 1), -0.42 * s * a)
-	rots["L_Calf"] = Basis(Vector3(0, 0, 1), -0.6 * max(0.0, -c) * a)      # joelho dobra para trás
-	rots["R_Calf"] = Basis(Vector3(0, 0, 1), -0.6 * max(0.0, c) * a)
-	# braços (já em pose A no modelo): descem um pouco mais, colados ao corpo, e balançam ao contrário das pernas
-	rots["L_Upperarm"] = Basis(Vector3(0, 0, 1), -0.35 * s * a) * Basis(Vector3(1, 0, 0), -0.32 + resp * 0.015)
-	rots["R_Upperarm"] = Basis(Vector3(0, 0, 1), 0.35 * s * a) * Basis(Vector3(1, 0, 0), 0.32 - resp * 0.015)
-	rots["L_Forearm"] = Basis(Vector3(0, 0, 1), 0.15 + 0.2 * a)            # cotovelo dobra para a frente
-	rots["R_Forearm"] = Basis(Vector3(0, 0, 1), 0.15 + 0.2 * a)
-	rots["Spine01"] = Basis(Vector3(0, 1, 0), 0.08 * s * a) * Basis(Vector3(0, 0, 1), 0.02 * resp)
-	rots["Head"] = Basis(Vector3(0, 1, 0), sin(_t * 0.3 + _fase) * 0.35 * (1.0 - a))   # olha em volta parado
-	# aplica: pose global = rotação (no ponto do osso) * repouso; local = global do pai⁻¹ * global
-	var glob := {}
-	for b in ["Hip", "Pelvis", "Waist", "Spine01", "Spine02", "L_Thigh", "R_Thigh", "L_Calf", "R_Calf", "L_Upperarm", "R_Upperarm", "L_Forearm", "R_Forearm", "NeckTwist01", "Head"]:
+	var resp := sin(_t * 1.4 + _fase * 0.1)
+	var alvo := {}
+	var hip := 0.0
+	# base: em pé, braços soltos junto ao corpo
+	alvo["L_Upperarm"] = _zx(0.0, -0.32 + resp * 0.015); alvo["R_Upperarm"] = _zx(0.0, 0.32 - resp * 0.015)
+	alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.15); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.15)
+	alvo["Spine01"] = _q(Vector3(0, 0, 1), 0.02 * resp)
+	if estado == "conversa" and par and par.estado == "conversa":
+		if falando:      # gesticula: uma mão sobe e mexe, a outra acompanha um pouco; cabeça balança
+			var g := sin(_t * 3.1) * 0.5 + 0.5; var g2 := sin(_t * 2.3 + 1.0)
+			alvo["R_Upperarm"] = _zx(0.55 + 0.15 * g2, 0.2)
+			alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 1.2 + 0.35 * g)
+			alvo["L_Upperarm"] = _zx(0.25 + 0.1 * sin(_t * 1.7), -0.25)
+			alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.7 + 0.2 * sin(_t * 2.0))
+			alvo["Head"] = _q(Vector3(0, 1, 0), sin(_t * 0.9) * 0.12) * _q(Vector3(0, 0, 1), sin(_t * 4.0) * 0.05)
+		else:            # escuta: braços cruzados ou na cintura e balança a cabeça concordando de vez em quando
+			_pose_cruzados(alvo, resp)
+			alvo["Head"] = _q(Vector3(0, 0, 1), -0.06 + (sin(_t * 5.0) * 0.08 if sin(_t * 0.7) > 0.6 else 0.0))
+	elif estado == "atividade":
+		match atividade:
+			"olhar":
+				alvo["Head"] = _q(Vector3(0, 1, 0), sin(_t * 0.35) * 0.55) * _q(Vector3(0, 0, 1), sin(_t * 0.23) * 0.06)
+				alvo["Spine01"] = _q(Vector3(0, 1, 0), sin(_t * 0.35) * 0.12)
+			"cruzados":
+				_pose_cruzados(alvo, resp)
+				alvo["Head"] = _q(Vector3(0, 1, 0), sin(_t * 0.25) * 0.3)
+			"cintura":       # mãos atrás das costas, peso numa perna
+				alvo["L_Upperarm"] = _zx(-0.35, -0.42); alvo["R_Upperarm"] = _zx(-0.35, 0.42)
+				alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.5) * _q(Vector3(1, 0, 0), -0.6)
+				alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.5) * _q(Vector3(1, 0, 0), 0.6)
+				alvo["Pelvis"] = _q(Vector3(1, 0, 0), 0.05)
+				alvo["Head"] = _q(Vector3(0, 1, 0), sin(_t * 0.3) * 0.4)
+			"cocar":         # coça a cabeça com uma mão
+				alvo["R_Upperarm"] = _zx(1.9, 0.45); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 1.9 + sin(_t * 9.0) * 0.12)
+				alvo["Head"] = _q(Vector3(0, 0, 1), -0.08) * _q(Vector3(0, 1, 0), 0.15)
+			"debrucar":      # apoiado na beira do poço, olhando para dentro
+				alvo["Spine01"] = _q(Vector3(0, 0, 1), -0.45); alvo["Spine02"] = _q(Vector3(0, 0, 1), -0.15)
+				alvo["L_Upperarm"] = _zx(0.9, -0.15); alvo["R_Upperarm"] = _zx(0.9, 0.15)
+				alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.2); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.2)
+				alvo["Head"] = _q(Vector3(0, 0, 1), -0.3)
+			"agachar":       # agachado mexendo em algo no chão
+				hip = -0.32
+				alvo["L_Thigh"] = _q(Vector3(0, 0, 1), 1.25); alvo["R_Thigh"] = _q(Vector3(0, 0, 1), 0.95)
+				alvo["L_Calf"] = _q(Vector3(0, 0, 1), -2.0); alvo["R_Calf"] = _q(Vector3(0, 0, 1), -1.5)
+				alvo["Spine01"] = _q(Vector3(0, 0, 1), -0.35)
+				alvo["R_Upperarm"] = _zx(0.9 + sin(_t * 2.5) * 0.15, 0.1); alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 0.4)
+				alvo["L_Upperarm"] = _zx(0.5, -0.1); alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 0.9)
+				alvo["Head"] = _q(Vector3(0, 0, 1), -0.35)
+	# caminhada por cima (pesa conforme a velocidade de verdade)
+	if a > 0.01:
+		var sw := {}
+		sw["L_Thigh"] = _q(Vector3(0, 0, 1), 0.42 * s); sw["R_Thigh"] = _q(Vector3(0, 0, 1), -0.42 * s)
+		sw["L_Calf"] = _q(Vector3(0, 0, 1), -0.6 * max(0.0, -c)); sw["R_Calf"] = _q(Vector3(0, 0, 1), -0.6 * max(0.0, c))
+		sw["L_Upperarm"] = _zx(-0.35 * s, -0.32); sw["R_Upperarm"] = _zx(0.35 * s, 0.32)
+		sw["L_Forearm"] = _q(Vector3(0, 0, 1), 0.35); sw["R_Forearm"] = _q(Vector3(0, 0, 1), 0.35)
+		sw["Spine01"] = _q(Vector3(0, 1, 0), 0.08 * s); sw["Head"] = Quaternion()
+		for k in sw.keys():
+			alvo[k] = (alvo[k] if alvo.has(k) else Quaternion()).slerp(sw[k], a)
+		hip = lerp(hip, abs(s) * 0.012 - 0.006, a)
+	# suaviza a troca de poses e aplica
+	var f := 1.0 - exp(-7.0 * delta)
+	for b in OSSOS:
+		var q0: Quaternion = _pose.get(b, Quaternion())
+		var q1: Quaternion = alvo.get(b, Quaternion())
+		_pose[b] = q0.slerp(q1, f)
+	_hip_y = lerp(_hip_y, hip, f)
+	for b in OSSOS:
 		if not _ids.has(b): continue
 		var i: int = _ids[b]
 		var pai := esq.get_bone_parent(i)
 		var pg: Transform3D = esq.get_bone_global_pose(pai) if pai >= 0 else Transform3D.IDENTITY
-		var resto: Transform3D = _resto[b]
 		var pai_resto: Transform3D = esq.get_bone_global_rest(pai) if pai >= 0 else Transform3D.IDENTITY
-		# repouso levado pelo pai já animado
-		var g: Transform3D = pg * pai_resto.affine_inverse() * resto
-		if rots.has(b): g.basis = rots[b] * g.basis
+		var g: Transform3D = pg * pai_resto.affine_inverse() * _resto[b]
+		g.basis = Basis(_pose[b]) * g.basis
+		if b == "Hip": g.origin += Vector3(0, _hip_y, 0)
 		var loc := pg.affine_inverse() * g
 		esq.set_bone_pose_position(i, loc.origin); esq.set_bone_pose_rotation(i, loc.basis.get_rotation_quaternion())
-	# bob do quadril ao andar
-	if _ids.has("Hip"):
-		var i: int = _ids["Hip"]
-		esq.set_bone_pose_position(i, esq.get_bone_rest(i).origin + Vector3(0, abs(s) * 0.012 * a - 0.006 * a, 0))
+
+func _pose_cruzados(alvo: Dictionary, resp: float) -> void:
+	alvo["L_Upperarm"] = _zx(0.45, -0.55 + resp * 0.02); alvo["R_Upperarm"] = _zx(0.45, 0.55 - resp * 0.02)
+	alvo["L_Forearm"] = _q(Vector3(0, 0, 1), 1.75) * _q(Vector3(1, 0, 0), -0.5)
+	alvo["R_Forearm"] = _q(Vector3(0, 0, 1), 1.75) * _q(Vector3(1, 0, 0), 0.5)
