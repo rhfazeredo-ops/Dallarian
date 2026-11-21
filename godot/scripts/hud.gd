@@ -9,7 +9,7 @@ var nome := "Rachel"
 var nivel := 1
 var vida := 100.0; var vida_max := 100.0
 var mana := 100.0; var mana_max := 100.0
-var xp := 0.0; var xp_max := 100.0
+var xp := 0.0; var xp_max := 80.0
 var _xp_vis := 0.0
 var _xp_texto_alfa := 0.0          # o texto da barra de XP só aparece um pouco quando ganha XP
 var _nivel_alfa := 0.0             # aviso de "NÍVEL X" no meio da tela
@@ -53,6 +53,8 @@ func _process(delta: float) -> void:
 	_xp_vis = move_toward(_xp_vis, xp / xp_max, delta * 0.6)
 	_xp_texto_alfa = maxf(0.0, _xp_texto_alfa - delta * 0.35)
 	_nivel_alfa = maxf(0.0, _nivel_alfa - delta * 0.3)
+	for a in _avisos: a[2] -= delta
+	while not _avisos.is_empty() and _avisos[0][2] <= 0.0: _avisos.pop_front()
 	queue_redraw()
 
 # artes (ChatGPT): plaqueta 2172×724 e moldura 1254×1254, ambas com fundo transparente.
@@ -68,6 +70,7 @@ func _draw() -> void:
 	var p0 := Vector2(tela.x - pw - 24.0, 18.0)               # canto superior esquerdo da plaqueta
 	var P := func(x: float, y: float) -> Vector2: return p0 + Vector2(x, y) * k
 	_desenhar_xp(tela)
+	_desenhar_avisos(tela)
 	draw_texture_rect(tex_plaqueta, Rect2(p0, Vector2(pw, ph)), false)
 	# barras dentro dos trilhos
 	_barra(Rect2(P.call(418, 337), Vector2(2042 - 418, 458 - 337) * k), _vida_vis, Color(0.42, 0.78, 0.22), Color(0.62, 0.92, 0.36), "%d / %d" % [vida, vida_max])
@@ -94,11 +97,44 @@ func _draw() -> void:
 	if retrato: draw_colored_polygon(pts, Color.WHITE, uvs, retrato)
 	draw_texture_rect(tex_moldura, Rect2(c - Vector2(627, 627) * km, Vector2(1254, 1254) * km), false)
 
-# ganhar XP: enche a barra; ao completar, sobe de nível (o que sobra passa para o próximo; cada nível pede 50% a mais)
+# níveis: do 1 ao 30 (máximo por enquanto). XP para passar do nível n: 80·n^1,5 (arredondado de 10 em 10):
+# 80, 230, 420, 640 ... ~12.500 no 29. Cada nível: +8 de vida e +5 de mana, e enche as duas.
+const NIVEL_MAX := 30
+signal mudou                       # XP/nível mudaram (o mundo salva o progresso)
+static func xp_do_nivel(n: int) -> float: return roundf(80.0 * pow(n, 1.5) / 10.0) * 10.0
+
 func ganhar_xp(qtd: float) -> void:
+	if nivel >= NIVEL_MAX: return
 	xp += qtd; _xp_texto_alfa = 1.0
-	while xp >= xp_max:
-		xp -= xp_max; nivel += 1; xp_max = round(xp_max * 1.5); _xp_vis = 0.0; _nivel_alfa = 1.0
+	avisar("+%d XP" % qtd, Color(1.0, 0.86, 0.45))
+	while xp >= xp_max and nivel < NIVEL_MAX:
+		xp -= xp_max; nivel += 1; xp_max = xp_do_nivel(nivel); _xp_vis = 0.0; _nivel_alfa = 1.0
+		vida_max += 8.0; mana_max += 5.0; vida = vida_max; mana = mana_max
+	if nivel >= NIVEL_MAX: xp = xp_max
+	mudou.emit()
+
+# põe o progresso salvo (nível e XP) sem avisos
+func definir_nivel(n: int, x: float) -> void:
+	nivel = clampi(n, 1, NIVEL_MAX); xp_max = xp_do_nivel(nivel); xp = x
+	vida_max = 100.0 + (nivel - 1) * 8.0; mana_max = 100.0 + (nivel - 1) * 5.0; vida = vida_max; mana = mana_max
+	_xp_vis = xp / xp_max; _vida_vis = 1.0
+
+# avisos curtos que sobem no lado esquerdo (XP ganho, item pego, dinheiro)
+var _avisos := []                 # [texto, cor, tempo]
+func avisar(t: String, cor := Color(1, 1, 1)) -> void:
+	_avisos.append([t, cor, 3.0])
+	if _avisos.size() > 5: _avisos.pop_front()
+
+func _desenhar_avisos(tela: Vector2) -> void:
+	var y := tela.y * 0.62
+	for i in range(_avisos.size() - 1, -1, -1):
+		var a: Array = _avisos[i]
+		var alfa := clampf(a[2], 0.0, 1.0)
+		var pos := Vector2(40, y)
+		draw_string_outline(fonte, pos, a[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 26, 7, Color(0, 0, 0, 0.8 * alfa))
+		var c: Color = a[1]; c.a = alfa
+		draw_string(fonte, pos, a[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 26, c)
+		y -= 34
 
 # barra de XP: uma linha fina no rodapé, quase invisível; brilha um pouco e mostra o texto quando ganha XP
 func _desenhar_xp(tela: Vector2) -> void:
@@ -114,7 +150,7 @@ func _desenhar_xp(tela: Vector2) -> void:
 		var x := r.position.x + r.size.x * i / 10.0
 		draw_line(Vector2(x, r.position.y), Vector2(x, r.end.y), Color(0, 0, 0, 0.35), 1.0)
 	if _xp_texto_alfa > 0.0:
-		var t := "%d / %d XP" % [xp, xp_max]
+		var t := "%d / %d XP" % [xp, xp_max] if nivel < NIVEL_MAX else "NÍVEL MÁXIMO"
 		var w := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
 		var pos := Vector2(tela.x * 0.5 - w * 0.5, r.position.y - 8)
 		draw_string_outline(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 5, Color(0, 0, 0, 0.8 * minf(1.0, _xp_texto_alfa * 2.0)))

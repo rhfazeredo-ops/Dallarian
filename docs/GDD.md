@@ -108,6 +108,15 @@ Região de 1,2 × 1,2 km com limites naturais, em `godot/scripts/regiao.gd`:
   em volta; amanhecer das 4h30 às 7h.
 - Equipamento inicial da Rachel: **espada e escudo de madeira**.
 
+## 7.1.3 Progresso, dinheiro e loja
+- **Níveis 1 a 30** (máximo por enquanto). XP para passar do nível n: 80·n^1,5 (80, 230, 420, 640…). Cada nível dá
+  +8 de vida e +5 de mana e enche as duas.
+- XP: lobo 20, líder 25; descobrir local 35. Avisos curtos no lado esquerdo (+XP, itens, dinheiro).
+- **Dinheiro:** ouro, prata e cobre (100 cobre = 1 prata, 100 prata = 1 ouro). Itens fracos do começo valem cobre.
+- Lobo morto deixa **dentes e garras de lobo** (líder: 2) — vende por 12 cobre cada.
+- **Ferreiro:** botões CRIAR (em breve), LOJA (vende itens: 1 ou todos) e CONVERSAR.
+- O progresso (nível, XP, dinheiro, itens) fica salvo no aparelho.
+
 ## 7.2 Interface
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados
   quando ainda não descobertos (até 140 m), acesos depois de descobertos (até 400 m), com o aviso "LOCAL

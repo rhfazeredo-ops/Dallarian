@@ -52,6 +52,7 @@ func _ready() -> void:
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
 	hud = Hud.new(); cl.add_child(hud); hud.montar()
+	_carregar_progresso()
 	_tela_dano = ColorRect.new(); _tela_dano.color = Color(0.7, 0.0, 0.0, 1.0); _tela_dano.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_tela_dano.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tela_dano.modulate.a = 0.0; cl.add_child(_tela_dano)
 	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self)
@@ -177,8 +178,22 @@ func _desmaiar() -> void:
 	tw.tween_property(_tela_dano, "modulate:a", 0.0, 1.2)
 	tw.tween_callback(func(): _tela_dano.color = Color(0.7, 0, 0, 1); heroina_desmaiada = false)
 
+# lobo morto: XP (o líder dá um pouco mais) e deixa dentes e garras na bolsa
 func lobo_morreu(l: Lobo) -> void:
-	hud.ganhar_xp(40.0 if l.lider else 15.0)
+	hud.ganhar_xp(25.0 if l.lider else 20.0)
+	var n := 2 if l.lider else 1
+	bolsa.pegar("dentes_garras", n)
+	hud.avisar("+%d %s" % [n, Bolsa.ITENS["dentes_garras"][0]], Color(0.85, 0.9, 1.0))
+
+# progresso salvo no aparelho (nível, XP, dinheiro e itens); nos testes com print não carrega nem salva
+var bolsa := Bolsa.new()
+var _salvar_em := -1.0
+func _carregar_progresso() -> void:
+	if args.has("shot") and not args.has("progresso"): return
+	var d := bolsa.carregar()
+	if not d.is_empty(): hud.definir_nivel(int(d.get("nivel", 1)), float(d.get("xp", 0.0)))
+	var pedir := func(): _salvar_em = 1.0
+	hud.mudou.connect(pedir); bolsa.mudou.connect(pedir)
 
 # crianças brincando de pega-pega num pedaço livre da vila (o lugar com mais espaço sem casas perto da praça)
 var brincadeira_pos := Vector2.ZERO
@@ -343,6 +358,9 @@ var _raio := 0.0
 func _process(delta: float) -> void:
 	Audio.atualizar(delta)
 	_dia_noite(delta)
+	if _salvar_em > 0.0:
+		_salvar_em -= delta
+		if _salvar_em <= 0.0: bolsa.salvar(hud.nivel, hud.xp)
 	for mo in moinhos: mo.rotate_object_local(Vector3(0, 0, 1), delta * 0.6)
 	if not TEMPESTADE and not args.has("raio"): return
 	_prox_raio -= delta
@@ -1233,6 +1251,7 @@ func _modo_teste() -> void:
 					if perto: var dl := perto.global_position - jogador.global_position; jogador.rotation.y = atan2(-dl.x, -dl.z)
 					controles._seg["atacar"] = true; await get_tree().create_timer(0.12).timeout; controles._seg["atacar"] = false
 				await get_tree().create_timer(0.9).timeout
+				if args.has("lutar"): print("BOLSA: ", bolsa.itens, " XP ", hud.xp, "/", hud.xp_max, " nível ", hud.nivel)
 				print("t=%d alerta=%s atac=%s " % [t, g.alerta, g.atacante != null], g.membros.map(func(l): return "%s %.1f" % [l.estado, Vector2(l.global_position.x - jogador.global_position.x, l.global_position.z - jogador.global_position.z).length()] if is_instance_valid(l) else "-"))
 	if args.has("casa"):           # teste: olha uma casa de lado, a 8 m (--casa=N)
 		var c: Array = casas[int(args.casa) % casas.size()]
@@ -1251,6 +1270,17 @@ func _modo_teste() -> void:
 			for b in fauna.bandos:
 				var a: float = randf() * TAU
 				b.pos = jogador.global_position + Vector3(-sin(jogador.rotation.y) * 45.0 + cos(a) * 8.0, 0, -cos(jogador.rotation.y) * 45.0 + sin(a) * 8.0); b.pos.y = 0.0)
+	if args.has("loja"):           # teste: dá itens e abre a loja do ferreiro
+		bolsa.pegar("dentes_garras", int(args.loja)); bolsa.cobre = 12345
+		var f3 := Vector3(ferraria_pos.x, 0, ferraria_pos.y); var dirf := (Vector3.ZERO - f3).normalized()
+		var pj := f3 + dirf * 3.0; jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z)
+		jogador.rotation.y = atan2(dirf.x, dirf.z)
+		get_tree().create_timer(2.0).timeout.connect(func():
+			for c in get_children():
+				if c is CanvasLayer:
+					for i in c.get_children(): if i is Interacao:
+						i._abrir_loja()
+						if args.has("vender"): i._vender("dentes_garras", 9999); print("VENDEU: ", bolsa.cobre, " itens ", bolsa.itens))
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

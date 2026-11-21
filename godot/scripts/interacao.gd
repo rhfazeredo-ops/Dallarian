@@ -47,9 +47,10 @@ func montar(mundo) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
 	painel = HBoxContainer.new(); painel.add_theme_constant_override("separation", 26)
 	painel.anchor_left = 0.5; painel.anchor_right = 0.5; painel.anchor_top = 1; painel.anchor_bottom = 1
-	painel.offset_left = -170; painel.offset_right = 170; painel.offset_top = -380; painel.offset_bottom = -210
+	painel.offset_left = -250; painel.offset_right = 250; painel.offset_top = -380; painel.offset_bottom = -210
 	add_child(painel)
 	painel.add_child(_botao("CRIAR", false, func(): _aviso("A forja ainda está esfriando... em breve.")))
+	painel.add_child(_botao("LOJA", true, _abrir_loja))
 	painel.add_child(_botao("CONVERSAR", true, _conversar))
 	painel.visible = false
 	painel_barraca = _botao("DESCANSAR", true, _descansar)
@@ -90,7 +91,7 @@ func montar(mundo) -> void:
 
 func _botao(txt: String, ativo: bool, f: Callable) -> Control:
 	var caixa_b := VBoxContainer.new(); caixa_b.alignment = BoxContainer.ALIGNMENT_CENTER
-	var b := BotaoAcao.criar(txt.to_lower(), 132)
+	var b := BotaoAcao.criar({"LOJA": "inventario"}.get(txt, txt.to_lower()), 132)
 	b.ativo = ativo; b.apertou.connect(f)
 	var cont := CenterContainer.new(); cont.custom_minimum_size = Vector2(150, 132); cont.add_child(b)
 	var l := Label.new(); l.text = txt; l.add_theme_font_size_override("font_size", 24); l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -98,6 +99,101 @@ func _botao(txt: String, ativo: bool, f: Callable) -> Control:
 	l.add_theme_constant_override("outline_size", 7); l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	caixa_b.add_child(cont); caixa_b.add_child(l)
 	return caixa_b
+
+# ---------- loja do ferreiro: ele compra os itens da Rachel ----------
+var loja: PanelContainer
+var _loja_lista: VBoxContainer
+var _loja_dinheiro: HBoxContainer
+const FALAS_LOJA := ["Dente de lobo dá bom cabo de faca. Pago justo.", "Garra afiada assim? Isso eu compro.", "Hm... cobre por cobre, negócio fechado."]
+
+func _abrir_loja() -> void:
+	if npc == null: return
+	if loja == null: _montar_loja()
+	_falando = false; painel.visible = false; caixa.visible = false
+	loja.visible = true; _atualizar_loja()
+	m.controles.set_process_input(false); m.controles.dir = Vector2.ZERO
+	npc.falando_com = m.jogador; npc.gesticula = true
+
+func _fechar_loja() -> void:
+	if loja: loja.visible = false
+	m.controles.set_process_input(true)
+	if npc: npc.falando_com = null
+
+func _estilo(cor_fundo: Color, borda: Color, raio := 14) -> StyleBoxFlat:
+	var st := StyleBoxFlat.new(); st.bg_color = cor_fundo; st.set_corner_radius_all(raio)
+	st.border_color = borda; st.set_border_width_all(4)
+	st.content_margin_left = 30; st.content_margin_right = 30; st.content_margin_top = 20; st.content_margin_bottom = 22
+	return st
+
+func _rotulo(t: String, tam: int, cor := Color(1, 0.92, 0.75)) -> Label:
+	var l := Label.new(); l.text = t; l.add_theme_font_size_override("font_size", tam); l.add_theme_color_override("font_color", cor)
+	return l
+
+func _botao_texto(t: String, f: Callable, ativo := true) -> Button:
+	var b := Button.new(); b.text = t; b.add_theme_font_size_override("font_size", 26); b.custom_minimum_size = Vector2(190, 64)
+	b.add_theme_stylebox_override("normal", _estilo(Color(0.32, 0.22, 0.12), Color(0.85, 0.7, 0.42), 10))
+	b.add_theme_stylebox_override("hover", _estilo(Color(0.42, 0.3, 0.16), Color(1.0, 0.85, 0.5), 10))
+	b.add_theme_stylebox_override("pressed", _estilo(Color(0.22, 0.15, 0.08), Color(1.0, 0.85, 0.5), 10))
+	b.add_theme_stylebox_override("disabled", _estilo(Color(0.2, 0.18, 0.16), Color(0.45, 0.4, 0.35), 10))
+	b.add_theme_color_override("font_color", Color(1, 0.92, 0.72)); b.disabled = not ativo
+	b.pressed.connect(f); return b
+
+func _montar_loja() -> void:
+	loja = PanelContainer.new(); loja.add_theme_stylebox_override("panel", _estilo(Color(0.1, 0.08, 0.07, 0.94), Color(0.85, 0.7, 0.42)))
+	loja.anchor_left = 0.5; loja.anchor_right = 0.5; loja.anchor_top = 0.5; loja.anchor_bottom = 0.5
+	loja.offset_left = -560; loja.offset_right = 560; loja.offset_top = -330; loja.offset_bottom = 330
+	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 16); loja.add_child(v)
+	var topo := HBoxContainer.new(); v.add_child(topo)
+	var titulo := _rotulo("Loja do Bram — vender", 40, Color(0.98, 0.8, 0.42)); titulo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	topo.add_child(titulo); topo.add_child(_botao_texto("FECHAR", _fechar_loja))
+	_loja_dinheiro = HBoxContainer.new(); _loja_dinheiro.add_theme_constant_override("separation", 10); v.add_child(_loja_dinheiro)
+	var sep := HSeparator.new(); v.add_child(sep)
+	var rolar := ScrollContainer.new(); rolar.size_flags_vertical = Control.SIZE_EXPAND_FILL; v.add_child(rolar)
+	_loja_lista = VBoxContainer.new(); _loja_lista.add_theme_constant_override("separation", 12)
+	_loja_lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL; rolar.add_child(_loja_lista)
+	loja.visible = false; add_child(loja)
+
+# moeda desenhada (círculo com borda) + número
+func _moeda(qtd: int, cor: Color) -> Control:
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 6)
+	var c := Control.new(); c.custom_minimum_size = Vector2(30, 30)
+	c.draw.connect(func():
+		c.draw_circle(Vector2(15, 17), 13.0, cor * 0.6)
+		c.draw_circle(Vector2(15, 15), 12.0, cor)
+		c.draw_circle(Vector2(12, 12), 4.0, cor.lightened(0.45)))
+	h.add_child(c); h.add_child(_rotulo(str(qtd), 30)); return h
+
+func _atualizar_loja() -> void:
+	for c in _loja_dinheiro.get_children(): c.queue_free()
+	for c in _loja_lista.get_children(): c.queue_free()
+	var mo: Array = Bolsa.moedas(m.bolsa.cobre)
+	_loja_dinheiro.add_child(_rotulo("Seu dinheiro:", 30))
+	_loja_dinheiro.add_child(_moeda(mo[0], Color(1.0, 0.8, 0.25)))
+	_loja_dinheiro.add_child(_moeda(mo[1], Color(0.82, 0.84, 0.88)))
+	_loja_dinheiro.add_child(_moeda(mo[2], Color(0.78, 0.45, 0.22)))
+	if m.bolsa.itens.is_empty():
+		_loja_lista.add_child(_rotulo("Você não tem nada para vender. Cace uns lobos e volte aqui.", 28, Color(0.75, 0.7, 0.62)))
+		return
+	for id in m.bolsa.itens.keys():
+		var info: Array = Bolsa.ITENS[id]; var qtd: int = m.bolsa.itens[id]
+		var linha := HBoxContainer.new(); linha.add_theme_constant_override("separation", 16)
+		var nome := _rotulo("%s  ×%d" % [info[0], qtd], 30); nome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		linha.add_child(nome)
+		linha.add_child(_rotulo("%s cada" % Bolsa.texto_dinheiro(info[1]), 26, Color(0.85, 0.75, 0.55)))
+		linha.add_child(_botao_texto("VENDER 1", func(): _vender(id, 1)))
+		linha.add_child(_botao_texto("VENDER TODOS", func(): _vender(id, 9999)))
+		_loja_lista.add_child(linha)
+
+func _vender(id: String, qtd: int) -> void:
+	var ganho: int = m.bolsa.vender(id, qtd)
+	if ganho > 0:
+		m.hud.avisar("+%s" % Bolsa.texto_dinheiro(ganho), Color(0.95, 0.7, 0.4))
+		_fala_bram(FALAS_LOJA[randi() % FALAS_LOJA.size()])
+	_atualizar_loja()
+
+func _fala_bram(t: String) -> void:
+	legenda.text = "Bram: " + t; legenda.modulate.a = 1.0; move_child(legenda, get_child_count() - 1)
+	var tw := legenda.create_tween(); tw.tween_interval(2.5); tw.tween_property(legenda, "modulate:a", 0.0, 0.5)
 
 # descansar na barraca: tela escurece, o tempo passa até as 6h e amanhece
 func _descansar() -> void:
@@ -172,13 +268,14 @@ func _process(_d: float) -> void:
 			perto = mo
 	if perto != npc:
 		if npc and _falando: _fechar()
+		if loja and loja.visible: _fechar_loja()
 		if perto != null and npc == null:
 			_conversou = false
 			_fala_solta(CHEGA[_chega_i % CHEGA.size()]); _chega_i += 1
 		elif perto == null and npc != null and _conversou:
 			_fala_solta(TCHAU, true)
 		npc = perto
-	painel.visible = npc != null and not _falando
+	painel.visible = npc != null and not _falando and not (loja != null and loja.visible)
 	var na_barraca := perto_da_barraca() and not _dormindo
 	painel_barraca.visible = na_barraca and npc == null
 	Audio.falando = _falando and voz.playing
