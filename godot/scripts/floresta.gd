@@ -20,6 +20,34 @@ var malhas := {}         # nome → [malha do tronco (ou null), malha dos cartõ
 var arvores := {}        # Vector2i → [[pos, raio], ...]
 var corpos := {}
 var _mat_cartao := {}
+var _nx := 0
+var _nz := 0
+var _montados := {}             # Vector2i → nó do pedaço
+func _origem_ped(k: Vector2i) -> Vector2: return Vector2(Regiao.X0 + k.x * PED, Regiao.Z0 + k.y * PED)
+
+# monta os pedaços até a distância de vista (todos de uma vez no começo; depois um por quadro) e solta os longe
+func _montar_perto(tudo: bool) -> void:
+	if m.jogador == null and not tudo: return
+	var jp: Vector3 = m.jogador.global_position if (m.jogador and m.jogador.is_inside_tree()) else Vector3(-4, 0, 48)
+	var p := Vector2(jp.x, jp.z)
+	var alcance := VISTA + PED
+	var faltam := []
+	var i0 := maxi(0, int((p.x - alcance - Regiao.X0) / PED)); var i1 := mini(_nx - 1, int((p.x + alcance - Regiao.X0) / PED))
+	var j0 := maxi(0, int((p.y - alcance - Regiao.Z0) / PED)); var j1 := mini(_nz - 1, int((p.y + alcance - Regiao.Z0) / PED))
+	for j in range(j0, j1 + 1):
+		for i in range(i0, i1 + 1):
+			var k := Vector2i(i, j)
+			if _montados.has(k): continue
+			var d := (_origem_ped(k) + Vector2(PED, PED) * 0.5).distance_to(p)
+			if d < alcance: faltam.append([d, k])
+	faltam.sort_custom(func(a, b): return a[0] < b[0])
+	for f in faltam:
+		_pedaco(f[1])
+		if not tudo: break
+	for k in _montados.keys():
+		if (_origem_ped(k) + Vector2(PED, PED) * 0.5).distance_to(p) > alcance + PED * 1.5:
+			_montados[k].queue_free(); _montados.erase(k); arvores.erase(k)
+			if corpos.has(k): corpos[k].queue_free(); corpos.erase(k)
 # pontas dos galhos na malha do tronco (cartões saem delas)
 const PONTAS := [Vector3(1.4, 4.2, 0.3), Vector3(-1.2, 4.7, -0.5), Vector3(0.2, 4.9, 1.2)]
 
@@ -53,8 +81,9 @@ func montar(mundo) -> void:
 		"samambaia": [null, _cartoes_samambaia(10)],
 		"morta": [_tronco_copa(Color(0.55, 0.52, 0.48)), null],
 	}
-	var n := int(ceil(2.0 * Regiao.LIM / PED))
-	for j in n: for i in n: _pedaco(Vector2i(i, j))
+	# pedaços montados aos poucos em volta da Rachel (o mapa é grande: montar tudo no começo demora demais)
+	_nx = int(ceil((Regiao.X1 - Regiao.X0) / PED)); _nz = int(ceil((Regiao.Z1 - Regiao.Z0) / PED))
+	_montar_perto(true)
 	_beira_agua()
 	_jardins()
 
@@ -404,7 +433,7 @@ func _beira_agua() -> void:
 			var h := reg.altura(q.x, q.y)
 			var s := rng.randf_range(0.7, 1.25)
 			var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.85, 1.2), s)), Vector3(q.x, h - 0.1, q.y))
-			var kk := Vector2i(int((q.x + Regiao.LIM) / PED), int((q.y + Regiao.LIM) / PED))
+			var kk := Vector2i(int((q.x - Regiao.X0) / PED), int((q.y - Regiao.Z0) / PED))
 			if not por_ped.has(kk): por_ped[kk] = []
 			por_ped[kk].append([t, Color(1, 1, 1) * rng.randf_range(0.85, 1.08)])
 	for kk in por_ped.keys():
@@ -433,7 +462,7 @@ func _jardins() -> void:
 # ---------- distribuição ----------
 func _pedaco(k: Vector2i) -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash([k.x, k.y, 99])
-	var o := Vector2(k.x * PED - Regiao.LIM, k.y * PED - Regiao.LIM)
+	var o := _origem_ped(k)
 	var grupos := {}   # nome → [[Transform3D, Color], ...]
 	for nome in malhas.keys(): grupos[nome] = []
 	var lista := []
@@ -477,7 +506,7 @@ func _pedaco(k: Vector2i) -> void:
 				var t := Transform3D(giro.scaled(Vector3(larg, s * rng.randf_range(0.85, 1.2), larg)), base)
 				grupos[["copa_a", "copa_b"][rng.randi() % 2] if (k.x + k.y) % 2 == 0 else ["copa_c", "copa_d"][rng.randi() % 2]].append([t, _cor_copa(rng, x, z)]); lista.append([base, 0.32 * s])
 	arvores[k] = lista
-	var no := Node3D.new(); add_child(no)
+	var no := Node3D.new(); add_child(no); _montados[k] = no
 	for nome in grupos.keys():
 		var itens: Array = grupos[nome]
 		if itens.is_empty(): continue
@@ -509,11 +538,14 @@ func _cor_copa(rng: RandomNumberGenerator, x: float, z: float) -> Color:
 		return [Color(0.9, 0.6, 0.22), Color(0.82, 0.4, 0.18), Color(0.92, 0.75, 0.3)][rng.randi() % 3] * rng.randf_range(0.9, 1.08)
 	return _verde(rng, 0.0)
 
+var _t_montar := 0.0
 func _process(_d: float) -> void:
 	if m.jogador == null: return
+	_t_montar -= _d
+	if _t_montar <= 0.0: _t_montar = 0.1; _montar_perto(false)
 	var jp: Vector3 = m.jogador.global_position; var p := Vector2(jp.x, jp.z)
 	for k in arvores.keys():
-		var centro := Vector2(k.x * PED - Regiao.LIM + PED * 0.5, k.y * PED - Regiao.LIM + PED * 0.5)
+		var centro := _origem_ped(k) + Vector2(PED, PED) * 0.5
 		var perto := centro.distance_to(p) < COLIDE
 		if perto and not corpos.has(k):
 			var corpo := StaticBody3D.new()

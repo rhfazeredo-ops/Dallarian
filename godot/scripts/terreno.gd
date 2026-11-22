@@ -18,12 +18,14 @@ var _primeira := true
 
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
-	var n := int(ceil(2.0 * Regiao.LIM / PED))
-	for j in range(0, n, 2): for i in range(0, n, 2): _simples_bloco(i, j, n)
+	_nx = int(ceil((Regiao.X1 - Regiao.X0) / PED)); _nz = int(ceil((Regiao.Z1 - Regiao.Z0) / PED))
+	for j in range(0, _nz, 2): for i in range(0, _nx, 2): _simples_bloco(i, j)
 
-func _origem(k: Vector2i) -> Vector2: return Vector2(k.x * PED - Regiao.LIM, k.y * PED - Regiao.LIM)
+var _nx := 0
+var _nz := 0
+func _origem(k: Vector2i) -> Vector2: return Vector2(Regiao.X0 + k.x * PED, Regiao.Z0 + k.y * PED)
 func pedaco(x: float, z: float) -> Vector2i:
-	return Vector2i(int(floor((x + Regiao.LIM) / PED)), int(floor((z + Regiao.LIM) / PED)))
+	return Vector2i(int(floor((x - Regiao.X0) / PED)), int(floor((z - Regiao.Z0) / PED)))
 
 func alturas(k: Vector2i) -> PackedFloat32Array:
 	if _alt.has(k): return _alt[k]
@@ -57,7 +59,7 @@ func _process(_d: float) -> void:
 		for i in range(c.x - r, c.x + r + 1):
 			var k := Vector2i(i, j)
 			var d := (_origem(k) + Vector2(PED, PED) * 0.5).distance_to(p)
-			if d < RAIO and not ativos.has(k) and i >= 0 and j >= 0 and i * PED < 2.0 * Regiao.LIM and j * PED < 2.0 * Regiao.LIM:
+			if d < RAIO and not ativos.has(k) and i >= 0 and j >= 0 and i < _nx and j < _nz:
 				faltam.append([d, k])
 	faltam.sort_custom(func(a, b): return a[0] < b[0])
 	for f in faltam:
@@ -100,13 +102,13 @@ func _malha(k: Vector2i, cel: int, desce: bool) -> ArrayMesh:
 	return st.commit()
 
 # versão simples em blocos de 2×2 pedaços (128 m): 4× menos objetos para desenhar ao longe
-func _simples_bloco(i0: int, j0: int, n: int) -> void:
+func _simples_bloco(i0: int, j0: int) -> void:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var centro := _origem(Vector2i(i0, j0)) + Vector2(PED, PED)
 	for dj in 2:
 		for di in 2:
 			var k := Vector2i(i0 + di, j0 + dj)
-			if k.x >= n or k.y >= n: continue
+			if k.x >= _nx or k.y >= _nz: continue
 			var c := _origem(k) + Vector2(PED, PED) * 0.5 - centro
 			st.append_from(_malha(k, 8, true), 0, Transform3D(Basis(), Vector3(c.x, 0, c.y)))
 	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = m.mat("terreno")

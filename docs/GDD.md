@@ -69,7 +69,7 @@ monstros, política e traição, onde ainda existem amor, amizade e gente boa pe
 ## 7.1 A região inicial: Vale de Aldren (feita)
 Primeiro mapa do continente de Dallarian; os próximos mapas se conectam a ele (saída do desfiladeiro do norte).
 
-Região de **2,4 × 2,4 km** (tamanho de uma zona grande de MMO) com limites naturais, em `godot/scripts/regiao.gd`:
+Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que alta) com limites naturais, em `godot/scripts/regiao.gd`:
 - **Limites:** montanhas ao norte (com um desfiladeiro fechado por uma paliçada — saída futura) e a oeste,
   mar a leste, pântano e morros escuros ao sul.
 - **Rio em "S"** do norte ao pântano, com três pontes; **lago** com um **mosteiro numa ilha** (passarela).
@@ -111,6 +111,11 @@ Região de **2,4 × 2,4 km** (tamanho de uma zona grande de MMO) com limites nat
   a Rachel começa um golpe na frente deles, ou depois de morder).
 - Escudo levantado de frente bloqueia a mordida. Lobo comum cai com 3 golpes leves (o forte vale 2); dá XP
   (15, líder 40). Vida da Rachel zerada: desmaia e acorda na vila.
+
+- **Altamar**, a cidade grande (canto nordeste, entre as montanhas e o mar): muralha de 9 m com torres e três portões
+  (oeste, sul e o do porto), rua principal do portão oeste até o cais, praça com chafariz, castelo encostado nas
+  montanhas, catedral, ~400 casas de pedra e sobrados, cais com dois navios (futuro: barco para outro continente).
+  Lugar planejado para banco, lojas e taverna. Estrada nova liga a vila ao portão oeste.
 
 ## 7.1.1 Dia e noite
 - Relógio do jogo: 1 hora = 1 minuto real (o dia inteiro dura 24 min); começa às 9h.

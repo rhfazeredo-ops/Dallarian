@@ -81,6 +81,7 @@ func _ready() -> void:
 		["Acampamento de Bandidos", Regiao.W(Vector2(-330, 300)), "bandidos", 25.0],
 		["Caverna do Oeste", caverna_pos, "caverna", 18.0],
 		["Desfiladeiro do Norte", Vector2(0, -Regiao.Ws(468.0)), "montanhas", 40.0],
+		["Altamar", cidade_pos, "castelo", 200.0],
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	fauna.montar(self)
 	_montar_chuva()
@@ -93,7 +94,8 @@ func _ready() -> void:
 
 # moradores: o mesmo modelo com cores e alturas sorteadas, andando pela vila (e alguns no porto e nas fazendas)
 func _moradores() -> void:
-	var grupos := [[Vector2(-3, 0), 58.0, 12], [porto_pos + Vector2(-25, 0), 30.0, 3], [Regiao.W(Vector2(-215, 60)), 40.0, 3]]
+	var grupos := [[Vector2(-3, 0), 58.0, 12], [porto_pos + Vector2(-25, 0), 30.0, 3], [Regiao.W(Vector2(-215, 60)), 40.0, 3],
+		[cidade_pos + Vector2(0, 30), 120.0, 18], [cidade_pos + Vector2(-140, 0), 60.0, 6], [cidade_pos + Vector2(120, 60), 60.0, 6]]
 	var n := 0
 	for g in grupos:
 		for i in g[2]:
@@ -133,7 +135,7 @@ func _lobos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
 	for i in 12000:
-		var q := Vector2(rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
+		var q := Vector2(rng.randf_range(Regiao.X0 + 60, Regiao.X1 - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
 		if q.length() < 120.0 or reg.folga_caminho(q.x, q.y) < 12.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
 		var longe_barraca := true
@@ -146,7 +148,7 @@ func _lobos() -> void:
 		if h0 - reg.base(q.y) > 5.0: montanha.append(q)
 		elif reg.floresta(q.x, q.y) > 0.6: mata.append(q)
 	var escolhidos := []
-	for lista in [[montanha, "branco", 16], [mata, "marrom", 26]]:
+	for lista in [[montanha, "branco", 22], [mata, "marrom", 36]]:
 		var cands: Array = lista[0]; var feitos := 0
 		cands.shuffle()
 		for q in cands:
@@ -261,8 +263,8 @@ func _aranhas() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 707
 	var feitos: Array[Vector2] = []
 	for i in 14000:
-		if feitos.size() >= 30: break
-		var q := Vector2(rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
+		if feitos.size() >= 42: break
+		var q := Vector2(rng.randf_range(Regiao.X0 + 60, Regiao.X1 - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
 		if q.length() < 170.0 or reg.floresta(q.x, q.y) < 0.6 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if perto_de_lugar(q.x, q.y, 25.0) or reg.altura(q.x, q.y) - reg.base(q.y) > 6.0: continue
 		var ok := true
@@ -292,12 +294,12 @@ func _lodosos() -> void:
 	for z0 in [-380.0, -290.0, -200.0, -120.0, -40.0, 50.0, 140.0, 220.0, 300.0]:
 		var z := Regiao.Ws(absf(z0)) * signf(z0)
 		var x := Regiao.Ws(380.0)
-		while x < Regiao.LIM and reg.altura(x, z) > 1.0: x += 1.0
+		while x < Regiao.X1 and reg.altura(x, z) > 1.0: x += 1.0
 		cands.append(Vector2(x - 5.0, z))
 	cands.shuffle()
 	var feitos: Array[Vector2] = []
 	for q in cands:
-		if feitos.size() >= 18: break
+		if feitos.size() >= 22: break
 		if q.length() < 160.0 or reg.dist_estrada(q.x, q.y) < 12.0 or perto_de_lugar(q.x, q.y, 18.0) or perto_de_casa(q.x, q.y, 10.0): continue
 		if reg.agua(q.x, q.y) != 0.0 and altura(q.x, q.y) < reg.agua(q.x, q.y): continue
 		var ok := true
@@ -617,8 +619,32 @@ func _tronco_caido(c: Vector2, ang: float) -> void:
 	_colisor_caixa(Vector3(c.x, y - 0.1, c.y), Vector3(0.7, 0.75, 2.8), ang + PI / 2)
 
 # ponto dentro (ou perto) de uma casa?
+# grades de 64 m para achar rápido as casas e os lugares perto de um ponto (o mapa tem centenas deles)
+const CEL_G := 64.0
+var _g_casas := {}
+var _g_lugares := {}
+var _n_casas := 0
+var _n_lugares := 0
+func _indexar(grade: Dictionary, item: Array, c: Vector2, raio: float) -> void:
+	for j in range(int(floor((c.y - raio) / CEL_G)), int(floor((c.y + raio) / CEL_G)) + 1):
+		for i in range(int(floor((c.x - raio) / CEL_G)), int(floor((c.x + raio) / CEL_G)) + 1):
+			var k := Vector2i(i, j)
+			if not grade.has(k): grade[k] = []
+			grade[k].append(item)
+func _atualizar_grades() -> void:
+	while _n_casas < casas.size():
+		var c: Array = casas[_n_casas]; _indexar(_g_casas, c, Vector2(c[0].x, c[0].z), maxf(c[2], c[3]) * 0.75 + 12.0); _n_casas += 1
+	while _n_lugares < lugares.size():
+		var l: Array = lugares[_n_lugares]; _indexar(_g_lugares, l, l[0], l[1] + 40.0); _n_lugares += 1
+
 func perto_de_casa(x: float, z: float, folga: float) -> bool:
-	for c in casas:
+	_atualizar_grades()
+	if folga > 10.0:
+		for c in casas:
+			var q0 := Vector2(x - c[0].x, z - c[0].z).rotated(c[1])
+			if abs(q0.x) < c[2] * 0.5 + folga and abs(q0.y) < c[3] * 0.5 + folga: return true
+		return Vector2(x, z).length() < 2.0
+	for c in _g_casas.get(Vector2i(int(floor(x / CEL_G)), int(floor(z / CEL_G))), []):
 		var q := Vector2(x - c[0].x, z - c[0].z).rotated(c[1])
 		if abs(q.x) < c[2] * 0.5 + folga and abs(q.y) < c[3] * 0.5 + folga: return true
 	if Vector2(x, z).length() < 2.0: return true          # poço
@@ -649,7 +675,9 @@ func altura_malha(x: float, z: float) -> float: return terreno.altura_malha(x, z
 func normal_malha(x: float, z: float) -> Vector3: return terreno.normal_malha(x, z)
 func _dist_estrada(p: Vector2) -> float: return reg.dist_estrada(p.x, p.y)
 func perto_de_lugar(x: float, z: float, folga: float) -> bool:
-	for l in lugares:
+	_atualizar_grades()
+	var lista: Array = lugares if folga > 40.0 else _g_lugares.get(Vector2i(int(floor(x / CEL_G)), int(floor(z / CEL_G))), [])
+	for l in lista:
 		if Vector2(x, z).distance_to(l[0]) < l[1] + folga: return true
 	return false
 
@@ -657,32 +685,40 @@ func perto_de_lugar(x: float, z: float, folga: float) -> bool:
 # o celular desenha muito menos objetos por quadro (cada objeto é uma "chamada de desenho")
 var _agua_feita := false
 func _juntar_estaticos() -> void:
-	var grupos := {}
+	# casas têm várias partes (paredes, telhado, base, porta): cada parte vai para o grupo do seu material
+	var grupos := {}                 # [material, célula x, célula z] → [[malha, superfície, transform], ...]
 	var pular := {}
 	for mo in moinhos: pular[mo] = true
+	var ps1 := func(mt: Material) -> bool:
+		var sm := mt as ShaderMaterial
+		return sm != null and sm.shader != null and sm.shader.resource_path.ends_with("ps1.gdshader")
+	var tirar := []
 	for c in raiz.get_children():
 		if not (c is MeshInstance3D) or pular.has(c) or c.get_child_count() > 0 or c.mesh == null: continue
 		var mi: MeshInstance3D = c
-		if mi.mesh.get_surface_count() != 1 or mi.material_override == null or not mi.visible: continue
-		# só as construções (material PS1); água, splats e o resto ficam como estão
-		var smat := mi.material_override as ShaderMaterial
-		if smat == null or smat.shader == null or not smat.shader.resource_path.ends_with("ps1.gdshader") or mi.mesh is PrimitiveMesh: continue
+		if not mi.visible or mi.mesh is PrimitiveMesh: continue
+		var mats := []
+		for si in mi.mesh.get_surface_count():
+			var mt: Material = mi.material_override if mi.material_override else mi.mesh.surface_get_material(si)
+			mats.append(mt)
+		var todos := true
+		for mt in mats: if not ps1.call(mt): todos = false
+		if not todos: continue
 		var p := mi.global_position
-		var chave := [mi.material_override, int(floor(p.x / 96.0)), int(floor(p.z / 96.0))]
-		if not grupos.has(chave): grupos[chave] = []
-		grupos[chave].append(mi)
-	var antes := 0; var depois := 0
+		for si in mats.size():
+			var chave := [mats[si], int(floor(p.x / 96.0)), int(floor(p.z / 96.0))]
+			if not grupos.has(chave): grupos[chave] = []
+			grupos[chave].append([mi.mesh, si, mi.global_transform])
+		tirar.append(mi)
+	var antes := tirar.size(); var depois := 0
 	for chave in grupos.keys():
 		var lista: Array = grupos[chave]
-		antes += lista.size()
-		if lista.size() < 2: depois += 1; continue
 		var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		var base: Vector3 = lista[0].global_position
-		for mi in lista:
-			st.append_from(mi.mesh, 0, Transform3D(Basis(), -base) * mi.global_transform)
-			mi.queue_free()
+		var base: Vector3 = lista[0][2].origin
+		for it in lista: st.append_from(it[0], it[1], Transform3D(Basis(), -base) * it[2])
 		var novo := MeshInstance3D.new(); novo.mesh = st.commit(); novo.material_override = chave[0]
 		novo.position = base; raiz.add_child(novo); depois += 1
+	for mi in tirar: mi.queue_free()
 	if args.has("perf"): print("JUNTOU peças paradas: %d → %d objetos" % [antes, depois])
 
 # ---------- tela: 3D em resolução baixa + filtro de paleta ----------
@@ -868,8 +904,11 @@ func _postes() -> void:
 		var bom := true
 		for o in lista: if q.distance_to(o[0]) < 6.0: bom = false
 		if bom: lista.append(pp)
-	for pp in lista:
-		var q: Vector2 = pp[0]; var d: Vector2 = (pp[1] - q).normalized()
+	for pp in lista: _poste_em(pp[0], pp[1])
+
+# um poste com lanterna em q, virado para "olha"
+func _poste_em(q: Vector2, olha: Vector2) -> void:
+		var d: Vector2 = (olha - q).normalized()
 		_depois.append(func():
 			var y := altura_malha(q.x, q.y)
 			var mod := modelo_ps1("res://assets/modelos/poste.glb")
@@ -891,7 +930,7 @@ func _barracas() -> void:
 	var cand := []
 	var rng := RandomNumberGenerator.new(); rng.seed = 91
 	for i in 3000:
-		var q := Vector2(rng.randf_range(-Regiao.LIM + 80, Regiao.LIM - 80), rng.randf_range(-Regiao.LIM + 80, Regiao.LIM - 80))
+		var q := Vector2(rng.randf_range(Regiao.X0 + 80, Regiao.X1 - 80), rng.randf_range(-Regiao.LIM + 80, Regiao.LIM - 80))
 		if q.length() < 170.0 or reg.folga_caminho(q.x, q.y) < 22.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if reg.dist_rio(q.x, q.y) < 25.0 or Vector2(q.x - Regiao.LAGO.x, q.y - Regiao.LAGO.y).length() < Regiao.LAGO.z + 15.0: continue
 		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
@@ -1142,7 +1181,8 @@ func _st() -> SurfaceTool:
 func _agua() -> void:
 	var am := ShaderMaterial.new(); am.shader = load("res://shaders/agua.gdshader"); am.set_shader_parameter("neblina", NEBLINA)
 	# mar (leste) e poças do pântano (sul): um plano no nível 0
-	var mar := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(Regiao.LIM * 2.0 + 600.0, Regiao.LIM * 2.0 + 600.0); mar.mesh = pm
+	var mar := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(Regiao.X1 - Regiao.X0 + 800.0, Regiao.LIM * 2.0 + 800.0); mar.mesh = pm
+	mar.position = Vector3((Regiao.X0 + Regiao.X1) * 0.5, 0, 0)
 	mar.material_override = am; raiz.add_child(mar)
 	# rio: faixa que segue a linha do rio, no nível da água de cada trecho
 	var st := _st(); var pts := []
@@ -1195,8 +1235,8 @@ func _espuma() -> void:
 	var z := -Regiao.LIM + 40.0
 	while z < Regiao.Ws(370.0):
 		var x := Regiao.Ws(380.0)
-		while x < Regiao.LIM and reg.altura(x, z) > 0.05: x += 1.0
-		if x < Regiao.LIM:
+		while x < Regiao.X1 and reg.altura(x, z) > 0.05: x += 1.0
+		if x < Regiao.X1:
 			agua.append(Vector2(x + 16.0, z)); margem.append(Vector2(x - 1.2, z)); ys.append(0.05)
 		z += 4.0
 	if agua.size() > 1: faixa.call(agua, margem, ys, 0, 1.0, 1.0)
@@ -1226,6 +1266,150 @@ func _espuma() -> void:
 			ag.append(lc + q * anel[0]); mg.append(lc + q * anel[1]); yy.append(yl)
 		faixa.call(ag, mg, yy, 0, 0.55, 0.85)
 
+# ---------- cidade grande: Altamar ----------
+# no canto nordeste, entre as montanhas e o mar: muralha com torres e três portões (oeste, sul e o do porto, a leste),
+# rua principal do portão oeste até o porto, praça com chafariz no meio, castelo encostado nas montanhas, catedral,
+# quarteirões cheios de casas de pedra e sobrados, cais com navios. Espaço para banco, lojas e taverna depois.
+var cidade_pos := Vector2.ZERO
+var cidade_y := 0.0
+func _cidade() -> void:
+	var R: Rect2 = Regiao.CIDADE
+	var c := R.get_center(); cidade_pos = c
+	var y := Regiao.ALTURA_CIDADE; cidade_y = y
+	var rng := RandomNumberGenerator.new(); rng.seed = 1234
+	var pedra := mat("pedra"); var pedra_esc := mat("pedra", 1.0, Color(0.75, 0.75, 0.8))
+	# muralha: trechos entre os portões, com ameias e torres
+	var cantos := [R.position, Vector2(R.end.x, R.position.y), R.end, Vector2(R.position.x, R.end.y)]
+	var portoes := [Vector2(R.position.x, c.y), Vector2(c.x, R.end.y), Vector2(R.end.x, c.y)]
+	var alt := 9.0; var esp := 3.0
+	var st := _st(); var st_am := _st()
+	for k in 4:
+		var a: Vector2 = cantos[k]; var b: Vector2 = cantos[(k + 1) % 4]
+		var cortes := [0.0]
+		for pt in portoes:
+			var t: float = (pt - a).dot((b - a).normalized()) / a.distance_to(b)
+			if Geometry2D.get_closest_point_to_segment(pt, a, b).distance_to(pt) < 1.0: cortes.append_array([t - 8.0 / a.distance_to(b), t + 8.0 / a.distance_to(b)])
+		cortes.append(1.0)
+		for s in range(0, cortes.size(), 2):
+			var p0: Vector2 = a.lerp(b, cortes[s]); var p1: Vector2 = a.lerp(b, cortes[s + 1])
+			var meio := (p0 + p1) * 0.5; var comp := p0.distance_to(p1); var ang := atan2(p1.x - p0.x, p1.y - p0.y)
+			var mi_t := Transform3D(Basis(Vector3.UP, ang), Vector3(meio.x, y, meio.y))
+			var bx := _st(); _caixa(bx, Vector3(0, alt * 0.5 - 1.0, 0), Vector3(esp, alt + 2.0, comp)); st.append_from(bx.commit(), 0, mi_t)
+			var n := int(comp / 2.4)
+			for i in n:
+				var am := _st(); _caixa(am, Vector3(0, alt + 0.6, -comp * 0.5 + (i + 0.5) * comp / n), Vector3(esp + 0.2, 1.2, 1.1))
+				st_am.append_from(am.commit(), 0, mi_t)
+			_colisor_caixa(Vector3(meio.x, y - 1.0, meio.y), Vector3(esp, alt + 2.0, comp), ang)
+	_peca(st, pedra, Vector3.ZERO); _peca(st_am, pedra, Vector3.ZERO)
+	# torres nos cantos, ao longo da muralha e dos dois lados de cada portão
+	var torres := cantos.duplicate()
+	for k in 4:
+		var a: Vector2 = cantos[k]; var b: Vector2 = cantos[(k + 1) % 4]
+		var n := int(a.distance_to(b) / 110.0)
+		for i in range(1, n): torres.append(a.lerp(b, float(i) / n))
+	for pt in portoes:
+		var lado := Vector2(0, 1) if absf(pt.x - R.position.x) < 1.0 or absf(pt.x - R.end.x) < 1.0 else Vector2(1, 0)
+		torres.append(pt + lado * 11.0); torres.append(pt - lado * 11.0)
+	st = _st(); var st_t := _st()
+	for t in torres:
+		var tv: Vector2 = t
+		var perto := false
+		for pt in portoes: if tv.distance_to(pt) < 9.0: perto = true
+		if perto: continue
+		cilindro(st, Vector3(tv.x, y - 1.0, tv.y), 4.6, 4.2, 15.0, 8, true)
+		cilindro(st_t, Vector3(tv.x, y + 14.0, tv.y), 5.4, 0.0, 6.0, 8)
+		_colisor_cilindro(Vector3(tv.x, y - 1.0, tv.y), 4.4, 15.0)
+	_peca(st, pedra_esc, Vector3.ZERO); _peca(st_t, mat("madeira", 1.0, Color(0.45, 0.32, 0.42)), Vector3.ZERO)
+	# arcos sobre os portões
+	st = _st()
+	for pt in portoes:
+		var vert := absf(pt.x - R.position.x) < 1.0 or absf(pt.x - R.end.x) < 1.0
+		_caixa(st, Vector3(pt.x, y + alt - 0.5, pt.y), Vector3(esp + 1.0, 3.0, 17.0) if vert else Vector3(17.0, 3.0, esp + 1.0))
+	_peca(st, pedra_esc, Vector3.ZERO)
+	# castelo encostado nas montanhas (norte), com torre de menagem
+	var cas := Vector2(c.x, R.position.y + 45.0)
+	st = _st()
+	_caixa(st, Vector3(cas.x, y + 8.0, cas.y), Vector3(60.0, 18.0, 36.0))
+	_caixa(st, Vector3(cas.x, y + 16.0, cas.y - 4.0), Vector3(22.0, 32.0, 20.0))
+	for q in [Vector2(-30, -18), Vector2(30, -18), Vector2(-30, 18), Vector2(30, 18)]:
+		cilindro(st, Vector3(cas.x + q.x, y - 1.0, cas.y + q.y), 5.5, 5.0, 26.0, 8, true)
+	_peca(st, pedra_esc, Vector3.ZERO)
+	st = _st()
+	for q in [Vector2(-30, -18), Vector2(30, -18), Vector2(-30, 18), Vector2(30, 18)]:
+		cilindro(st, Vector3(cas.x + q.x, y + 25.0, cas.y + q.y), 6.4, 0.0, 9.0, 8)
+	cilindro(st, Vector3(cas.x, y + 32.0, cas.y - 4.0), 15.0, 0.0, 10.0, 4)
+	_peca(st, mat("madeira", 1.0, Color(0.32, 0.36, 0.55)), Vector3.ZERO)
+	_colisor_caixa(Vector3(cas.x, y - 1.0, cas.y), Vector3(62.0, 34.0, 38.0), 0.0)
+	# catedral (noroeste) com torre
+	var cat := Vector2(R.position.x + 110.0, R.position.y + 90.0)
+	_casa(Vector3(cat.x, y, cat.y), 0.0, 18.0, 34.0, 13.0, pedra, mat("madeira", 1.0, Color(0.4, 0.38, 0.48)), true)
+	st = _st(); cilindro(st, Vector3(cat.x, y - 1.0, cat.y + 20.0), 4.0, 3.6, 26.0, 8, true); _peca(st, pedra, Vector3.ZERO)
+	st = _st(); cilindro(st, Vector3(cat.x, y + 25.0, cat.y + 20.0), 4.6, 0.0, 12.0, 8); _peca(st, mat("madeira", 1.0, Color(0.4, 0.38, 0.48)), Vector3.ZERO)
+	_colisor_cilindro(Vector3(cat.x, y - 1.0, cat.y + 20.0), 4.0, 26.0)
+	# praça com chafariz no meio da cidade
+	st = _st(); cilindro(st, Vector3(c.x, y - 0.3, c.y), 6.0, 6.0, 1.0, 12, true); cilindro(st, Vector3(c.x, y, c.y), 1.0, 0.8, 3.2, 8, true)
+	cilindro(st, Vector3(c.x, y + 3.0, c.y), 2.6, 2.6, 0.4, 10, true); _peca(st, pedra_esc, Vector3.ZERO)
+	_colisor_cilindro(Vector3(c.x, y - 0.3, c.y), 6.0, 1.2)
+	var agua_ch := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(10.4, 10.4); agua_ch.mesh = pm
+	var am := ShaderMaterial.new(); am.shader = load("res://shaders/agua.gdshader"); am.set_shader_parameter("neblina", NEBLINA)
+	agua_ch.material_override = am; agua_ch.position = Vector3(c.x, y + 0.62, c.y); raiz.add_child(agua_ch)
+	# quarteirões: casas de pedra e sobrados ao longo de ruas a cada ~42 m (fora da rua principal, da rua norte–sul,
+	# da praça, do castelo e da catedral)
+	var paredes := [mat("parede"), pedra, mat("parede", 1.0, Color(0.95, 0.88, 0.75))]
+	var telhados := [mat("madeira", 1.0, Color(0.6, 0.28, 0.2)), mat("madeira", 1.0, Color(0.38, 0.38, 0.45)), mat("madeira", 1.0, Color(0.5, 0.33, 0.25))]
+	var feitas := 0
+	var zr := R.position.y + 16.0
+	while zr < R.end.y - 10.0:
+		var xr := R.position.x + 14.0
+		while xr < R.end.x - 10.0:
+			var q := Vector2(xr + rng.randf_range(-1.5, 1.5), zr + rng.randf_range(-1.5, 1.5))
+			xr += rng.randf_range(15.0, 19.0)
+			if absf(q.y - c.y) < 13.0 or absf(q.x - c.x) < 11.0: continue          # ruas principais
+			if q.distance_to(c) < 30.0 or q.distance_to(cas) < 48.0 or q.distance_to(cat) < 30.0: continue
+			if fmod(q.x - R.position.x, 42.0) < 7.0 or fmod(q.y - R.position.y, 46.0) < 7.0: continue   # ruas menores
+			var w := rng.randf_range(8.0, 12.0); var d := rng.randf_range(7.0, 10.0); var hh := rng.randf_range(5.0, 9.0)   # sobrados maiores
+			# porta virada para a rua principal mais perto
+			var ang := 0.0 if q.y < c.y else PI
+			if absf(q.x - c.x) < absf(q.y - c.y) * 0.6: ang = PI * 0.5 if q.x < c.x else -PI * 0.5
+			var k := rng.randi() % 3
+			_casa(Vector3(q.x, y, q.y), ang, w, d, hh, paredes[k], telhados[(k + rng.randi()) % 3], true)
+			feitas += 1
+		zr += rng.randf_range(16.0, 19.0)
+	# cais do porto: tábuas sobre estacas saindo do portão leste até o mar, com dois navios
+	var cais0 := Vector2(R.end.x + 4.0, c.y)
+	while cais0.x < Regiao.X1 - 60.0 and altura(cais0.x, c.y) > 1.9: cais0.x += 2.0      # começa onde a areia acaba
+	cais0.x -= 6.0
+	var xm := cais0.x + 20.0
+	while xm < Regiao.X1 - 60.0 and altura(xm, c.y) > -2.5: xm += 2.0
+	st = _st()
+	var yc := 2.1
+	for i in int((xm + 30.0 - cais0.x) / 2.0):
+		var x := cais0.x + i * 2.0
+		for dz in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(x, yc, c.y + dz), Vector3(2.0, 0.25, 6.0))
+		if i % 2 == 0:
+			for dz in [-8.5, 8.5]: _caixa(st, Vector3(x, yc - 2.5, c.y + dz), Vector3(0.4, 5.0, 0.4))
+	for braco in [-40.0, 40.0]:                    # dois braços do cais
+		for i in 20: _caixa(st, Vector3(xm + 10.0, yc, c.y + braco * float(i) / 20.0 * (1.0 if braco > 0.0 else 1.0)), Vector3(6.0, 0.25, 2.2))
+	_peca(st, mat("madeira"), Vector3.ZERO)
+	_colisor_caixa(Vector3((cais0.x + xm + 30.0) * 0.5, yc - 0.15, c.y), Vector3(18.0, 0.3, xm + 30.0 - cais0.x), PI / 2)
+	for nav in [[xm + 26.0, c.y - 24.0], [xm + 26.0, c.y + 26.0]]:
+		st = _st()
+		_caixa(st, Vector3(0, 0.8, 0), Vector3(18.0, 2.4, 5.0)); _caixa(st, Vector3(-7.0, 2.4, 0), Vector3(4.0, 1.2, 4.6))
+		_caixa(st, Vector3(9.5, 1.2, 0), Vector3(2.0, 1.6, 3.0))
+		_peca(st, mat("madeira", 1.0, Color(0.6, 0.45, 0.35)), Vector3(nav[0], 0.0, nav[1]))
+		st = _st(); _caixa(st, Vector3(0, 9.0, 0), Vector3(0.5, 16.0, 0.5)); _peca(st, mat("madeira"), Vector3(nav[0], 0.0, nav[1]))
+		st = _st(); _quad(st, Vector3(0.4, 4.5, -4.0), Vector3(0.4, 4.5, 4.0), Vector3(0.4, 15.0, 3.0), Vector3(0.4, 15.0, -3.0), 1, 1)
+		_peca(st, mat("", 1.0, Color(0.92, 0.88, 0.78)), Vector3(nav[0], 0.0, nav[1]))
+	# postes de luz na rua principal e na praça
+	for i in 12:
+		var x := R.position.x + 25.0 + i * (R.size.x - 50.0) / 11.0
+		if absf(x - c.x) < 14.0: continue
+		for lado in [-1.0, 1.0]:
+			var q := Vector2(x, c.y + lado * 9.5)
+			_poste_em(q, Vector2(x, c.y))
+	lugares.append([c, R.size.length() * 0.5 + 10.0])
+	if args.has("perf"): print("CIDADE: %d casas" % feitas)
+
 # ---------- lugares da região ----------
 func _lugares() -> void:
 	_vila()
@@ -1238,6 +1422,7 @@ func _lugares() -> void:
 	_bandidos()
 	_caverna()
 	_barricada()
+	_cidade()
 	_barracas()
 	_postes()
 
@@ -1358,7 +1543,7 @@ func _fazendas() -> void:
 
 func _porto() -> void:
 	var z := 58.0; var xc := Regiao.Ws(380.0)
-	while xc < Regiao.LIM - 40.0 and altura(xc, z) > 0.4: xc += 1.0
+	while xc < Regiao.X1 - 40.0 and altura(xc, z) > 0.4: xc += 1.0
 	var st := _st()
 	var y := 1.5
 	for i in 18:                                        # píer: tábuas sobre estacas
@@ -1507,11 +1692,12 @@ func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, uw: float, vh: fl
 		st.set_normal(n); st.set_color(Color.WHITE)
 		st.set_uv([Vector2(0, vh), Vector2(uw, vh), Vector2(uw * 0.5, 0)][k]); st.add_vertex([a, b, c][k])
 
-func _casa(pos: Vector3, ang: float, w: float, d: float, h: float, parede: Material = null, telhado: Material = null) -> void:
+func _casa(pos: Vector3, ang: float, w: float, d: float, h: float, parede: Material = null, telhado: Material = null, chao_fixo := false) -> void:
 	var x := w / 2.0; var z := d / 2.0; var cume := h + w * 0.55; var beiral := 0.45
 	var livre := _longe_da_estrada(Vector2(pos.x, pos.z), Vector2(x + 0.5, z + 0.5), ang)   # nunca em cima da estrada
 	pos.x = livre.x; pos.z = livre.y
-	pos.y = reg.aplanar(Vector2(pos.x, pos.z), Vector2(x + 0.8, z + 0.8), -ang, 4.0) - 0.05
+	if chao_fixo: pos.y -= 0.05                       # cidade: o chão já é plano (não precisa aplanar)
+	else: pos.y = reg.aplanar(Vector2(pos.x, pos.z), Vector2(x + 0.8, z + 0.8), -ang, 4.0) - 0.05
 	var mesh := ArrayMesh.new()
 	# paredes (com as empenas triangulares) — textura enxaimel a cada 2 m
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -1845,6 +2031,17 @@ func _modo_teste() -> void:
 		var gp := Vector2(golem.global_position.x, golem.global_position.z) + Vector2(70, 40)
 		jogador.global_position = Vector3(gp.x, altura(gp.x, gp.y) + 0.3, gp.y); _ultima = jogador.global_position
 		var dg := Vector2(golem.global_position.x, golem.global_position.z) - gp; jogador.rotation.y = atan2(-dg.x, -dg.y) + 0.3
+	if args.has("ir"):             # teste: vai para um lugar nomeado (--ir=cidade|porto_cidade|praca)
+		var alvo := Vector2(-4, 48); var olha := Vector2.ZERO
+		match String(args.ir):
+			"cidade": alvo = Vector2(Regiao.CIDADE.position.x - 90.0, cidade_pos.y + 25.0); olha = cidade_pos
+			"praca": alvo = cidade_pos + Vector2(-40, 8); olha = cidade_pos + Vector2(0, -60)
+			"porto_cidade": alvo = Vector2(Regiao.CIDADE.end.x + 22.0, cidade_pos.y + 30.0); olha = Vector2(Regiao.CIDADE.end.x + 120.0, cidade_pos.y - 10.0)
+			"portao_leste": alvo = Vector2(Regiao.CIDADE.end.x + 30.0, cidade_pos.y + 4.0); olha = Vector2(Regiao.CIDADE.end.x - 40.0, cidade_pos.y)
+			"alto": alvo = cidade_pos + Vector2(-260, 230); olha = cidade_pos
+		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position
+		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)
+		if String(args.ir) == "alto": jogador.global_position.y += 60.0; jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

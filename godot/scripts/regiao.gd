@@ -15,9 +15,18 @@
 extends RefCounted
 class_name Regiao
 
-const LIM := 1200.0          # metade do lado
+const LIM := 1200.0          # metade da altura (norte–sul); o mapa é retangular, mais largo para o leste
+const X0 := -1200.0          # oeste
+const X1 := 2600.0           # leste (o mar fica na ponta leste)
+const Z0 := -1200.0          # norte
+const Z1 := 1200.0           # sul
 const GRADE := 4.0           # resolução das grades de distância (m)
-const N := 600               # células por lado nas grades
+const NX := 950              # células nas grades (oeste → leste)
+const NZ := 600              # células nas grades (norte → sul)
+const COSTA := 2220.0        # linha da praia (o mar vai daqui até o fim do mapa)
+# cidade grande murada com porto, no canto nordeste, entre as montanhas e o mar: [x0, z0, x1, z1] das muralhas
+const CIDADE := Rect2(1640.0, -830.0, 500.0, 420.0)
+const ALTURA_CIDADE := 6.0       # cidade de porto: um pouco acima do mar
 # O desenho original era de 1,2 km. Para aumentar o mapa sem mexer na vila, tudo até 150 m do centro fica igual
 # e o que está além se afasta ("Ws"/"W": distância/ponto do desenho original → mundo de 2,4 km).
 const PERTO := 150.0
@@ -82,12 +91,19 @@ func _init() -> void:
 		var q := W(Vector2(c[0], c[1])); c[0] = q.x; c[1] = q.y
 	for i in morros.size():
 		var mq := W(Vector2(morros[i].x, morros[i].y)); morros[i] = Vector4(mq.x, mq.y, morros[i].z * 1.6, morros[i].w)
+	# terras novas a leste (entre o vale antigo e a cidade): alguns morros
+	morros.append_array([Vector4(1150, 380, 130, 14), Vector4(1480, -140, 110, 11), Vector4(1100, -560, 120, 15), Vector4(1700, 520, 140, 10)])
 	ruido.seed = 11; ruido.frequency = 0.018; ruido.fractal_octaves = 3
 	ruido_grande.seed = 4; ruido_grande.frequency = 0.004; ruido_grande.fractal_octaves = 2
-	d_estrada.resize(N * N); d_estrada.fill(1e6)
-	d_rio.resize(N * N); d_rio.fill(1e6); t_rio.resize(N * N); t_rio.fill(0.0)
+	# estrada nova: do fim da estrada leste até o portão oeste da cidade, e a rua principal até o porto
+	var fim_leste: Vector2 = estradas[2][estradas[2].size() - 1]
+	var porta := Vector2(CIDADE.position.x, CIDADE.get_center().y)
+	estradas.append(PackedVector2Array([fim_leste, fim_leste.lerp(porta, 0.3) + Vector2(0, -60), fim_leste.lerp(porta, 0.65) + Vector2(0, -140), porta + Vector2(-60, 0), porta,
+		Vector2(CIDADE.end.x + 40.0, CIDADE.get_center().y)]))
+	d_estrada.resize(NX * NZ); d_estrada.fill(1e6)
+	d_rio.resize(NX * NZ); d_rio.fill(1e6); t_rio.resize(NX * NZ); t_rio.fill(0.0)
 	for e in estradas: _rasterizar(e, d_estrada, null, 24.0)
-	d_trilha.resize(N * N); d_trilha.fill(1e6)
+	d_trilha.resize(NX * NZ); d_trilha.fill(1e6)
 	for t in trilhas: _rasterizar(t, d_trilha, null, 12.0)
 	var tot := 0.0; _rio_comp.append(0.0)
 	for i in rio.size() - 1: tot += rio[i].distance_to(rio[i + 1]); _rio_comp.append(tot)
@@ -98,13 +114,13 @@ func _init() -> void:
 func _rasterizar(linha: PackedVector2Array, dist: PackedFloat32Array, tt, alcance: float) -> void:
 	for s in linha.size() - 1:
 		var a := linha[s]; var b := linha[s + 1]
-		var i0 := int((min(a.x, b.x) - alcance + LIM) / GRADE); var i1 := int((max(a.x, b.x) + alcance + LIM) / GRADE)
-		var j0 := int((min(a.y, b.y) - alcance + LIM) / GRADE); var j1 := int((max(a.y, b.y) + alcance + LIM) / GRADE)
-		for j in range(max(j0, 0), min(j1, N - 1) + 1):
-			for i in range(max(i0, 0), min(i1, N - 1) + 1):
-				var p := Vector2(i * GRADE - LIM, j * GRADE - LIM)
+		var i0 := int((min(a.x, b.x) - alcance - X0) / GRADE); var i1 := int((max(a.x, b.x) + alcance - X0) / GRADE)
+		var j0 := int((min(a.y, b.y) - alcance - Z0) / GRADE); var j1 := int((max(a.y, b.y) + alcance - Z0) / GRADE)
+		for j in range(max(j0, 0), min(j1, NZ - 1) + 1):
+			for i in range(max(i0, 0), min(i1, NX - 1) + 1):
+				var p := Vector2(X0 + i * GRADE, Z0 + j * GRADE)
 				var q := Geometry2D.get_closest_point_to_segment(p, a, b)
-				var d := q.distance_to(p); var k := j * N + i
+				var d := q.distance_to(p); var k := j * NX + i
 				if d < dist[k]:
 					dist[k] = d
 					if tt != null:
@@ -112,9 +128,9 @@ func _rasterizar(linha: PackedVector2Array, dist: PackedFloat32Array, tt, alcanc
 						tt[k] = lerp(_rio_comp[s], _rio_comp[s + 1], u)
 
 func _amostra(g: PackedFloat32Array, x: float, z: float) -> float:
-	var fx := clampf((x + LIM) / GRADE, 0.0, N - 1.001); var fz := clampf((z + LIM) / GRADE, 0.0, N - 1.001)
+	var fx := clampf((x - X0) / GRADE, 0.0, NX - 1.001); var fz := clampf((z - Z0) / GRADE, 0.0, NZ - 1.001)
 	var i := int(fx); var j := int(fz); var u := fx - i; var v := fz - j
-	var a := g[j * N + i]; var b := g[j * N + i + 1]; var c := g[(j + 1) * N + i]; var d := g[(j + 1) * N + i + 1]
+	var a := g[j * NX + i]; var b := g[j * NX + i + 1]; var c := g[(j + 1) * NX + i]; var d := g[(j + 1) * NX + i + 1]
 	return lerp(lerp(a, b, u), lerp(c, d, u), v)
 
 func dist_estrada(x: float, z: float) -> float: return _amostra(d_estrada, x, z)
@@ -176,7 +192,13 @@ func altura(x: float, z: float) -> float:
 		var di := Vector2(x - ILHA.x, z - ILHA.y).length()
 		h = max(h, nivel_lago() + 1.6 - smoothstep(ILHA.z * 0.7, ILHA.z * 1.3, di) * 5.0)
 	# mar a leste (com praia)
-	var costa := Ws(430.0) + ruido_grande.get_noise_2d(0.0, z * 2.0) * 40.0
+	# cidade: chão plano (um pouco acima da base), suave até 40 m fora das muralhas
+	var dcid := _dist_cidade(x, z)
+	if dcid < 60.0: h = lerp(ALTURA_CIDADE, h, smoothstep(0.0, 60.0, dcid))
+	var costa := COSTA + ruido_grande.get_noise_2d(0.0, z * 2.0) * 40.0
+	# na altura da cidade o mar chega até perto da muralha leste (porto)
+	var dz_cid := maxf(maxf(CIDADE.position.y - z, z - CIDADE.end.y), 0.0)
+	costa = lerpf(costa, CIDADE.end.x + 45.0, 1.0 - smoothstep(60.0, 160.0, dz_cid))
 	if x > costa - 30.0: h = lerp(h, 1.2 - (x - costa) * 0.16, smoothstep(costa - 30.0, costa, x))
 	# pântano ao sul
 	var pant := smoothstep(Ws(370.0), Ws(430.0), z + ruido_grande.get_noise_2d(x * 2.0, 0.0) * 30.0)
@@ -195,6 +217,13 @@ func altura(x: float, z: float) -> float:
 	return h
 
 # altura de uma serra a "d" metros da borda: sobe rápido no pé e para em "alto"
+# distância até a cidade (0 dentro das muralhas)
+func _dist_cidade(x: float, z: float) -> float:
+	var dx := maxf(maxf(CIDADE.position.x - x, x - CIDADE.end.x), 0.0)
+	var dz := maxf(maxf(CIDADE.position.y - z, z - CIDADE.end.y), 0.0)
+	return Vector2(dx, dz).length()
+func na_cidade(x: float, z: float, folga := 0.0) -> bool: return _dist_cidade(x, z) <= folga
+
 func _serra(d: float, alto: float) -> float: return alto * (1.0 - exp(-d / 32.0))
 
 # aplana o chão embaixo de uma construção (retângulo girado) e devolve a altura do piso.
@@ -242,6 +271,7 @@ func floresta(x: float, z: float) -> float:
 	var f := ruido_grande.get_noise_2d(x * 1.6 + 300.0, z * 1.6) * 1.6 + 0.35
 	f += 0.25 * smoothstep(Ws(250.0), Ws(420.0), Vector2(x, z).length())   # mais mata longe da vila
 	f -= 1.0 - smoothstep(40.0, 110.0, Vector2(x, z).length())       # vila e arredores abertos
+	f -= 1.0 - smoothstep(30.0, 140.0, _dist_cidade(x, z))           # campos abertos em volta da cidade
 	return clampf(f, 0.0, 1.0)
 
 func cor(x: float, z: float, h: float, ny: float) -> Color:
@@ -261,7 +291,8 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 2.5 or abs(Vector2(x - LAGO.x, z - LAGO.y).length() - LAGO.z) < 4.0:
 		c = Color(0.4, 0.33, 0.22)                                             # margem de lama
-	if h < 2.0 and x > Ws(380.0): c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
+	if na_cidade(x, z): c = Color(0.5, 0.48, 0.45) * (0.92 + n * 0.1)          # calçamento de pedra da cidade
+	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
 	var p := zona_pantano(z)
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
 	if ny < 0.8: c = c.lerp(Color(0.46, 0.5, 0.6), smoothstep(0.8, 0.65, ny))  # pedra
@@ -282,13 +313,14 @@ func em_construcao(x: float, z: float) -> bool:
 func grama(x: float, z: float, h: float, ny: float) -> float:
 	if em_construcao(x, z): return 0.0
 	if dist_trilha(x, z) < 1.2: return 0.0
-	if abs(x) > LIM - 20 or abs(z) > LIM - 20 or ny < 0.8 or h > 30.0: return 0.0
+	if x < X0 + 20 or x > X1 - 20 or abs(z) > LIM - 20 or ny < 0.8 or h > 30.0: return 0.0
 	if Vector2(x, z).length() < 18.0: return 0.0
 	if h < agua(x, z) + 0.15: return 0.0
-	if x > Ws(380.0) and h < 2.0: return 0.0
+	if x > COSTA - 120.0 and h < 2.0: return 0.0
+	if na_cidade(x, z, 2.0): return 0.0
 	var campo := campo_em(x, z)
 	if campo == 1: return 0.0
 	if campo == 0: return 1.0
 	return 1.0 - smoothstep(0.2, 0.75, floresta(x, z)) * 0.85          # na mata fechada quase não tem grama
 
-func dentro(x: float, z: float) -> bool: return abs(x) < LIM and abs(z) < LIM
+func dentro(x: float, z: float) -> bool: return x > X0 and x < X1 and abs(z) < LIM

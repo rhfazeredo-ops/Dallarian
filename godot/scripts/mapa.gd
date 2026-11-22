@@ -45,8 +45,10 @@ func _draw() -> void:
 	if not aberto: return
 	var tela := get_viewport_rect().size
 	draw_rect(Rect2(Vector2.ZERO, tela), Color(0, 0, 0, 0.55))
-	var lado := minf(tela.y - 150.0, tela.x - 150.0)
-	_quadro = Rect2((tela - Vector2(lado, lado)) * 0.5 + Vector2(0, 40), Vector2(lado, lado))
+	# mapa retangular (mais largo que alto): cabe na tela mantendo a proporção do mundo
+	var prop := (Regiao.X1 - Regiao.X0) / (Regiao.Z1 - Regiao.Z0)
+	var alt := minf(tela.y - 150.0, (tela.x - 120.0) / prop); var larg := alt * prop
+	_quadro = Rect2((tela - Vector2(larg, alt)) * 0.5 + Vector2(0, 40), Vector2(larg, alt))
 	# moldura dourada e o mapa
 	draw_rect(_quadro.grow(14), Color(0.07, 0.06, 0.05))
 	draw_rect(_quadro.grow(14), UI.DOURADO, false, 5.0)
@@ -69,7 +71,7 @@ func _draw() -> void:
 	# a Rachel: setinha dourada na posição dela, girando conforme ela olha (pisca de leve)
 	if m.jogador == null: return
 	var p: Vector3 = m.jogador.global_position
-	var u := Vector2((p.x + Regiao.LIM) / (2.0 * Regiao.LIM), (p.z + Regiao.LIM) / (2.0 * Regiao.LIM))
+	var u := Vector2((p.x - Regiao.X0) / (Regiao.X1 - Regiao.X0), (p.z - Regiao.Z0) / (Regiao.Z1 - Regiao.Z0))
 	var c := _quadro.position + u * _quadro.size
 	var fr: Vector3 = -m.jogador.global_transform.basis.z
 	var d := Vector2(fr.x, fr.z).normalized(); var lado2 := Vector2(-d.y, d.x)
