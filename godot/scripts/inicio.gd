@@ -30,6 +30,14 @@ func _ready() -> void:
 	_usar_pacote(embutida)
 	get_tree().change_scene_to_file(CENA)
 
+# só para testar no PC atrás de um proxy (--proxy=host:porta --ca=arquivo.crt); no celular não usa
+func _rede(h: HTTPRequest) -> void:
+	for x in OS.get_cmdline_user_args():
+		if x.begins_with("--proxy="):
+			var hp := x.trim_prefix("--proxy=").split(":"); h.set_https_proxy(hp[0], int(hp[1])); h.set_http_proxy(hp[0], int(hp[1]))
+		if x.begins_with("--ca="):
+			var c := X509Certificate.new(); c.load(x.trim_prefix("--ca=")); h.set_tls_options(TLSOptions.client(c))
+
 func _versao(arq: String) -> int:
 	if not FileAccess.file_exists(arq): return 0
 	var d = JSON.parse_string(FileAccess.get_file_as_string(arq))
@@ -38,10 +46,11 @@ func _versao(arq: String) -> int:
 func _procurar(embutida: int) -> void:
 	_texto.text = "Procurando atualização..."
 	var tem := maxi(embutida, _versao(PASTA + "versao.json"))
-	var h := HTTPRequest.new(); h.timeout = 8.0; add_child(h)
+	var h := HTTPRequest.new(); h.timeout = 8.0; add_child(h); _rede(h)
 	if h.request(BASE + "versao.json") != OK: return
 	var r: Array = await h.request_completed
 	h.queue_free()
+	print("ATUALIZACAO: versao.json resultado=%d código=%d" % [r[0], r[1]])
 	if r[0] != HTTPRequest.RESULT_SUCCESS or r[1] != 200: _texto.text = "Sem conexão: abrindo a versão que você tem."; return
 	var d = JSON.parse_string((r[3] as PackedByteArray).get_string_from_utf8())
 	if not d is Dictionary or int(d.get("n", 0)) <= tem: return
@@ -50,7 +59,7 @@ func _procurar(embutida: int) -> void:
 	_texto.text = "Baixando atualização (versão %d)..." % int(d.n)
 	_barra.visible = true
 	_baixando = HTTPRequest.new(); _baixando.timeout = 300.0; _baixando.download_file = PASTA + "baixando.pck"
-	_baixando.use_threads = true; add_child(_baixando)
+	_baixando.use_threads = true; add_child(_baixando); _rede(_baixando)
 	if _baixando.request(BASE + "dallarian.pck") != OK: return
 	var r2: Array = await _baixando.request_completed
 	_baixando.queue_free(); _baixando = null; _barra.visible = false
@@ -58,13 +67,14 @@ func _procurar(embutida: int) -> void:
 	if ok and d.has("tamanho"):
 		var f := FileAccess.open(PASTA + "baixando.pck", FileAccess.READ)
 		ok = f != null and f.get_length() == int(d.tamanho)
+		if f: f.close()
 	if not ok:
 		DirAccess.remove_absolute(PASTA + "baixando.pck")
 		_texto.text = "Não deu para baixar agora: abrindo a versão que você tem."; return
 	DirAccess.rename_absolute(PASTA + "baixando.pck", PASTA + "jogo.pck")
 	var f2 := FileAccess.open(PASTA + "versao.json", FileAccess.WRITE)
-	if f2: f2.store_string(JSON.stringify({"n": int(d.n)}))
-	_texto.text = "Atualizado!"
+	if f2: f2.store_string(JSON.stringify({"n": int(d.n)})); f2.close()
+	_texto.text = "Atualizado!"; print("ATUALIZACAO: baixou a versão %d" % int(d.n))
 
 func _process(_d: float) -> void:
 	if _baixando and _baixando.get_body_size() > 0:
@@ -77,4 +87,4 @@ func _usar_pacote(embutida: int) -> void:
 	for a in args: if a.begins_with("--pacote="): arq = a.trim_prefix("--pacote=")     # teste
 	if not FileAccess.file_exists(arq): return
 	if not arq.begins_with("/") and _versao(PASTA + "versao.json") <= embutida: return
-	if ProjectSettings.load_resource_pack(arq, true): _texto.text = "Abrindo..."
+	if ProjectSettings.load_resource_pack(arq, true): _texto.text = "Abrindo..."; print("ATUALIZACAO: usando o pacote ", arq)
