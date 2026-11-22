@@ -1674,6 +1674,7 @@ func cavalo(id: String) -> Node3D:
 		# modelo do Tripo (sem rig ainda): vem de cabeça para +X, ~1 m de comprimento → gira para -Z e escala para 2,6 m
 		var rc := Node3D.new(); rc.name = "Cavalo"
 		var mod := modelo_ps1(arq); mod.name = "Modelo"
+		RigCavalo.montar(mod, arq)                       # esqueleto automático: patas, pescoço e rabo
 		var k := 2.6 / 0.97
 		var ymin := 0.0
 		for n in mod.find_children("*", "MeshInstance3D", true, false): ymin = minf(ymin, (n as MeshInstance3D).get_aabb().position.y)
@@ -2442,6 +2443,7 @@ func _modo_teste() -> void:
 			"portao_leste": alvo = Vector2(Regiao.CIDADE.end.x + 30.0, cidade_pos.y + 4.0); olha = Vector2(Regiao.CIDADE.end.x - 40.0, cidade_pos.y)
 			"alto": alvo = cidade_pos + Vector2(-260, 230); olha = cidade_pos
 			"estabulo": alvo = estabulo_pos + Vector2(6.0, 34.0); olha = estabulo_pos + Vector2(-10.0, 0)
+			"cercado": alvo = estabulo_pos + Vector2(1.0, 21.0); olha = estabulo_pos + Vector2(1.0, 9.0)
 			"cavalarico": alvo = estabulo_pos + Vector2(-19.0, 6.0); olha = estabulo_pos + Vector2(-19.5, 0.0)
 			"taverna": alvo = taverna_pos + Vector2(10.0, -26.0); olha = taverna_pos
 			"rua_oeste": alvo = cidade_pos + Vector2(-205.0, 0.0); olha = cidade_pos
@@ -2455,6 +2457,10 @@ func _modo_teste() -> void:
 	if args.has("montar"):         # teste: aperta o botão de montar; com --montar=andar anda depois de montado
 		get_tree().create_timer(1.0).timeout.connect(func(): montaria_ui.alternar_montaria())
 		if String(args.montar) == "andar": get_tree().create_timer(3.0).timeout.connect(func(): controles.dir = Vector2(0, -1); controles.set_process(false))
+	if args.has("cavalo_andar"):   # teste: os cavalos do cercado "andam" no lugar na velocidade dada (m/s)
+		get_tree().create_timer(1.0).timeout.connect(func():
+			for cv in raiz.find_children("Cavalo*", "Node3D", false, false):
+				for ch in cv.get_children(): if ch.get_script() != null and "vel" in ch: ch.vel = float(args.cavalo_andar))
 	if args.has("fluxo_cavalo"):   # teste: compra o cavalo branco, abre a bolsa, "toque duplo" nele e abre as montarias
 		get_tree().create_timer(1.2).timeout.connect(func():
 			bolsa.cobre = 500; print("COMPRA: '", bolsa.comprar("cavalo_branco"), "'"); inventario.abrir())

@@ -187,7 +187,7 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   recado "MONTARIA ADQUIRIDA" com o nome. No **menu do personagem** (botão ao lado do mapa; PC: tecla C), aba
   MONTARIAS, aperta-se **EQUIPAR** na montaria. O **botão do cavalo** (perto do escudo; PC: tecla V) mostra a barra
   "Montando..." de 1,5 s (andar ou atacar cancela) e a Rachel aparece já montada; apertar de novo desmonta.
-  Atacar também desmonta. Cavalos modelados no Tripo (ainda sem rig: o corpo balança no ritmo do passo).
+  Atacar também desmonta. Cavalos modelados no Tripo, com rig automático: as patas andam em trote, o pescoço balança e o rabo mexe.
 - Os dois rios têm juncos nas margens e peixes nadando.
 
 ## 7.2 Interface
