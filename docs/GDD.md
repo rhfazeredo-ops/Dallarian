@@ -215,6 +215,10 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Estrada direta da saída leste da vila até a Ponte dos Guardiões, no portão oeste de Altamar (~1,7 km), com ponte
   no rio do vale e curva suave ao lado do morro. Iluminada: poste com lanterna a cada 18 m, alternando os lados.
 
+## 7.1.10 Música
+- Música do vale em todo lugar; dentro dos muros de Altamar entra a **música da cidade** (troca devagar em 3 s; a
+  outra fica pausada e continua de onde parou). Arquivo: assets/som/musica_altamar.ogg (a fazer no Flow Music).
+
 ## 7.2 Interface
 - **Joystick fixo** no canto de baixo à esquerda (celular). Empurrando para cima além da borda aparece o botão
   **TRAVAR** logo acima: levando o dedo até ele, a Rachel corre sozinha para a frente (**AUTO**). Com a trava ligada o

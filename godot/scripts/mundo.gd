@@ -704,12 +704,41 @@ func perto_de_casa(x: float, z: float, folga: float) -> bool:
 	return false
 
 # música de fundo ("Time Flows Ever Onward"), em volume bem baixo, repetindo
+# música: a do vale em todo lugar; dentro dos muros de Altamar entra a música da cidade (troca devagar, em 3 s,
+# e a outra fica pausada no ponto onde parou). Sem o arquivo da cidade, continua só a do vale.
+const VOL_MUSICA := -16.0
+var _mus_vale: AudioStreamPlayer
+var _mus_cidade: AudioStreamPlayer
+var _na_cidade := false
+var _t_musica := 0.0
 func _musica() -> void:
 	Audio.montar()
-	var st: AudioStreamOggVorbis = load("res://assets/som/musica_vale.ogg")
-	st.loop = true
-	var mus := AudioStreamPlayer.new(); mus.stream = st; mus.volume_db = -16.0; mus.bus = "Musica"
-	add_child(mus); mus.play()
+	_mus_vale = _tocador("res://assets/som/musica_vale.ogg"); _mus_vale.play()
+	if ResourceLoader.exists("res://assets/som/musica_altamar.ogg"):
+		_mus_cidade = _tocador("res://assets/som/musica_altamar.ogg"); _mus_cidade.volume_db = -60.0
+
+func _tocador(arq: String) -> AudioStreamPlayer:
+	var st: AudioStreamOggVorbis = load(arq); st.loop = true
+	var mus := AudioStreamPlayer.new(); mus.stream = st; mus.volume_db = VOL_MUSICA; mus.bus = "Musica"
+	add_child(mus); return mus
+
+func _tick_musica(delta: float) -> void:
+	if _mus_cidade == null or jogador == null: return
+	_t_musica -= delta
+	if _t_musica > 0.0: return
+	_t_musica = 0.5
+	var p := Vector2(jogador.global_position.x, jogador.global_position.z)
+	var dentro := p.distance_to(Regiao.CIDADE_C) < Regiao.CIDADE_R - 4.0
+	if dentro == _na_cidade: return
+	_na_cidade = dentro
+	var entra := _mus_cidade if dentro else _mus_vale
+	var sai := _mus_vale if dentro else _mus_cidade
+	if not entra.playing: entra.play()
+	entra.stream_paused = false
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(entra, "volume_db", VOL_MUSICA, 3.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(sai, "volume_db", -60.0, 3.0).set_trans(Tween.TRANS_SINE)
+	tw.chain().tween_callback(func(): if (sai == _mus_vale) == _na_cidade: sai.stream_paused = true)
 
 # o jogador não sai da região nem entra em água funda (volta para o último lugar bom)
 func _physics_process(_d: float) -> void:
@@ -811,6 +840,7 @@ var _prox_raio := 4.0
 var _raio := 0.0
 func _process(delta: float) -> void:
 	Audio.atualizar(delta)
+	_tick_musica(delta)
 	_dia_noite(delta)
 	_tick_veneno(delta)
 	if jogador: _tick_voltas(delta)
