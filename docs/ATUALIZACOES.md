@@ -117,3 +117,5 @@
 - **Imagem mais estável**: o "tremido PS1" dos vértices agora vem desligado (opção no menu); texturas com mipmap
   (de longe não cintilam); manchas do chão com tamanho fixo (andando, não crescem e encolhem como bolhas).
 - Manchinhas do chão não "brotam" mais: na borda do alcance elas crescem e somem aos poucos enquanto a Rachel anda.
+- **Save na nuvem (Supabase)** com login anônimo: o progresso vai para o banco (no máximo a cada 30 s e ao sair do
+  jogo) e volta ao abrir. Sem internet, segue com o save do aparelho.

@@ -219,6 +219,11 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Música do vale em todo lugar; dentro dos muros de Altamar entra a **música da cidade** (troca devagar em 3 s; a
   outra fica pausada e continua de onde parou). Música da cidade: "The White City Gates" (feita no Flow Music).
 
+## 7.1.11 Save na nuvem (alfa)
+- Login **anônimo** no Supabase (projeto "dallarian", São Paulo): na primeira vez o jogo cria um perfil anônimo e
+  guarda a sessão no aparelho. O save continua no aparelho e também vai para a tabela `saves` (um por jogador, só o
+  dono lê e grava). Ao abrir, se o da nuvem for mais novo, ele é usado. Login com Google fica para o beta.
+
 ## 7.2 Interface
 - **Joystick fixo** no canto de baixo à esquerda (celular). Empurrando para cima além da borda aparece o botão
   **TRAVAR** logo acima: levando o dedo até ele, a Rachel corre sozinha para a frente (**AUTO**). Com a trava ligada o

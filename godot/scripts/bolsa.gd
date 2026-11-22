@@ -227,14 +227,23 @@ static func texto_dinheiro(c: int) -> String:
 
 static func moedas(c: int) -> Array: return [c / 10000, (c / 100) % 100, c % 100]
 
-func salvar(nivel: int, xp: float) -> void:
+# grava no aparelho e devolve o que gravou (o mundo manda o mesmo para a nuvem)
+func salvar(nivel: int, xp: float) -> Dictionary:
+	var d := {"nivel": nivel, "xp": xp, "cobre": cobre, "bolsas": bolsas, "equip": equip, "montarias": montarias, "montaria_sel": montaria_sel,
+		"salvo_em": Time.get_unix_time_from_system()}
 	var f := FileAccess.open(ARQUIVO, FileAccess.WRITE)
-	if f: f.store_string(JSON.stringify({"nivel": nivel, "xp": xp, "cobre": cobre, "bolsas": bolsas, "equip": equip, "montarias": montarias, "montaria_sel": montaria_sel}))
+	if f: f.store_string(JSON.stringify(d))
+	return d
 
 func carregar() -> Dictionary:
 	if not FileAccess.file_exists(ARQUIVO): return {}
 	var d = JSON.parse_string(FileAccess.get_file_as_string(ARQUIVO))
 	if typeof(d) != TYPE_DICTIONARY: return {}
+	return aplicar(d)
+
+# põe um save (do aparelho ou da nuvem) na bolsa
+func aplicar(d: Dictionary) -> Dictionary:
+	bolsas = [_bolsa_nova("bolsa_10"), null, null]
 	cobre = int(d.get("cobre", 0))
 	montarias = []
 	for mt in d.get("montarias", []): if ITENS.has(mt): montarias.append(mt)

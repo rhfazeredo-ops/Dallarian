@@ -531,6 +531,7 @@ func lobo_morreu(l: Lobo) -> void:
 # progresso salvo no aparelho (nível, XP, dinheiro e itens); nos testes com print não carrega nem salva
 var bolsa := Bolsa.new()
 var _salvar_em := -1.0
+var nuvem: Nuvem
 func _carregar_progresso() -> void:
 	if args.has("shot") and not args.has("progresso"): return
 	var d := bolsa.carregar()
@@ -538,6 +539,21 @@ func _carregar_progresso() -> void:
 	jogador.trocar_equip("arma", bolsa.equip.arma); jogador.trocar_equip("escudo", bolsa.equip.escudo)
 	var pedir := func(): _salvar_em = 1.0
 	hud.mudou.connect(pedir); bolsa.mudou.connect(pedir)
+	# save na nuvem (login anônimo no Supabase): entra, e se o da nuvem for mais novo, usa ele
+	nuvem = Nuvem.new(); add_child(nuvem); nuvem.log_ativo = args.has("nuvem")
+	nuvem.save_baixado.connect(func(dn: Dictionary):
+		bolsa.aplicar(dn); bolsa.mudou.emit()
+		hud.definir_nivel(int(dn.get("nivel", 1)), float(dn.get("xp", 0.0)))
+		jogador.trocar_equip("arma", bolsa.equip.arma); jogador.trocar_equip("escudo", bolsa.equip.escudo)
+		var f := FileAccess.open(Bolsa.ARQUIVO, FileAccess.WRITE)
+		if f: f.store_string(JSON.stringify(dn))
+		hud.avisar("Progresso carregado da nuvem.", Color(0.6, 0.85, 1.0)))
+	nuvem.iniciar(float(d.get("salvo_em", 0.0)))
+
+# saindo ou indo para o fundo (celular): salva e manda para a nuvem na hora
+func _notification(what: int) -> void:
+	if (what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED) and nuvem and hud:
+		nuvem.enviar(bolsa.salvar(hud.nivel, hud.xp), true)
 
 # crianças brincando de pega-pega num pedaço livre da vila (o lugar com mais espaço sem casas perto da praça)
 var brincadeira_pos := Vector2.ZERO
@@ -848,7 +864,9 @@ func _process(delta: float) -> void:
 		hud.chefe = golem if (golem.grupo.alerta and golem.estado != "morto" and golem.global_position.distance_to(jogador.global_position) < 60.0) else null
 	if _salvar_em > 0.0:
 		_salvar_em -= delta
-		if _salvar_em <= 0.0: bolsa.salvar(hud.nivel, hud.xp)
+		if _salvar_em <= 0.0:
+			var ds := bolsa.salvar(hud.nivel, hud.xp)
+			if nuvem: nuvem.enviar(ds)
 	for mo in moinhos: mo.rotate_object_local(Vector3(0, 0, 1), delta * 0.6)
 	if not TEMPESTADE and not args.has("raio"): return
 	_prox_raio -= delta
