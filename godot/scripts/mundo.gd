@@ -1646,12 +1646,10 @@ func _cidade() -> void:
 	lugares.append([c, RR + 15.0])
 	if args.has("perf"): print("CIDADE: %d casas, %d lojas" % [feitas, cidade_lojas.size()])
 
-# freira que vende poções de vida, parada na frente da igreja, olhando para a praça (modelo provisório: o
-# morador base com hábito preto e véu branco pintados; troca pelo modelo do Tripo quando chegar)
+# freira que vende poções de vida (modelo do Tripo com o esqueleto dos moradores), parada na frente da igreja,
+# orando com as mãos juntas e olhando para a praça
 func _freira(nome: String, p: Vector2, olhar: Vector2, y: float, semente: int) -> void:
 	var f := Morador.new(); f.profissao = "freira"
-	f.roupa = {"cor_tunica": Color(0.1, 0.09, 0.11), "cor_calca": Color(0.08, 0.07, 0.09), "cor_couro": Color(0.12, 0.1, 0.1),
-		"cor_cabelo": Color(0.92, 0.9, 0.86)}
 	f.posto = p; f.olhar_posto = p + olhar * 5.0
 	f.set_meta("nome", nome)
 	raiz.add_child(f); f.position = Vector3(p.x, y, p.y)
@@ -1899,6 +1897,15 @@ func _estatua_guardia(p: Vector2, fr: Vector2) -> void:
 	var ang := atan2(fr.x, fr.y)
 	var y := reg.aplanar(p, Vector2(2.4, 2.4), -ang, 3.0)
 	lugares.append([p, 5.0])
+	var arq := "res://assets/modelos/estatua_guardia.glb"
+	if ResourceLoader.exists(arq):
+		# modelo do Tripo: ~0,98 de altura, de frente para +X, base em y = -0,49 → 4,5 m, de frente para "fr"
+		var mod := modelo_ps1(arq); var k := 4.5 / 0.98
+		mod.scale = Vector3(k, k, k); mod.rotation.y = ang - PI / 2.0
+		mod.position = Vector3(p.x, y - 0.05 + 0.49 * k, p.y); raiz.add_child(mod)
+		_colisor_caixa(Vector3(p.x, y, p.y), Vector3(2.8, 4.0, 2.8), ang)
+		luzes.append(Vector3(p.x, y + 1.6, p.y) + Vector3(fr.x, 0, fr.y) * 1.2)     # chama azul do braseiro
+		return
 	var pedra := mat("pedra", 1.0, Color(1.35, 1.38, 1.32)); var musgo := mat("pedra", 1.0, Color(0.95, 1.1, 0.85))
 	var st := _st()
 	_caixa(st, Vector3(0, 0.25, 0), Vector3(3.6, 0.5, 3.6)); _caixa(st, Vector3(0, 0.75, 0), Vector3(2.8, 0.5, 2.8))

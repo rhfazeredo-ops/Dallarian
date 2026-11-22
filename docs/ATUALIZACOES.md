@@ -106,3 +106,5 @@
 - Estrada Real iluminada: 85 postes com lanterna (a cada 18 m, alternando os lados) acendem à noite.
 - **Morte em primeira pessoa**: a câmera cai no chão, tela vermelha e "VOCÊ MORREU"; a Rachel desperta de frente
   para a **Estátua da Guardiã** mais perto (vila, meio da Estrada Real e praça de Altamar).
+- Modelos do Tripo: a **freira** (Irmã Celina e Irmã Odília, paradas orando com as mãos juntas) e a **Estátua da
+  Guardiã** (com a chama azul acesa à noite) no lugar dos provisórios; ícones novos das 3 poções e das frutinhas.

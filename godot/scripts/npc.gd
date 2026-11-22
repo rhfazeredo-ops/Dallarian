@@ -47,7 +47,12 @@ var campo: Array = []             # fazendeiro: o campo (centro x, z, largura, c
 var gesticula := true              # enquanto conversa: true = ele fala (gesticula), false = escuta
 var falando_com: Node3D = null    # o jogador, quando está conversando com ele
 var ao_bater: Callable            # chamado no instante do golpe (faíscas/lascas)
-const MODELOS_PROF := { "ferreiro": "res://assets/modelos/ferreiro.glb", "lenhador": "res://assets/modelos/lenhador.glb", "fazendeiro": "res://assets/modelos/fazendeiro.glb" }
+const MODELOS_PROF := { "ferreiro": "res://assets/modelos/ferreiro.glb", "lenhador": "res://assets/modelos/lenhador.glb", "fazendeiro": "res://assets/modelos/fazendeiro.glb",
+	"freira": "res://assets/modelos/freira.glb" }
+# a freira do Tripo veio de frente para +Z (os outros olham para +X): as poses (pensadas para +X) giram 90° para ela
+const GIRO_FREIRA := Quaternion(Vector3.UP, -PI / 2.0)
+# e veio em pose de T (braços na horizontal); os moradores descansam com os braços ~58° para baixo (pose em A)
+const A_FREIRA := {"L_Upperarm": Quaternion(Vector3(0, 0, 1), -1.0), "R_Upperarm": Quaternion(Vector3(0, 0, 1), 1.0)}
 # ferramentas: [arquivo, eixo do cabo no arquivo (para a cabeça), ponto de pegada, direção da lâmina/face, comprimento no arquivo, comprimento real (m)]
 const FERRAMENTAS := {
 	"martelo": ["res://assets/modelos/martelo.glb", Vector3(-0.856, 0.508, 0.093), Vector3(-0.13, 0.071, 0.033) + Vector3(0.856, -0.508, -0.093) * 0.56, Vector3(0.085, -0.039, 0.996), 1.073, 0.38],   # face: o lado grosso (oposto à ponta fina)
@@ -61,7 +66,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	if tipo == "" and profissao == "" and sorteio >= 0.44:
 		tipo = ["fem", "fem", "gorda", "velha", "forte", "velho"][int((sorteio - 0.44) / 0.56 * 6.0) % 6]
 	if tipo != "": skin = 20 + TIPOS.keys().find(tipo)
-	if MODELOS_PROF.has(profissao): skin = {"ferreiro": 11, "lenhador": 12, "fazendeiro": 13}[profissao]
+	if MODELOS_PROF.has(profissao): skin = {"ferreiro": 11, "lenhador": 12, "fazendeiro": 13, "freira": 14}[profissao]
 	if not roupa.is_empty() and not MODELOS_PROF.has(profissao): skin = 0; tipo = ""    # cores próprias: modelo base   # modelo e textura próprios
 	var alt := rng.randf_range(1.62, 1.86); var larg := rng.randf_range(0.92, 1.12)
 	if tipo != "":
@@ -74,7 +79,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	var arq: String = MODELOS_PROF[profissao] if MODELOS_PROF.has(profissao) else (TIPOS[tipo][0] if tipo != "" else SKINS[skin])
 	var mod: Node3D = load(arq).instantiate(); visual.add_child(mod)
 	var k := alt / 0.981
-	mod.scale = Vector3(k * larg, k, k * larg); mod.rotation_degrees.y = 90     # o modelo olha para +X
+	mod.scale = Vector3(k * larg, k, k * larg); mod.rotation_degrees.y = 180.0 if profissao == "freira" else 90.0     # o modelo olha para +X (a freira, +Z)
 	esq = mod.find_children("*", "Skeleton3D", true, false)[0]
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/npc.gdshader")
 	for n in mod.find_children("*", "MeshInstance3D", true, false):
@@ -415,7 +420,10 @@ func _animar(delta: float, anda: float) -> void:
 			"ferreiro": _anim_ferreiro(alvo)
 			"lenhador": hip = _anim_lenhador(alvo)
 			"fazendeiro": hip = _anim_fazendeiro(alvo)
-			"cavalarico", "freira":                           # parado de braços cruzados (a freira: mãos juntas)
+			"freira":                                         # parada orando: mãos juntas na frente do peito
+				_pose_orar(alvo, resp)
+				alvo["Head"] = _q(Vector3(0, 0, 1), -0.18) * _q(Vector3(0, 1, 0), sin(_t * 0.2) * 0.12)
+			"cavalarico":                                     # parado de braços cruzados
 				_pose_cruzados(alvo, resp)
 				alvo["Head"] = _q(Vector3(0, 1, 0), sin(_t * 0.25) * 0.35)
 	elif estado == "atividade" or (estado == "brincar" and a < 0.2 and _tempo_estado < 0.0):
@@ -474,10 +482,20 @@ func _animar(delta: float, anda: float) -> void:
 		var pg: Transform3D = esq.get_bone_global_pose(pai) if pai >= 0 else Transform3D.IDENTITY
 		var pai_resto: Transform3D = esq.get_bone_global_rest(pai) if pai >= 0 else Transform3D.IDENTITY
 		var g: Transform3D = pg * pai_resto.affine_inverse() * _resto[b]
-		g.basis = Basis(_pose[b]) * g.basis
+		var qp: Quaternion = _pose[b]
+		if profissao == "freira":
+			qp = GIRO_FREIRA * qp * GIRO_FREIRA.inverse()
+			if A_FREIRA.has(b): qp = qp * A_FREIRA[b]
+		g.basis = Basis(qp) * g.basis
 		if b == "Hip": g.origin += Vector3(0, _hip_y, 0)
 		var loc := pg.affine_inverse() * g
 		esq.set_bone_pose_position(i, loc.origin); esq.set_bone_pose_rotation(i, loc.basis.get_rotation_quaternion())
+
+func _pose_orar(alvo: Dictionary, resp: float) -> void:
+	alvo["L_Upperarm"] = _zx(PO[0], -PO[1] + resp * 0.015); alvo["R_Upperarm"] = _zx(PO[0], PO[1] - resp * 0.015)
+	alvo["L_Forearm"] = _q(Vector3(0, 0, 1), PO[2]) * _q(Vector3(1, 0, 0), -PO[3])
+	alvo["R_Forearm"] = _q(Vector3(0, 0, 1), PO[2]) * _q(Vector3(1, 0, 0), PO[3])
+const PO := [0.4, 0.62, 1.3, 0.2]       # braço para a frente/dentro, antebraço dobrado, mãos se encontrando
 
 func _pose_cruzados(alvo: Dictionary, resp: float) -> void:
 	alvo["L_Upperarm"] = _zx(0.45, -0.55 + resp * 0.02); alvo["R_Upperarm"] = _zx(0.45, 0.55 - resp * 0.02)
