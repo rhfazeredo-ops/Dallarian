@@ -90,3 +90,8 @@
 - **21/11 (manhã):** moradores (fem, fem gorda, fem velha, forte, velho, menino e menina), barraca, poste de
   madeira, ancinho, espada e escudo iniciais de madeira.
 - **21/11 (madrugada):** diálogos do ferreiro e da heroína, e o som do martelo.
+
+## 22/11 (tarde)
+- Imagem mais limpa: o pontilhado retrô agora vem desligado (dá para ligar no menu).
+- Menu → Configurações → Gráfico: **Nitidez** (leve, média, alta) e **Pontilhado retrô** (ligado/desligado).
+- Floresta e juncos um pouco mais leves no celular; o ferreiro não é mais procurado a cada quadro.

@@ -10,6 +10,8 @@ const MAX_VISTA := 270.0
 var m
 var aberto := false
 var distancia := 270.0
+var nitidez := 3              # a imagem 3D é desenhada em 1/nitidez da tela: 4 = leve, 3 = média, 2 = alta
+var pontilhado := false       # filtro retrô (paleta curta + pontilhado Bayer): desligado por padrão
 var _botao: BotaoAcao
 var _painel: PanelContainer
 var _conteudo: VBoxContainer
@@ -24,8 +26,12 @@ func montar(mundo) -> void:
 	_botao.process_mode = Node.PROCESS_MODE_ALWAYS
 	_botao.apertou.connect(alternar); add_child(_botao)
 	distancia = 180.0 if m.celular else MAX_VISTA
+	nitidez = 3 if m.celular else 2
 	_carregar()
+	if m.args.has("nitidez"): nitidez = int(m.args.nitidez)
+	if m.args.has("pontilhado"): pontilhado = true
 	aplicar_distancia(distancia)
+	m.aplicar_imagem(nitidez, pontilhado)
 
 func _process(_d: float) -> void:
 	var t := Input.is_key_pressed(KEY_ESCAPE)
@@ -88,8 +94,25 @@ func _abrir_config() -> void:
 	_conteudo.add_child(sl); linha.add_child(valor)
 	var dica := UI.rotulo("Menos distância = jogo mais leve (o resto fica na névoa).", 22, Color(0.8, 0.78, 0.7))
 	_conteudo.add_child(dica)
+	# nitidez da imagem e filtro retrô
+	_opcoes("Nitidez", [["LEVE", 4], ["MÉDIA", 3], ["ALTA", 2]], nitidez, func(v):
+		nitidez = v; m.aplicar_imagem(nitidez, pontilhado); _salvar(); _abrir_config())
+	_opcoes("Pontilhado retrô", [["DESLIGADO", 0], ["LIGADO", 1]], 1 if pontilhado else 0, func(v):
+		pontilhado = v == 1; m.aplicar_imagem(nitidez, pontilhado); _salvar(); _abrir_config())
+	_conteudo.add_child(UI.rotulo("Nitidez alta = imagem mais limpa, mas pesa mais no celular.", 22, Color(0.8, 0.78, 0.7)))
 	var b := UI.botao("VOLTAR", _abrir_principal, true, 26, 220.0); _conteudo.add_child(b)
 	_centralizar()
+
+# linha com um título e botões de escolha (o escolhido fica aceso)
+func _opcoes(titulo: String, ops: Array, atual: int, ao_escolher: Callable) -> void:
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 14); _conteudo.add_child(h)
+	var t := UI.rotulo(titulo, 28); t.custom_minimum_size = Vector2(300, 0); h.add_child(t)
+	for op in ops:
+		var v: int = op[1]
+		var b := UI.botao(op[0], func(): ao_escolher.call(v), true, 22, 170.0)
+		b.process_mode = Node.PROCESS_MODE_ALWAYS
+		b.modulate = Color(1, 1, 1) if v == atual else Color(0.55, 0.55, 0.55)
+		h.add_child(b)
 
 func _bolinha() -> Image:
 	var im := Image.create(44, 44, false, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
@@ -110,10 +133,12 @@ func aplicar_distancia(d: float) -> void:
 
 func _salvar() -> void:
 	var f := FileAccess.open(ARQUIVO, FileAccess.WRITE)
-	if f: f.store_string(JSON.stringify({"distancia": distancia}))
+	if f: f.store_string(JSON.stringify({"distancia": distancia, "nitidez": nitidez, "pontilhado": pontilhado}))
 
 func _carregar() -> void:
 	if m.args.has("shot") and not m.args.has("vista"): return
 	if FileAccess.file_exists(ARQUIVO):
 		var d = JSON.parse_string(FileAccess.get_file_as_string(ARQUIVO))
-		if typeof(d) == TYPE_DICTIONARY: distancia = clampf(float(d.get("distancia", distancia)), MIN_VISTA, MAX_VISTA)
+		if typeof(d) == TYPE_DICTIONARY:
+			distancia = clampf(float(d.get("distancia", distancia)), MIN_VISTA, MAX_VISTA)
+			nitidez = clampi(int(d.get("nitidez", nitidez)), 2, 4); pontilhado = bool(d.get("pontilhado", pontilhado))

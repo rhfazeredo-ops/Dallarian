@@ -745,6 +745,16 @@ func _juntar_estaticos() -> void:
 	if args.has("perf"): print("JUNTOU peças paradas: %d → %d objetos" % [antes, depois])
 
 # ---------- tela: 3D em resolução baixa + filtro de paleta ----------
+var _tela_cont: SubViewportContainer
+# nitidez: a imagem 3D sai em 1/n da tela (4 leve, 3 média, 2 alta); pontilhado: filtro retrô de paleta curta.
+# Sem o pontilhado a paleta fica bem maior (32 níveis), só para manter o jeitinho pintado sem faixas.
+func aplicar_imagem(n: int, pont: bool) -> void:
+	_tela_cont.stretch_shrink = n
+	if hud: hud.escala_3d = n
+	var sm: ShaderMaterial = _tela_cont.material
+	sm.set_shader_parameter("forca_pontilhado", 0.7 if pont else 0.0)
+	sm.set_shader_parameter("niveis", 9.0 if pont else 32.0)
+
 func _tela() -> void:
 	var cont := SubViewportContainer.new()
 	cont.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -752,7 +762,7 @@ func _tela() -> void:
 	cont.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/tela.gdshader"); cont.material = sm
-	add_child(cont)
+	add_child(cont); _tela_cont = cont
 	vp = SubViewport.new(); vp.msaa_3d = Viewport.MSAA_DISABLED
 	vp.audio_listener_enable_3d = true         # a câmera desta tela é o "ouvido" dos sons 3D (sem isso ficam mudos)
 	vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
@@ -2371,6 +2381,20 @@ func _modo_teste() -> void:
 				grupos[nome] = grupos.get(nome, 0) + t; dcs[nome] = dcs.get(nome, 0) + 1
 			var ks := grupos.keys(); ks.sort_custom(func(a, b): return grupos[a] > grupos[b])
 			for k in ks.slice(0, 18): print("TRIS %-40s %8d  (%d nós)" % [k, grupos[k], dcs[k]]))
+	if args.has("perfil"):         # teste: tempo de _process/_physics_process de cada script (chama de novo e mede)
+		get_tree().create_timer(8.0).timeout.connect(func():
+			var soma := {}; var cont := {}
+			for rep in 3:
+				for n in get_tree().root.find_children("*", "", true, false):
+					var sc = n.get_script()
+					if sc == null: continue
+					for f in ["_process", "_physics_process"]:
+						if not n.has_method(f) or not n.is_processing() and f == "_process": continue
+						var t0 := Time.get_ticks_usec(); n.call(f, 0.016); var dt := Time.get_ticks_usec() - t0
+						var k: String = sc.resource_path.get_file() + ":" + f
+						soma[k] = soma.get(k, 0) + dt; cont[k] = cont.get(k, 0) + 1
+			var ks := soma.keys(); ks.sort_custom(func(a, b): return soma[a] > soma[b])
+			for k in ks.slice(0, 14): print("PERFIL %-36s %7.2f ms/quadro  (%d nós)" % [k, soma[k] / 3000.0, cont[k] / 3]))
 	if args.has("perf"):           # teste: mede o custo do quadro (draw calls, triângulos, tempo de script)
 		for rep in 5: get_tree().create_timer(float(args.get("perf_t", "3")) + rep * 1.5).timeout.connect(func():
 			var P := Performance

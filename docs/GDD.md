@@ -199,6 +199,7 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - **Mapa** (botão ao lado do inventário; PC: tecla M): o vale inteiro desenhado a partir do terreno, sem lugares marcados
   (eles só aparecem na bússola); a Rachel é uma setinha dourada apontando para onde olha.
 
+- **Gráfico** também tem **Nitidez** (leve, média, alta) e **Pontilhado retrô** (desligado por padrão).
 - **Menu** (botão no canto de cima à esquerda; PC: Esc): CONTINUAR e CONFIGURAÇÕES → Gráfico → **distância de visão**
   (60 m até "Tudo"); o resto some numa névoa branca e o jogo fica mais leve. Salvo no aparelho. Monstros novos
   (aranhas, Lodosos) só a partir de ~160 m da vila.

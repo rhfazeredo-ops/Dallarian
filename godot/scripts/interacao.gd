@@ -55,7 +55,8 @@ const DIALOGOS_CAVALARICO := [
 const LOJA_ESTABULO := {"nome": "Edric", "cargo": "<Cavalariço>", "itens": ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"],
 	"falas_compra": ["Trate bem dele, que ele trata bem de você.", "Escolha boa! Esse aí não refuga estrada."],
 	"falas_venda": ["Hum, isso eu revendo na cidade.", "Fechado. Cobre na mão."]}
-var _tipo_npc := ""               # "ferreiro" ou "cavalarico"
+var _tipo_npc := ""
+var _ferreiros := []               # "ferreiro" ou "cavalarico"
 
 func montar(mundo) -> void:
 	m = mundo
@@ -213,8 +214,10 @@ func _fechar() -> void:
 func _process(_d: float) -> void:
 	if m == null or m.jogador == null: return
 	var perto: Morador = null
-	for mo in m.raiz.get_children():
-		if mo is Morador and mo.profissao == "ferreiro" and mo.global_position.distance_to(m.jogador.global_position) < (ALCANCE if not _falando else 12.0):
+	if _ferreiros.is_empty():                     # procura uma vez só (andar por todos os nós a cada quadro pesava)
+		for mo in m.raiz.get_children(): if mo is Morador and mo.profissao == "ferreiro": _ferreiros.append(mo)
+	for mo in _ferreiros:
+		if mo.global_position.distance_to(m.jogador.global_position) < (ALCANCE if not _falando else 12.0):
 			perto = mo
 	var tipo := "ferreiro" if perto else ""
 	var cv: Morador = m.estabulo_npc

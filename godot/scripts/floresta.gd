@@ -53,7 +53,7 @@ const PONTAS := [Vector3(1.4, 4.2, 0.3), Vector3(-1.2, 4.7, -0.5), Vector3(0.2, 
 
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
-	if m.celular: VISTA = 185.0; PERTO = 70.0
+	if m.celular: VISTA = 185.0; PERTO = 55.0
 	_mat_cartao = {
 		"folhagem": _material(_tex_folhagem(192, 11)),
 		"folhagem2": _material(_tex_folhagem(192, 21)),
@@ -447,7 +447,7 @@ func _beira_agua() -> void:
 			if not por_ped.has(kk): por_ped[kk] = []
 			por_ped[kk].append([t, Color(1, 1, 1) * rng.randf_range(0.85, 1.08)])
 	for kk in por_ped.keys():
-		var mi := _mm(junco, por_ped[kk], true); mi.visibility_range_end = 200.0; add_child(mi)
+		var mi := _mm(junco, por_ped[kk], true); mi.visibility_range_end = 120.0 if m.celular else 200.0; add_child(mi)
 
 # árvores plantadas na cidade (parque e ruas principais), posições vindas do mundo
 func _arvores_cidade() -> void:
