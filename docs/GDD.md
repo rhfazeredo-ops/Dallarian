@@ -181,13 +181,13 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   faz curvas pelo sul e deságua no mar. Para entrar na cidade pelo oeste é preciso atravessar a **Ponte dos Guardiões**.
 - Logo depois do portão oeste fica a **taverna** (placa da caneca). O **estábulo** fica do lado de fora da cidade,
   do outro lado do rio, perto da estrada que chega na ponte: a casinha do cavalariço, o telheiro com cocheiras do
-  lado e o cercado com três cavalos (branco, marrom e preto). **Edric, o cavalariço**, fica parado na frente da casa.
+  lado e o cercado com quatro cavalos (branco malhado, alazão, preto e dourado). **Edric, o cavalariço**, fica parado na frente da casa.
 - Edric tem LOJA e CONVERSAR. Cada cavalo custa 80 cobre e aumenta a velocidade em 60%.
 - **Montarias como no WoW:** o cavalo comprado vai para a **bolsa**; **dois toques** nele viram montaria e aparece o
   recado "MONTARIA ADQUIRIDA" com o nome. No **menu do personagem** (botão ao lado do mapa; PC: tecla C), aba
   MONTARIAS, aperta-se **EQUIPAR** na montaria. O **botão do cavalo** (perto do escudo; PC: tecla V) mostra a barra
   "Montando..." de 1,5 s (andar ou atacar cancela) e a Rachel aparece já montada; apertar de novo desmonta.
-  Atacar também desmonta. Os cavalos são provisórios (blocos) até chegarem os modelos do Tripo.
+  Atacar também desmonta. Cavalos modelados no Tripo (ainda sem rig: o corpo balança no ritmo do passo).
 - Os dois rios têm juncos nas margens e peixes nadando.
 
 ## 7.2 Interface

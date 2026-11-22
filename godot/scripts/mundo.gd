@@ -1640,10 +1640,10 @@ func _estabulo() -> void:
 		_colisor_caixa(Vector3(m2.x, y, m2.y), Vector3(0.3, 1.3, comp), ang)
 	_peca(cerca, madeira, Vector3.ZERO)
 	# três cavalos no cercado (o modelo provisório de blocos)
-	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto"]
-	for i in 3:
+	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]
+	for i in 4:
 		var cv := cavalo(cores[i]); raiz.add_child(cv)
-		cv.position = Vector3(e.x - 5.0 + i * 6.5, y, e.y + 8.0 + (i % 2) * 2.0); cv.rotation.y = 0.4 - i * 0.6
+		cv.position = Vector3(e.x - 7.0 + i * 5.5, y, e.y + 7.5 + (i % 2) * 3.0); cv.rotation.y = 0.5 - i * 0.45
 		_colisor_caixa(Vector3(cv.position.x, y, cv.position.z), Vector3(1.0, 1.8, 2.6), cv.rotation.y)
 	# o cavalariço: parado na frente da casa, do lado do estábulo, olhando para a estrada
 	var npc := Morador.new(); npc.tipo = "forte"; npc.profissao = "cavalarico"
@@ -1657,7 +1657,21 @@ func _estabulo() -> void:
 	_placa(Vector3(pp.x - 0.3, y - 0.4, pp.y), PI * 0.5, 0.6, 0.6, 4.6, "estabulo")
 
 # cavalo provisório feito de blocos (frente = -Z), na cor da montaria; patas, cabeça e cauda em nós próprios para animar
+const MODELOS_CAVALO := {"cavalo_branco": "cavalo_branco", "cavalo_marrom": "cavalo_vermelho", "cavalo_preto": "cavalo_preto", "cavalo_dourado": "cavalo_dourado"}
 func cavalo(id: String) -> Node3D:
+	var arq := "res://assets/modelos/%s.glb" % MODELOS_CAVALO.get(id, "")
+	if ResourceLoader.exists(arq):
+		# modelo do Tripo (sem rig ainda): vem de cabeça para +X, ~1 m de comprimento → gira para -Z e escala para 2,6 m
+		var rc := Node3D.new(); rc.name = "Cavalo"
+		var mod := modelo_ps1(arq); mod.name = "Modelo"
+		var k := 2.6 / 0.97
+		var ymin := 0.0
+		for n in mod.find_children("*", "MeshInstance3D", true, false): ymin = minf(ymin, (n as MeshInstance3D).get_aabb().position.y)
+		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90.0; mod.position.y = -ymin * k
+		rc.add_child(mod)
+		rc.set_meta("sela_z", 0.1 * k + 0.35)          # a sela fica ~0,27 m atrás do meio do modelo (+ a Rachel no fundo da sela)
+		var an := Node.new(); an.set_script(load("res://scripts/cavalo_anim.gd")); rc.add_child(an)
+		return rc
 	var info: Dictionary = Bolsa.ITENS[id]
 	var cor_m := mat("", 1.0, info.cor); var crina := mat("", 1.0, info.crina); var casco := mat("", 1.0, Color(0.15, 0.12, 0.1))
 	var sela := mat("", 1.0, Color(0.42, 0.24, 0.12))
@@ -2412,7 +2426,7 @@ func _modo_teste() -> void:
 		if String(args.ir) == "alto": jogador.global_position.y += 60.0; jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35
 		if args.has("subir"): jogador.global_position.y += float(args.subir); jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.6"))
 	if args.has("dar_cavalos"):    # teste: dá as três montarias (e dinheiro)
-		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
+		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
 		bolsa.montaria_sel = String(args.get("cavalo", "cavalo_preto")) if String(args.get("cavalo", "")) != "" else bolsa.montarias[0]
 	if args.has("montar"):         # teste: aperta o botão de montar; com --montar=andar anda depois de montado
 		get_tree().create_timer(1.0).timeout.connect(func(): montaria_ui.alternar_montaria())

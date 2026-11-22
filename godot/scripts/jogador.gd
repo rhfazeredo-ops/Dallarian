@@ -90,7 +90,7 @@ var pose_fixa := false           # teste: mãos paradas numa pose (mostrar_pose)
 # vê-se o pescoço e a cabeça do cavalo balançando no galope). 60% mais rápido, como no WoW.
 const VEL_MONTARIA := 1.6
 const ALTURA_OLHOS := 1.62
-const ALTURA_MONTADA := 2.75
+const ALTURA_MONTADA := 2.5
 var montado := false
 var montaria_id := ""
 var cavalo: Node3D
@@ -100,7 +100,7 @@ var _corpo_cavalo: CollisionShape3D   # caixa do corpo do cavalo (acima do chão
 func montar_em(id: String, modelo: Node3D) -> void:
 	if montado: desmontar()
 	montado = true; montaria_id = id; cavalo = modelo
-	add_child(cavalo); cavalo.position = Vector3(0, 0, -0.1)       # a sela fica embaixo da câmera
+	add_child(cavalo); cavalo.position = Vector3(0, 0, -float(cavalo.get_meta("sela_z", 0.1)))       # a sela fica embaixo da câmera
 	_corpo_cavalo = CollisionShape3D.new(); var bx := BoxShape3D.new(); bx.size = Vector3(0.9, 1.3, 2.6)
 	_corpo_cavalo.shape = bx; _corpo_cavalo.position = Vector3(0, 1.4, -0.35); add_child(_corpo_cavalo)
 	for c in cavalo.get_children():
