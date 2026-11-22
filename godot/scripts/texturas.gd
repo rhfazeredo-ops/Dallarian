@@ -20,8 +20,21 @@ static func pegar(nome: String) -> ImageTexture:
 		"madeira": im = _madeira()
 		"casca": im = _casca()
 		"pinho": im = _pinho()
+		"telha": im = _telha()
 		_: im = _aco()
 	var t := ImageTexture.create_from_image(im); _cache[nome] = t; return t
+
+# telhas em fileiras, em tons claros de cinza (a cor do material pinta: azul, roxo...)
+static func _telha() -> Image:
+	var im := _img(32); var r := _ruido(9)
+	for y in 32: for x in 32:
+		var fila := y / 4; var desl := 4 if fila % 2 == 1 else 0
+		var v := 1.0 + r.randf() * 0.12
+		if y % 4 == 3: v = 0.62                            # sombra embaixo de cada fileira
+		elif (x + desl) % 8 == 0: v = 0.78                 # junta entre as telhas
+		elif y % 4 == 0: v *= 1.12                         # brilho na borda de cima
+		im.set_pixel(x, y, Color(v, v, v))
+	return im
 
 # detalhe do terreno (cinza, multiplica a cor dos vértices)
 static func _terreno() -> Image:

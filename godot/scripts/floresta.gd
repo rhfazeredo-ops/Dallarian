@@ -86,6 +86,7 @@ func montar(mundo) -> void:
 	_montar_perto(true)
 	_beira_agua()
 	_jardins()
+	_arvores_cidade()
 
 func _material(t: ImageTexture) -> ShaderMaterial:
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/cartao.gdshader")
@@ -438,6 +439,17 @@ func _beira_agua() -> void:
 			por_ped[kk].append([t, Color(1, 1, 1) * rng.randf_range(0.85, 1.08)])
 	for kk in por_ped.keys():
 		var mi := _mm(junco, por_ped[kk], true); mi.visibility_range_end = 200.0; add_child(mi)
+
+# árvores plantadas na cidade (parque e ruas principais), posições vindas do mundo
+func _arvores_cidade() -> void:
+	var lista: Array = m.arvores_cidade
+	if lista.is_empty(): return
+	var rng := RandomNumberGenerator.new(); rng.seed = 321
+	var itens := []
+	for t in lista:
+		var s: float = t[1]
+		itens.append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), t[0]), _verde(rng, 0.0)])
+	add_child(_mm(malhas["copa_a"][0], itens, false)); add_child(_mm(malhas["copa_a"][1], itens, true))
 
 # arbustos floridos e moitas perto das casas (jardins), sem encostar na rua
 func _jardins() -> void:

@@ -112,11 +112,15 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Escudo levantado de frente bloqueia a mordida. Lobo comum cai com 3 golpes leves (o forte vale 2); dá XP
   (15, líder 40). Vida da Rachel zerada: desmaia e acorda na vila.
 
-- **Altamar**, a cidade grande e REDONDA (canto nordeste, entre as montanhas e o mar), inspirada nas grandes capitais
-  de MMO: muralha redonda de pedra clara (raio 230 m) com torres de telhado azul e três portões (oeste com duas
-  estátuas de guardiões, sul e o do porto), quatro ruas principais saindo da praça central (chafariz e estátua),
-  canal em anel com quatro pontes, castelo na muralha norte, catedral, ~400 casas em anéis, cais com dois navios
-  de velas azuis. Lugar planejado para banco, lojas e taverna.
+- **Altamar**, a cidade grande e redonda (canto nordeste, entre as montanhas e o mar), inspirada no estilo das grandes
+  capitais de MMO (desenho próprio): muralha de pedra clara com torres de telhado azul e três portões. Fora do portão
+  oeste: fosso e a **Ponte dos Guardiões** com quatro estátuas de heróis (martelo, cajado, arco, espada). Dentro:
+  praça central com **chafariz** de três andares, anel do **Comércio** (lojas com placas penduradas: banco, taverna,
+  estalagem, armas, armaduras, alquimia, alfaiate, joalheiro, ferreiro), canal em anel com mureta e pontes, e os
+  bairros **Castelo** (norte, escadaria e estandartes), **Catedral** (noroeste, flecha alta), **Portão** (oeste),
+  **Magos** (sudoeste, torre roxa com brilho mágico), **Parque** (sul: grama, árvores e lago), **Porto** (sudeste:
+  armazéns e caixotes) e **Bairro Velho** (leste, telhados vermelhos). Ruas de pedra clara com calçada de tijolo,
+  postes e árvores. O dono vai modelando peças (casas, estátuas, chafariz) para substituir as provisórias.
 - **A vila** também é redonda: casas em dois anéis em volta da praça do poço, viradas para o centro.
 
 ## 7.1.1 Dia e noite

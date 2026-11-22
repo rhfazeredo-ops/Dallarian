@@ -1266,35 +1266,44 @@ func _espuma() -> void:
 			ag.append(lc + q * anel[0]); mg.append(lc + q * anel[1]); yy.append(yl)
 		faixa.call(ag, mg, yy, 0, 0.55, 0.85)
 
-# ---------- cidade grande: Altamar (redonda) ----------
-# inspirada nas grandes capitais de MMO: muralha redonda de pedra clara com torres de telhado azul e três portões
-# (oeste com duas estátuas guardando a entrada, sul e o do porto a leste); por dentro, ruas saindo do centro como
-# raios, um canal em anel com pontes, praça central com chafariz e estátua, castelo encostado na montanha (norte),
-# catedral, anéis de casas de pedra clara e telhados azuis, e o cais com navios do lado de fora do portão leste.
+# ---------- cidade grande: Altamar (redonda, por bairros) ----------
+# Muralha redonda de pedra clara com torres de telhado azul e três portões. Fora do portão oeste: fosso e a Ponte
+# dos Guardiões, com quatro estátuas de heróis (guerreiro de martelo, maga de cajado, arqueira, cavaleiro de
+# espada). Dentro: praça central com chafariz, anel do Comércio (lojas com placas penduradas), canal em anel com
+# mureta e pontes; bairros: Castelo (norte), Catedral (noroeste), Portão (oeste), Magos (sudoeste, torre roxa),
+# Parque (sul: árvores, grama e lago), Porto (sudeste: armazéns e caixotes) e Bairro Velho (leste). Ruas principais
+# de pedra clara com calçada de tijolo, postes de luz e árvores. Os modelos do dono vão substituindo as peças.
 var cidade_pos := Vector2.ZERO
 var cidade_y := 0.0
+var cidade_lojas := []              # [nome, posição da porta] — banco, taverna, lojas (para as interações depois)
+var arvores_cidade := []            # [posição Vector3, escala] — a floresta desenha
+func _mat_tex(arq: String) -> ShaderMaterial:
+	var k := "tex|" + arq
+	if _mats.has(k): return _mats[k]
+	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/ps1.gdshader")
+	sm.set_shader_parameter("tex", load(arq)); sm.set_shader_parameter("neblina", NEBLINA)
+	_mats[k] = sm; return sm
+
 func _cidade() -> void:
 	var c: Vector2 = Regiao.CIDADE_C; cidade_pos = c
 	var RR: float = Regiao.CIDADE_R
 	var y := Regiao.ALTURA_CIDADE; cidade_y = y
 	var rng := RandomNumberGenerator.new(); rng.seed = 1234
-	var pedra := mat("pedra", 1.0, Color(1.15, 1.12, 1.05))                 # pedra clara
+	var pedra := mat("pedra", 1.0, Color(1.15, 1.12, 1.05))
 	var pedra_esc := mat("pedra", 1.0, Color(0.85, 0.85, 0.9))
-	var azul := mat("madeira", 1.0, Color(0.28, 0.38, 0.72))               # telhados azuis
+	var azul := mat("telha", 1.0, Color(0.32, 0.46, 0.9))            # telhado azul (o tom multiplica a textura de madeira)
 	var dirv := func(a: float) -> Vector2: return Vector2(cos(a), sin(a))
-	# ângulos (a partir do leste, sentido horário no mapa): portões oeste (PI), sul (PI/2), leste (0); castelo ao norte (-PI/2)
 	var portoes := [PI, PI * 0.5, 0.0]
 	var meia_porta := 9.0 / RR
 	var em_porta := func(a: float) -> bool:
 		for pa in portoes: if absf(wrapf(a - pa, -PI, PI)) < meia_porta: return true
 		return false
-	# muralha redonda em segmentos, com ameias
-	var n_seg := 56
-	var alt := 10.0; var esp := 3.5
+	# ---- muralha redonda com ameias
+	var n_seg := 56; var alt := 10.0; var esp := 3.5
 	var st := _st(); var st_am := _st()
 	for k in n_seg:
-		var a0 := TAU * k / n_seg; var a1 := TAU * (k + 1) / n_seg; var am := (a0 + a1) * 0.5
-		if em_porta.call(am): continue
+		var a0 := TAU * k / n_seg; var a1 := TAU * (k + 1) / n_seg
+		if em_porta.call((a0 + a1) * 0.5): continue
 		var p0: Vector2 = c + dirv.call(a0) * RR; var p1: Vector2 = c + dirv.call(a1) * RR
 		var meio := (p0 + p1) * 0.5; var comp := p0.distance_to(p1) + 0.6; var ang := atan2(p1.x - p0.x, p1.y - p0.y)
 		var tr := Transform3D(Basis(Vector3.UP, ang), Vector3(meio.x, y, meio.y))
@@ -1304,7 +1313,7 @@ func _cidade() -> void:
 			st_am.append_from(ca.commit(), 0, tr)
 		_colisor_caixa(Vector3(meio.x, y - 1.0, meio.y), Vector3(esp, alt + 2.0, comp), ang)
 	_peca(st, pedra, Vector3.ZERO); _peca(st_am, pedra, Vector3.ZERO)
-	# torres: a cada 7 segmentos e dos dois lados de cada portão (mais altas)
+	# ---- torres
 	st = _st(); var st_t := _st()
 	var torres := []
 	for k in range(0, n_seg, 7):
@@ -1315,29 +1324,101 @@ func _cidade() -> void:
 	for t in torres:
 		var tp: Vector2 = c + dirv.call(t[0]) * RR
 		cilindro(st, Vector3(tp.x, y - 1.0, tp.y), t[1], t[1] - 0.4, t[2], 8, true)
-		cilindro(st_t, Vector3(tp.x, y + t[2] - 1.0, tp.y), t[1] + 0.9, 0.0, t[2] * 0.45, 8)
+		cilindro(st, Vector3(tp.x, y + t[2] - 1.0, tp.y), t[1] + 0.5, t[1] + 0.5, 1.0, 8, true)     # beiral da torre
+		cilindro(st_t, Vector3(tp.x, y + t[2], tp.y), t[1] + 0.8, 0.0, t[2] * 0.45, 8)
 		_colisor_cilindro(Vector3(tp.x, y - 1.0, tp.y), t[1], t[2])
 	_peca(st, pedra, Vector3.ZERO); _peca(st_t, azul, Vector3.ZERO)
-	# arcos dos portões
 	st = _st()
 	for pa in portoes:
 		var pp: Vector2 = c + dirv.call(pa) * RR
 		var arco := _st(); _caixa(arco, Vector3(0, alt + 1.0, 0), Vector3(esp + 1.5, 4.0, 20.0))
 		st.append_from(arco.commit(), 0, Transform3D(Basis(Vector3.UP, atan2(-sin(pa), cos(pa)) + PI * 0.5), Vector3(pp.x, y, pp.y)))
 	_peca(st, pedra_esc, Vector3.ZERO)
-	# duas estátuas de guardiões com espada guardando o portão oeste (do lado de fora)
-	for lado in [-1.0, 1.0]:
-		var sp := c + Vector2(-RR - 16.0, lado * 15.0)
-		st = _st()
-		_caixa(st, Vector3(sp.x, y + 1.5, sp.y), Vector3(5.0, 3.0, 5.0))                                    # pedestal
-		cilindro(st, Vector3(sp.x, y + 3.0, sp.y), 1.5, 1.2, 7.0, 8, true)                                    # corpo/manto
-		cilindro(st, Vector3(sp.x, y + 9.6, sp.y), 0.9, 0.9, 1.6, 8, true)                                    # cabeça
-		_caixa(st, Vector3(sp.x + 1.2, y + 6.5, sp.y), Vector3(0.4, 10.0, 0.9))                               # espada em pé
-		_caixa(st, Vector3(sp.x + 1.2, y + 8.5, sp.y), Vector3(0.5, 0.5, 2.6))                                # guarda
-		_peca(st, pedra, Vector3.ZERO)
-		_colisor_caixa(Vector3(sp.x, y, sp.y), Vector3(5.0, 11.0, 5.0), 0.0)
-	# canal em anel (água) com margens de pedra e quatro pontes nas ruas principais
+	# ---- fosso e Ponte dos Guardiões (portão oeste)
+	var fx := Regiao.FOSSO_X
 	var agua_m := ShaderMaterial.new(); agua_m.shader = load("res://shaders/agua.gdshader"); agua_m.set_shader_parameter("neblina", NEBLINA)
+	st = _st()
+	_quad(st, Vector3(fx - 8.0, y - 1.3, c.y + 132.0), Vector3(fx + 8.0, y - 1.3, c.y + 132.0), Vector3(fx + 8.0, y - 1.3, c.y - 132.0), Vector3(fx - 8.0, y - 1.3, c.y - 132.0), 1, 1)
+	var fosso := MeshInstance3D.new(); fosso.mesh = st.commit(); fosso.material_override = agua_m; raiz.add_child(fosso)
+	st = _st()
+	for lado in [-1.0, 1.0]:                                     # muretas de pedra das margens do fosso
+		for zz in range(-130, 131, 4):
+			_caixa(st, Vector3(fx + lado * 8.6, y + 0.1, c.y + zz), Vector3(1.0, 1.0, 4.1))
+	var x_ponte0 := fx - 14.0; var x_ponte1 := fx + 14.0
+	_caixa(st, Vector3((x_ponte0 + x_ponte1) * 0.5, y + 0.1, c.y), Vector3(x_ponte1 - x_ponte0, 0.6, 16.0))
+	for lado in [-1.0, 1.0]:
+		for xx in range(int(x_ponte0), int(x_ponte1), 3):
+			_caixa(st, Vector3(xx + 1.5, y + 0.9, c.y + lado * 7.6), Vector3(3.0, 1.0 if (xx / 3) % 2 == 0 else 0.6, 0.8))   # mureta com ameias baixas
+	_peca(st, pedra, Vector3.ZERO)
+	_colisor_caixa(Vector3((x_ponte0 + x_ponte1) * 0.5, y - 0.2, c.y), Vector3(16.0, 0.6, x_ponte1 - x_ponte0), PI * 0.5)
+	var x_est := [c.x - RR - 12.0, c.x - RR - 26.0]
+	var tipos := [["martelo", "cajado"], ["arco", "espada"]]
+	for i in 2:
+		for j in 2:
+			var lado := -1.0 if j == 0 else 1.0
+			var sp := Vector2(x_est[i], c.y + lado * 12.0)
+			var olha := Vector2(sp.x - 10.0, c.y)
+			_estatua(sp, atan2(olha.x - sp.x, olha.y - sp.y), tipos[i][j], y)
+			_poste_em(Vector2(sp.x - 6.0, c.y + lado * 7.0), Vector2(sp.x - 6.0, c.y))
+	# ---- castelo (norte) com escadaria, portão entre torres e estandartes
+	var cas := c + Vector2(0, -RR + 52.0)
+	st = _st()
+	_caixa(st, Vector3(cas.x, y + 9.0, cas.y), Vector3(64.0, 20.0, 40.0))
+	_caixa(st, Vector3(cas.x, y + 18.0, cas.y - 6.0), Vector3(24.0, 36.0, 22.0))
+	for q in [Vector2(-32, -20), Vector2(32, -20), Vector2(-32, 20), Vector2(32, 20), Vector2(-9, 24), Vector2(9, 24)]:
+		cilindro(st, Vector3(cas.x + q.x, y - 1.0, cas.y + q.y), 6.0 if absf(q.x) > 20.0 else 4.5, 5.5 if absf(q.x) > 20.0 else 4.2, 30.0 if absf(q.x) > 20.0 else 24.0, 8, true)
+	for k in 8: _caixa(st, Vector3(cas.x, y + 0.25 + k * 0.5, cas.y + 40.0 - k * 1.6), Vector3(18.0 - k * 0.6, 0.5, 1.7))   # escadaria
+	_peca(st, pedra, Vector3.ZERO)
+	st = _st(); _quad(st, Vector3(cas.x - 4.0, y + 4.0, cas.y + 20.2), Vector3(cas.x + 4.0, y + 4.0, cas.y + 20.2), Vector3(cas.x + 4.0, y + 11.0, cas.y + 20.2), Vector3(cas.x - 4.0, y + 11.0, cas.y + 20.2), 1, 1)
+	_peca(st, mat("", 1.0, Color(0.05, 0.05, 0.07)), Vector3.ZERO)                     # porta escura
+	st = _st()
+	for q in [Vector2(-32, -20), Vector2(32, -20), Vector2(-32, 20), Vector2(32, 20), Vector2(-9, 24), Vector2(9, 24)]:
+		var big := absf(q.x) > 20.0
+		cilindro(st, Vector3(cas.x + q.x, y + (29.0 if big else 23.0), cas.y + q.y), 7.0 if big else 5.4, 0.0, 12.0 if big else 9.0, 8)
+	cilindro(st, Vector3(cas.x, y + 36.0, cas.y - 6.0), 16.0, 0.0, 12.0, 4)
+	_peca(st, azul, Vector3.ZERO)
+	st = _st()
+	for bx2 in [-15.0, 15.0]:                                  # estandartes azuis
+		_quad(st, Vector3(cas.x + bx2 - 2.0, y + 6.0, cas.y + 20.3), Vector3(cas.x + bx2 + 2.0, y + 6.0, cas.y + 20.3), Vector3(cas.x + bx2 + 2.0, y + 16.0, cas.y + 20.3), Vector3(cas.x + bx2 - 2.0, y + 16.0, cas.y + 20.3), 1, 1)
+	_peca(st, mat("", 1.0, Color(0.18, 0.28, 0.7)), Vector3.ZERO)
+	st = _st()
+	for bx2 in [-15.0, 15.0]: _caixa(st, Vector3(cas.x + bx2, y + 12.0, cas.y + 20.4), Vector3(1.6, 3.0, 0.1))
+	_peca(st, mat("", 1.0, Color(0.95, 0.85, 0.4)), Vector3.ZERO)                     # emblema dourado
+	_colisor_caixa(Vector3(cas.x, y - 1.0, cas.y), Vector3(66.0, 38.0, 42.0), 0.0)
+	# ---- catedral (noroeste) com praça aberta e flecha alta
+	var cat: Vector2 = c + dirv.call(-PI * 0.83) * 155.0
+	var ang_cat := atan2(c.x - cat.x, c.y - cat.y)
+	_casa(Vector3(cat.x, y, cat.y), ang_cat, 20.0, 38.0, 15.0, pedra, azul, true)
+	var tc: Vector2 = cat - (c - cat).normalized() * 21.0
+	st = _st(); cilindro(st, Vector3(tc.x, y - 1.0, tc.y), 5.0, 4.4, 34.0, 8, true); _peca(st, pedra, Vector3.ZERO)
+	st = _st(); cilindro(st, Vector3(tc.x, y + 33.0, tc.y), 5.4, 0.0, 26.0, 8); _peca(st, azul, Vector3.ZERO)
+	_colisor_cilindro(Vector3(tc.x, y - 1.0, tc.y), 5.0, 34.0)
+	# ---- torre dos magos (sudoeste)
+	var tm: Vector2 = c + dirv.call(PI * 0.78) * 168.0
+	st = _st(); cilindro(st, Vector3(tm.x, y - 1.0, tm.y), 7.0, 6.0, 42.0, 10, true); cilindro(st, Vector3(tm.x, y + 40.0, tm.y), 8.0, 8.0, 1.5, 10, true)
+	_peca(st, mat("pedra", 1.0, Color(0.95, 0.9, 1.05)), Vector3.ZERO)
+	st = _st(); cilindro(st, Vector3(tm.x, y + 41.5, tm.y), 8.5, 0.0, 16.0, 10); _peca(st, mat("telha", 1.0, Color(0.55, 0.32, 0.72)), Vector3.ZERO)
+	_colisor_cilindro(Vector3(tm.x, y - 1.0, tm.y), 7.0, 42.0)
+	_particulas_magia(Vector3(tm.x, y + 58.0, tm.y))
+	# ---- praça central com chafariz de três andares
+	st = _st()
+	cilindro(st, Vector3(c.x, y - 0.3, c.y), 11.0, 11.0, 1.1, 16, true)
+	cilindro(st, Vector3(c.x, y, c.y), 1.6, 1.4, 3.2, 8, true)
+	cilindro(st, Vector3(c.x, y + 3.0, c.y), 5.2, 5.2, 0.6, 12, true)
+	cilindro(st, Vector3(c.x, y + 3.6, c.y), 0.9, 0.8, 2.6, 8, true)
+	cilindro(st, Vector3(c.x, y + 6.2, c.y), 2.6, 2.6, 0.5, 10, true)
+	cilindro(st, Vector3(c.x, y + 6.7, c.y), 0.5, 0.2, 1.6, 6, true)
+	_peca(st, pedra, Vector3.ZERO)
+	_colisor_cilindro(Vector3(c.x, y - 0.3, c.y), 11.0, 1.4)
+	st = _st()
+	for disco in [[10.4, y + 0.65], [4.8, y + 3.55], [2.3, y + 6.65]]:
+		var rd: float = disco[0]; var yd: float = disco[1]
+		for k in 16:
+			var a0 := TAU * k / 16.0; var a1 := TAU * (k + 1) / 16.0
+			_tri(st, Vector3(c.x, yd, c.y), Vector3(c.x + cos(a1) * rd, yd, c.y + sin(a1) * rd), Vector3(c.x + cos(a0) * rd, yd, c.y + sin(a0) * rd), 1, 1)
+	var agua_ch := MeshInstance3D.new(); agua_ch.mesh = st.commit(); agua_ch.material_override = agua_m; raiz.add_child(agua_ch)
+	_jatos_chafariz(Vector3(c.x, y + 7.8, c.y))
+	# ---- canal em anel: água, mureta com ameias baixas e quatro pontes
 	st = _st(); var st_m := _st()
 	var nc := 72
 	for k in nc:
@@ -1345,76 +1426,102 @@ func _cidade() -> void:
 		var d0: Vector2 = dirv.call(a0); var d1: Vector2 = dirv.call(a1)
 		var ri := Regiao.CANAL - 5.0; var re := Regiao.CANAL + 5.0; var ya := y - 0.6
 		_quad(st, Vector3(c.x + d0.x * ri, ya, c.y + d0.y * ri), Vector3(c.x + d1.x * ri, ya, c.y + d1.y * ri), Vector3(c.x + d1.x * re, ya, c.y + d1.y * re), Vector3(c.x + d0.x * re, ya, c.y + d0.y * re), 1, 1)
+		var am := (a0 + a1) * 0.5
+		var na_rua := false
+		for ra in [0.0, PI * 0.5, PI, -PI * 0.5]: if absf(wrapf(am - ra, -PI, PI)) * Regiao.CANAL < 9.0: na_rua = true
+		if na_rua: continue
 		for rb in [ri - 0.6, re + 0.6]:
-			var meio: Vector2 = c + dirv.call((a0 + a1) * 0.5) * rb
-			var mb := _st(); _caixa(mb, Vector3(0, 0, 0), Vector3(1.2, 1.2, TAU * rb / nc + 0.3))
-			st_m.append_from(mb.commit(), 0, Transform3D(Basis(Vector3.UP, -(a0 + a1) * 0.5), Vector3(meio.x, y - 0.1, meio.y)))
+			var meio: Vector2 = c + dirv.call(am) * rb
+			var mb := _st(); _caixa(mb, Vector3(0, 0.3, 0), Vector3(1.0, 0.8 if k % 2 == 0 else 1.3, TAU * rb / nc + 0.3))
+			st_m.append_from(mb.commit(), 0, Transform3D(Basis(Vector3.UP, -am), Vector3(meio.x, y, meio.y)))
 	var canal := MeshInstance3D.new(); canal.mesh = st.commit(); canal.material_override = agua_m; raiz.add_child(canal)
-	_peca(st_m, pedra_esc, Vector3.ZERO)
-	var ruas := [PI, PI * 0.5, 0.0, -PI * 0.5]
+	_peca(st_m, pedra, Vector3.ZERO)
 	st = _st()
-	for ra in ruas:
+	for ra in [PI, PI * 0.5, 0.0, -PI * 0.5]:
 		var pc: Vector2 = c + dirv.call(ra) * Regiao.CANAL
-		var ponte := _st(); _caixa(ponte, Vector3(0, 0, 0), Vector3(16.0, 0.6, 8.0))
-		_caixa(ponte, Vector3(0, 0.7, 3.8), Vector3(16.0, 0.9, 0.5)); _caixa(ponte, Vector3(0, 0.7, -3.8), Vector3(16.0, 0.9, 0.5))
+		var ponte := _st(); _caixa(ponte, Vector3(0, 0, 0), Vector3(16.0, 0.6, 10.0))
+		for lz in [-4.8, 4.8]:
+			for xx in 5: _caixa(ponte, Vector3(-6.4 + xx * 3.2, 0.75, lz), Vector3(3.2, 0.9 if xx % 2 == 0 else 0.6, 0.5))
 		st.append_from(ponte.commit(), 0, Transform3D(Basis(Vector3.UP, -ra), Vector3(pc.x, y + 0.05, pc.y)))
-		_colisor_caixa(Vector3(pc.x, y - 0.3, pc.y), Vector3(16.0, 0.5, 8.0), -ra + PI * 0.5)
 	_peca(st, pedra, Vector3.ZERO)
-	# castelo encostado na muralha norte
-	var cas := c + Vector2(0, -RR + 52.0)
-	st = _st()
-	_caixa(st, Vector3(cas.x, y + 9.0, cas.y), Vector3(64.0, 20.0, 40.0))
-	_caixa(st, Vector3(cas.x, y + 18.0, cas.y - 6.0), Vector3(24.0, 36.0, 22.0))
-	for q in [Vector2(-32, -20), Vector2(32, -20), Vector2(-32, 20), Vector2(32, 20)]:
-		cilindro(st, Vector3(cas.x + q.x, y - 1.0, cas.y + q.y), 6.0, 5.5, 30.0, 8, true)
-	_peca(st, pedra, Vector3.ZERO)
-	st = _st()
-	for q in [Vector2(-32, -20), Vector2(32, -20), Vector2(-32, 20), Vector2(32, 20)]:
-		cilindro(st, Vector3(cas.x + q.x, y + 29.0, cas.y + q.y), 7.0, 0.0, 12.0, 8)
-	cilindro(st, Vector3(cas.x, y + 36.0, cas.y - 6.0), 16.0, 0.0, 12.0, 4)
-	_peca(st, azul, Vector3.ZERO)
-	_colisor_caixa(Vector3(cas.x, y - 1.0, cas.y), Vector3(66.0, 38.0, 42.0), 0.0)
-	# catedral (dentro do canal, a noroeste) com torre alta
-	var cat: Vector2 = c + dirv.call(-PI * 0.72) * 62.0
-	_casa(Vector3(cat.x, y, cat.y), atan2(c.x - cat.x, c.y - cat.y), 18.0, 34.0, 14.0, pedra, azul, true)
-	var tc: Vector2 = cat + (cat - c).normalized() * 19.0
-	st = _st(); cilindro(st, Vector3(tc.x, y - 1.0, tc.y), 4.2, 3.8, 30.0, 8, true); _peca(st, pedra, Vector3.ZERO)
-	st = _st(); cilindro(st, Vector3(tc.x, y + 29.0, tc.y), 4.8, 0.0, 14.0, 8); _peca(st, azul, Vector3.ZERO)
-	_colisor_cilindro(Vector3(tc.x, y - 1.0, tc.y), 4.2, 30.0)
-	# praça central: chafariz e estátua de um herói
-	st = _st()
-	cilindro(st, Vector3(c.x, y - 0.3, c.y), 9.0, 9.0, 1.0, 14, true)
-	_caixa(st, Vector3(c.x, y + 2.5, c.y), Vector3(3.0, 5.0, 3.0))
-	cilindro(st, Vector3(c.x, y + 5.0, c.y), 1.1, 0.9, 4.2, 8, true); cilindro(st, Vector3(c.x, y + 9.2, c.y), 0.7, 0.7, 1.2, 8, true)
-	_caixa(st, Vector3(c.x + 0.9, y + 9.5, c.y), Vector3(0.3, 5.0, 0.6))
-	_peca(st, pedra, Vector3.ZERO)
-	_colisor_cilindro(Vector3(c.x, y - 0.3, c.y), 9.0, 1.2)
-	var agua_ch := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(15.6, 15.6); agua_ch.mesh = pm
-	agua_ch.material_override = agua_m; agua_ch.position = Vector3(c.x, y + 0.62, c.y); raiz.add_child(agua_ch)
-	# anéis de casas (pedra clara, telhados azuis na maioria), viradas para a rua do anel; vãos nas ruas dos raios
-	var paredes := [pedra, mat("parede", 1.0, Color(1.1, 1.08, 1.02)), mat("parede")]
-	var telhados := [azul, azul, mat("madeira", 1.0, Color(0.4, 0.42, 0.5))]
-	var raios_ruas := [PI, PI * 0.5, 0.0, -PI * 0.5, PI * 0.25, PI * 0.75, -PI * 0.25, -PI * 0.75]
+	# ---- casas por bairro, em pares de anéis com uma rua entre eles (portas viradas para essa rua)
+	var parede_clara := mat("parede", 1.0, Color(1.1, 1.08, 1.02))
+	var estilos := {
+		"comercio": [[parede_clara, mat("parede"), pedra], [azul, azul, mat("telha", 1.0, Color(0.38, 0.52, 0.95))]],
+		"portao": [[parede_clara, pedra], [azul, mat("telha", 1.0, Color(0.38, 0.52, 0.95))]],
+		"velho": [[mat("parede", 1.0, Color(0.95, 0.85, 0.75)), mat("pedra", 1.0, Color(0.9, 0.8, 0.7))], [mat("madeira", 1.0, Color(0.6, 0.3, 0.2)), mat("madeira", 1.0, Color(0.5, 0.25, 0.18))]],
+		"magos": [[mat("parede", 1.0, Color(1.0, 0.95, 1.05)), mat("pedra", 1.0, Color(0.95, 0.9, 1.05))], [mat("telha", 1.0, Color(0.55, 0.32, 0.72)), mat("telha", 1.0, Color(0.48, 0.28, 0.64))]],
+		"porto": [[mat("madeira", 1.0, Color(0.8, 0.7, 0.6)), pedra_esc], [mat("madeira", 1.0, Color(0.4, 0.42, 0.5))]],
+		"catedral": [[pedra, parede_clara], [azul]],
+	}
+	var placas := ["banco", "taverna", "estalagem", "armas", "armaduras", "alquimia", "alfaiate", "joalheiro", "ferreiro"]
+	var n_placa := 0
 	var feitas := 0
-	for anel in [[40.0, 0.0], [58.0, PI], [76.0, 0.0], [116.0, 0.0], [134.0, PI], [158.0, 0.0], [176.0, PI], [200.0, 0.0], [216.0, PI]]:
-		var r: float = anel[0]
+	# [raio, porta para dentro?]
+	var aneis := [[36.0, true], [56.0, false], [72.0, true], [114.0, false], [130.0, true], [150.0, false], [166.0, true], [186.0, false], [202.0, true]]
+	for anel in aneis:
+		var r: float = anel[0]; var dentro: bool = anel[1]
 		var a := rng.randf() * 0.2
 		while a < TAU:
-			var w := rng.randf_range(8.0, 11.5); var d := rng.randf_range(7.0, 9.5); var hh := rng.randf_range(5.5, 9.5)
-			var passo := (w + rng.randf_range(2.5, 5.0)) / r
+			var q0: Vector2 = c + dirv.call(a) * r
+			var bairro := Regiao.distrito(q0.x, q0.y)
+			var grande := bairro == "porto"
+			var w := rng.randf_range(14.0, 18.0) if grande else rng.randf_range(8.0, 11.5)
+			var d := rng.randf_range(10.0, 12.0) if grande else rng.randf_range(7.0, 9.0)
+			var hh := rng.randf_range(6.0, 8.0) if grande else rng.randf_range(5.5, 9.5)
+			if bairro == "velho": w *= 0.85; d *= 0.9
+			var passo := (w + rng.randf_range(2.0, 4.5)) / r
 			var am := a + passo * 0.5; a += passo
-			var livre := true
-			for ra in raios_ruas:
-				if absf(wrapf(am - ra, -PI, PI)) * r < (8.0 if ra in ruas else 5.5) + w * 0.5: livre = false
 			var q: Vector2 = c + dirv.call(am) * r
-			if not livre or q.distance_to(cas) < 50.0 or q.distance_to(cat) < 28.0 or q.distance_to(tc) < 10.0: continue
-			var ang := atan2(c.x - q.x, c.y - q.y) + float(anel[1])          # porta para dentro ou para fora (rua do anel)
-			var kk := rng.randi() % 3
-			_casa(Vector3(q.x, y, q.y), ang, w, d, hh, paredes[kk], telhados[(kk + rng.randi()) % 3], true)
+			bairro = Regiao.distrito(q.x, q.y)
+			if not estilos.has(bairro): continue
+			if Regiao.rua_cidade(q.x, q.y) < 9.5 + w * 0.5: continue
+			if q.distance_to(cas) < 50.0 or q.distance_to(cat) < 46.0 or q.distance_to(tc) < 12.0 or q.distance_to(tm) < 22.0: continue
+			if bairro == "catedral": continue
+			var ang := atan2(c.x - q.x, c.y - q.y) + (0.0 if dentro else PI)
+			var est: Array = estilos[bairro]
+			var par: Material = est[0][rng.randi() % est[0].size()]; var tel: Material = est[1][rng.randi() % est[1].size()]
+			_casa(Vector3(q.x, y, q.y), ang, w, d, hh, par, tel, true)
 			feitas += 1
-	# cais do porto: do lado de fora do portão leste até o mar, com dois navios
+			# lojas: as casas viradas para a praça (anel de dentro) e algumas nas ruas principais ganham placa
+			if (r < 40.0 or (bairro == "comercio" and Regiao.rua_cidade(q.x, q.y) < 18.0 + w * 0.5)) and n_placa < 30:
+				var nome: String = placas[n_placa % placas.size()]; n_placa += 1
+				_placa(Vector3(q.x, y, q.y), ang, w, d, hh, nome)
+				var frente := Vector2(sin(ang), cos(ang))
+				cidade_lojas.append([nome, q + frente * (d * 0.5 + 1.5)])
+			if grande:                                         # caixotes e barris na frente dos armazéns
+				var fr := Vector2(sin(ang), cos(ang)); var ld := Vector2(fr.y, -fr.x)
+				var cx := _st()
+				for b in 3: _caixa(cx, Vector3(q.x + fr.x * (d * 0.5 + 2.0) + ld.x * (b - 1) * 2.2, y + 0.6, q.y + fr.y * (d * 0.5 + 2.0) + ld.y * (b - 1) * 2.2), Vector3(1.2, 1.2, 1.2))
+				_peca(cx, mat("madeira"), Vector3.ZERO)
+	# ---- parque: árvores, lago e bancos
+	var lp: Vector2 = Regiao.LAGO_PARQUE
+	st = _st()
+	for k in 24:
+		var a0 := TAU * k / 24.0; var a1 := TAU * (k + 1) / 24.0
+		_tri(st, Vector3(lp.x, y - 1.0, lp.y), Vector3(lp.x + cos(a1) * 15.5, y - 1.0, lp.y + sin(a1) * 15.5), Vector3(lp.x + cos(a0) * 15.5, y - 1.0, lp.y + sin(a0) * 15.5), 1, 1)
+	var lago_p := MeshInstance3D.new(); lago_p.mesh = st.commit(); lago_p.material_override = agua_m; raiz.add_child(lago_p)
+	for i in 60:
+		var a := rng.randf_range(PI * 0.32, PI * 0.6); var r := rng.randf_range(112.0, 218.0)
+		var q: Vector2 = c + dirv.call(a) * r
+		if q.distance_to(lp) < 20.0 or Regiao.rua_cidade(q.x, q.y) < 10.0: continue
+		var ok := true
+		for t in arvores_cidade: if Vector2(t[0].x, t[0].z).distance_to(q) < 9.0: ok = false
+		if not ok: continue
+		arvores_cidade.append([Vector3(q.x, y - 0.2, q.y), rng.randf_range(0.8, 1.2)])
+		_colisor_cilindro(Vector3(q.x, y, q.y), 0.35, 4.0)
+	# árvores também ao longo das ruas principais (nos dois lados), entre os postes
+	for ra in [PI, PI * 0.5, 0.0, -PI * 0.5]:
+		var dr: Vector2 = dirv.call(ra); var nr := Vector2(-dr.y, dr.x)
+		for dist in [44.0, 82.0, 140.0, 190.0]:
+			if ra == -PI * 0.5 and dist > 130.0: continue
+			for lado in [-1.0, 1.0]:
+				var q: Vector2 = c + dr * dist + nr * lado * 10.5
+				arvores_cidade.append([Vector3(q.x, y - 0.2, q.y), 0.7])
+				_colisor_cilindro(Vector3(q.x, y, q.y), 0.3, 4.0)
+	# ---- cais do porto do lado de fora do portão leste
 	var cais0 := c + Vector2(RR + 4.0, 0)
-	while cais0.x < Regiao.X1 - 60.0 and altura(cais0.x, c.y) > 1.9: cais0.x += 2.0      # começa onde a areia acaba
+	while cais0.x < Regiao.X1 - 60.0 and altura(cais0.x, c.y) > 1.9: cais0.x += 2.0
 	cais0.x -= 6.0
 	var xm := cais0.x + 20.0
 	while xm < Regiao.X1 - 60.0 and altura(xm, c.y) > -2.5: xm += 2.0
@@ -1436,17 +1543,79 @@ func _cidade() -> void:
 		_peca(st, mat("madeira", 1.0, Color(0.6, 0.45, 0.35)), Vector3(nav[0], 0.0, nav[1]))
 		st = _st(); _caixa(st, Vector3(0, 9.0, 0), Vector3(0.5, 16.0, 0.5)); _peca(st, mat("madeira"), Vector3(nav[0], 0.0, nav[1]))
 		st = _st(); _quad(st, Vector3(0.4, 4.5, -4.0), Vector3(0.4, 4.5, 4.0), Vector3(0.4, 15.0, 3.0), Vector3(0.4, 15.0, -3.0), 1, 1)
-		_peca(st, mat("", 1.0, Color(0.3, 0.42, 0.8)), Vector3(nav[0], 0.0, nav[1]))          # velas azuis
-	# postes de luz ao longo das quatro ruas principais
-	for ra in ruas:
+		_peca(st, mat("", 1.0, Color(0.3, 0.42, 0.8)), Vector3(nav[0], 0.0, nav[1]))
+	# ---- postes de luz ao longo das quatro ruas principais
+	for ra in [PI, PI * 0.5, 0.0, -PI * 0.5]:
 		var dr: Vector2 = dirv.call(ra); var nr := Vector2(-dr.y, dr.x)
-		for dist in [26.0, 60.0, 128.0, 170.0, 208.0]:
+		for dist in [28.0, 62.0, 124.0, 166.0, 208.0]:
 			if ra == -PI * 0.5 and dist > 150.0: continue
 			for lado in [-1.0, 1.0]:
-				var q: Vector2 = c + dr * dist + nr * lado * 7.5
+				var q: Vector2 = c + dr * dist + nr * lado * 8.0
 				_poste_em(q, c + dr * dist)
 	lugares.append([c, RR + 15.0])
-	if args.has("perf"): print("CIDADE: %d casas" % feitas)
+	if args.has("perf"): print("CIDADE: %d casas, %d lojas" % [feitas, cidade_lojas.size()])
+
+# placa de loja pendurada numa trave saindo da fachada (desenho em assets/ui/placas/<nome>.png)
+func _placa(pos: Vector3, ang: float, w: float, d: float, h: float, nome: String) -> void:
+	var b := Basis(Vector3.UP, ang)
+	var base := pos + b * Vector3(w * 0.32, minf(h - 0.6, 3.6), d * 0.5)
+	var st := _st()
+	_caixa(st, Vector3(0, 0, 0.9), Vector3(0.22, 0.22, 1.8))                 # trave
+	_caixa(st, Vector3(0, -0.35, 1.5), Vector3(0.06, 0.5, 0.06))             # correntinha
+	var mi := _peca(st, mat("madeira", 1.0, Color(0.45, 0.32, 0.22)), base); mi.rotation.y = ang
+	st = _st()
+	for lado in [-1.0, 1.0]:                                                 # a placa: desenho dos dois lados
+		var xx: float = 0.04 * lado
+		_quad(st, Vector3(xx, -2.0, 0.85), Vector3(xx, -2.0, 2.15), Vector3(xx, -0.6, 2.15), Vector3(xx, -0.6, 0.85), 1, 1)
+	var pl := _peca(st, _mat_tex("res://assets/ui/placas/%s.png" % nome), base); pl.rotation.y = ang
+
+# estátua de herói (de pedra, sobre pedestal): martelo, cajado, arco ou espada
+func _estatua(p: Vector2, ang: float, tipo: String, y: float) -> void:
+	var st := _st()
+	_caixa(st, Vector3(0, 1.5, 0), Vector3(6.5, 3.0, 6.5)); _caixa(st, Vector3(0, 3.4, 0), Vector3(5.4, 0.8, 5.4))
+	if tipo == "cajado":
+		cilindro(st, Vector3(0, 3.8, 0), 2.3, 1.5, 6.4, 8, true)              # manto
+	else:
+		_caixa(st, Vector3(-0.95, 6.0, 0), Vector3(1.4, 4.4, 1.6)); _caixa(st, Vector3(0.95, 6.0, 0), Vector3(1.4, 4.4, 1.6))
+	_caixa(st, Vector3(0, 9.6, 0), Vector3(3.8, 3.6, 2.3))                     # tronco
+	_caixa(st, Vector3(-2.3, 10.9, 0), Vector3(1.6, 1.3, 2.0)); _caixa(st, Vector3(2.3, 10.9, 0), Vector3(1.6, 1.3, 2.0))   # ombreiras
+	_caixa(st, Vector3(0, 12.3, 0), Vector3(1.5, 1.8, 1.6))                    # cabeça
+	match tipo:
+		"martelo":
+			_caixa(st, Vector3(2.5, 12.6, 0), Vector3(1.0, 3.4, 1.0)); _caixa(st, Vector3(-2.4, 8.6, 0.3), Vector3(1.0, 3.0, 1.0))
+			_caixa(st, Vector3(2.5, 15.4, 0), Vector3(0.4, 4.4, 0.4)); _caixa(st, Vector3(2.5, 17.6, 0), Vector3(2.6, 1.6, 1.6))
+		"cajado":
+			_caixa(st, Vector3(2.4, 9.8, 0.6), Vector3(0.9, 2.8, 0.9)); _caixa(st, Vector3(-2.3, 9.6, 0.4), Vector3(0.9, 2.8, 0.9))
+			_caixa(st, Vector3(2.6, 10.5, 1.1), Vector3(0.4, 13.0, 0.4)); _caixa(st, Vector3(2.6, 17.4, 1.1), Vector3(1.2, 1.2, 1.2))
+		"arco":
+			_caixa(st, Vector3(-1.9, 10.9, 1.6), Vector3(0.9, 0.9, 3.0)); _caixa(st, Vector3(1.6, 10.6, 0.6), Vector3(0.9, 0.9, 2.2))
+			for k in 5: _caixa(st, Vector3(-1.9, 8.6 + k * 1.15, 3.2 + absf(k - 2) * -0.35), Vector3(0.3, 1.25, 0.3))
+		_:
+			_caixa(st, Vector3(-1.2, 8.9, 1.1), Vector3(0.9, 2.8, 0.9)); _caixa(st, Vector3(1.2, 8.9, 1.1), Vector3(0.9, 2.8, 0.9))
+			_caixa(st, Vector3(0, 5.8, 1.8), Vector3(0.6, 6.4, 0.3)); _caixa(st, Vector3(0, 9.2, 1.8), Vector3(2.4, 0.45, 0.45))
+	_peca(st, mat("pedra", 1.0, Color(1.05, 1.05, 1.1)), Vector3(p.x, y, p.y), ang)
+	_colisor_caixa(Vector3(p.x, y, p.y), Vector3(6.5, 12.0, 6.5), ang)
+
+# água caindo do chafariz
+func _jatos_chafariz(pos: Vector3) -> void:
+	var p := CPUParticles3D.new(); p.position = pos; p.amount = 70; p.lifetime = 1.3; p.preprocess = 2.0
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE; p.emission_sphere_radius = 0.3
+	p.direction = Vector3(0, 1, 0); p.spread = 35.0; p.initial_velocity_min = 2.5; p.initial_velocity_max = 3.5; p.gravity = Vector3(0, -9.0, 0)
+	var q := QuadMesh.new(); q.size = Vector2(0.12, 0.12)
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; mt.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mt.albedo_color = Color(0.75, 0.88, 1.0); q.material = mt; p.mesh = q
+	p.visibility_aabb = AABB(Vector3(-6, -9, -6), Vector3(12, 14, 12)); raiz.add_child(p)
+
+# brilho roxo girando no alto da torre dos magos
+func _particulas_magia(pos: Vector3) -> void:
+	var p := CPUParticles3D.new(); p.position = pos; p.amount = 40; p.lifetime = 2.5; p.preprocess = 3.0
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING; p.emission_ring_axis = Vector3.UP; p.emission_ring_radius = 3.0; p.emission_ring_inner_radius = 2.0; p.emission_ring_height = 0.5
+	p.direction = Vector3(0, 1, 0); p.spread = 20.0; p.initial_velocity_min = 0.4; p.initial_velocity_max = 1.0; p.gravity = Vector3.ZERO
+	p.orbit_velocity_min = 0.15; p.orbit_velocity_max = 0.25
+	var q := QuadMesh.new(); q.size = Vector2(0.4, 0.4)
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; mt.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mt.albedo_color = Color(0.85, 0.5, 1.0); q.material = mt; p.mesh = q
+	p.visibility_aabb = AABB(Vector3(-8, -4, -8), Vector3(16, 12, 16)); raiz.add_child(p)
 
 # ---------- lugares da região ----------
 func _lugares() -> void:
@@ -2074,6 +2243,10 @@ func _modo_teste() -> void:
 		match String(args.ir):
 			"cidade": alvo = cidade_pos + Vector2(-Regiao.CIDADE_R - 70.0, 30.0); olha = cidade_pos
 			"praca": alvo = cidade_pos + Vector2(-30, 6); olha = cidade_pos + Vector2(0, -150)
+			"ponte": alvo = Vector2(Regiao.FOSSO_X - 18.0, cidade_pos.y + 2.0); olha = cidade_pos
+			"lojas": alvo = cidade_pos + Vector2(-14, 14); olha = cidade_pos + Vector2(-40, 30)
+			"parque": alvo = cidade_pos + Vector2(-60, 160); olha = Regiao.LAGO_PARQUE
+			"magos": alvo = cidade_pos + Vector2(-60, 70); olha = cidade_pos + Vector2(-130, 115)
 			"porto_cidade": alvo = Vector2(Regiao.CIDADE.end.x + 22.0, cidade_pos.y + 30.0); olha = Vector2(Regiao.CIDADE.end.x + 120.0, cidade_pos.y - 10.0)
 			"portao_leste": alvo = Vector2(Regiao.CIDADE.end.x + 30.0, cidade_pos.y + 4.0); olha = Vector2(Regiao.CIDADE.end.x - 40.0, cidade_pos.y)
 			"alto": alvo = cidade_pos + Vector2(-260, 230); olha = cidade_pos

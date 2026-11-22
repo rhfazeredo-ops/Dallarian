@@ -201,6 +201,12 @@ func altura(x: float, z: float) -> float:
 	if dcid < 60.0: h = lerp(ALTURA_CIDADE, h, smoothstep(0.0, 60.0, dcid))
 	var dcan := absf(Vector2(x, z).distance_to(CIDADE_C) - CANAL)
 	if dcan < 7.0: h = minf(h, ALTURA_CIDADE - 1.8 * (1.0 - smoothstep(4.0, 7.0, dcan)))      # leito do canal
+	# fosso na frente do portão oeste (a ponte dos guardiões passa por cima)
+	var fx := absf(x - FOSSO_X); var fz := absf(z - CIDADE_C.y)
+	if fx < 12.0 and fz < 150.0: h = minf(h, ALTURA_CIDADE - 3.0 * (1.0 - smoothstep(7.0, 12.0, fx)) * (1.0 - smoothstep(130.0, 150.0, fz)))
+	# lago do parque
+	var dl_p := Vector2(x, z).distance_to(LAGO_PARQUE)
+	if dl_p < 22.0: h = minf(h, ALTURA_CIDADE - 2.2 * (1.0 - smoothstep(14.0, 22.0, dl_p)))
 	var costa := COSTA + ruido_grande.get_noise_2d(0.0, z * 2.0) * 40.0
 	# na altura da cidade o mar chega até perto da muralha leste (porto)
 	var dz_cid := maxf(absf(z - CIDADE_C.y) - CIDADE_R * 0.7, 0.0)
@@ -227,6 +233,29 @@ func altura(x: float, z: float) -> float:
 func _dist_cidade(x: float, z: float) -> float:
 	return maxf(Vector2(x, z).distance_to(CIDADE_C) - CIDADE_R, 0.0)
 func na_cidade(x: float, z: float, folga := 0.0) -> bool: return _dist_cidade(x, z) <= folga
+
+# bairros de Altamar pelo ângulo e pela distância ao centro (leste = 0, sul = PI/2, oeste = PI, norte = -PI/2)
+const FOSSO_X := CIDADE_C.x - CIDADE_R - 42.0
+static var LAGO_PARQUE := CIDADE_C + Vector2(cos(PI * 0.45), sin(PI * 0.45)) * 165.0
+static func distrito(x: float, z: float) -> String:
+	var d := Vector2(x, z) - CIDADE_C; var r := d.length()
+	if r > CIDADE_R: return ""
+	var a := atan2(d.y, d.x)
+	if r < 24.0: return "praca"
+	if r < CANAL - 6.0: return "comercio"
+	if absf(r - CANAL) <= 6.0: return "canal"
+	if a > -PI * 0.7 and a < -PI * 0.3 and r > 135.0: return "castelo"
+	if a > -PI * 0.96 and a <= -PI * 0.7: return "catedral"
+	if a > PI * 0.62 and a < PI * 0.93: return "magos"
+	if a > PI * 0.3 and a <= PI * 0.62: return "parque"
+	if a > PI * 0.05 and a <= PI * 0.3: return "porto"
+	if a >= PI * 0.93 or a <= -PI * 0.96: return "portao"
+	return "velho"
+func parque(x: float, z: float) -> bool: return distrito(x, z) == "parque"
+# distância até o eixo da rua principal mais perto (as quatro que saem da praça)
+static func rua_cidade(x: float, z: float) -> float:
+	var d := Vector2(x, z) - CIDADE_C
+	return minf(absf(d.x), absf(d.y))
 
 func _serra(d: float, alto: float) -> float: return alto * (1.0 - exp(-d / 32.0))
 
@@ -259,6 +288,9 @@ func agua(x: float, z: float) -> float:
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 0.5: return nivel_rio(_amostra(t_rio, x, z))
 	if Vector2(x - LAGO.x, z - LAGO.y).length() < LAGO.z + 2.0: return nivel_lago()
+	if Vector2(x, z).distance_to(LAGO_PARQUE) < 15.0: return ALTURA_CIDADE - 1.0
+	if absf(Vector2(x, z).distance_to(CIDADE_C) - CANAL) < 5.0: return ALTURA_CIDADE - 0.6
+	if absf(x - FOSSO_X) < 8.0 and absf(z - CIDADE_C.y) < 135.0: return ALTURA_CIDADE - 1.3
 	return 0.0
 
 # ---------- o que tem aqui ----------
@@ -295,7 +327,11 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 2.5 or abs(Vector2(x - LAGO.x, z - LAGO.y).length() - LAGO.z) < 4.0:
 		c = Color(0.4, 0.33, 0.22)                                             # margem de lama
-	if na_cidade(x, z): c = Color(0.5, 0.48, 0.45) * (0.92 + n * 0.1)          # calçamento de pedra da cidade
+	if na_cidade(x, z) and not parque(x, z):
+		c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1)                            # calçamento de pedra da cidade
+		var dr_c := rua_cidade(x, z)
+		if dr_c < 5.5: c = Color(0.66, 0.64, 0.6) * (0.94 + n * 0.08)            # rua principal de pedra clara
+		elif dr_c < 8.5: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)          # calçada de tijolo vermelho
 	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
 	var p := zona_pantano(z)
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
@@ -321,7 +357,7 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	if Vector2(x, z).length() < 18.0: return 0.0
 	if h < agua(x, z) + 0.15: return 0.0
 	if x > COSTA - 120.0 and h < 2.0: return 0.0
-	if na_cidade(x, z, 2.0): return 0.0
+	if na_cidade(x, z, 2.0) and not parque(x, z): return 0.0
 	var campo := campo_em(x, z)
 	if campo == 1: return 0.0
 	if campo == 0: return 1.0
