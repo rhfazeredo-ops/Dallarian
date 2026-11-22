@@ -97,6 +97,34 @@ var cavalo: Node3D
 var _anim_cavalo: Node
 var _corpo_cavalo: CollisionShape3D   # caixa do corpo do cavalo (acima do chão, para não prender em degraus)
 
+# morte em primeira pessoa: a cabeça tomba de lado e cai até o chão (acelerando), os braços saem da tela e a
+# câmera treme na batida; fica caída até reviver() (o mundo faz a tela vermelha, o "VOCÊ MORREU" e o renascer)
+var morta := false
+var _t_morte := 0.0
+var _bateu := false
+func morrer() -> void:
+	desmontar(); morta = true; _t_morte = 0.0; _bateu = false; alvo = null
+	velocity.x = 0.0; velocity.z = 0.0; _acao = ""
+func reviver() -> void:
+	morta = false; _t_morte = 0.0
+	pescoco.position.y = ALTURA_OLHOS; pescoco.rotation = Vector3.ZERO
+	mao.visible = true; mao.position = Vector3.ZERO
+func _cair_morta(delta: float) -> void:
+	_t_morte += delta
+	var u := clampf(_t_morte / 0.95, 0.0, 1.0); var e := u * u
+	pescoco.position.y = lerpf(ALTURA_OLHOS, 0.26, e)
+	pescoco.rotation.z = lerpf(0.0, 1.3, e)                     # tomba para o lado
+	pescoco.rotation.x = lerpf(pescoco.rotation.x, -0.12, minf(1.0, delta * 3.0))
+	mao.position = Vector3(0.0, -0.7 * e, 0.15 * e)              # braços saem pela parte de baixo da tela
+	if u >= 1.0 and not _bateu:
+		_bateu = true; _tremor = 0.7; mao.visible = false
+	_tremor = maxf(0.0, _tremor - delta * 2.5)
+	var tr := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * _tremor * _tremor * 0.03
+	cam.position = tr; cam.rotation = Vector3.ZERO
+	velocity.x = 0.0; velocity.z = 0.0
+	if not is_on_floor(): velocity.y -= GRAV * delta
+	move_and_slide()
+
 func montar_em(id: String, modelo: Node3D) -> void:
 	if montado: desmontar()
 	montado = true; montaria_id = id; cavalo = modelo
@@ -427,6 +455,7 @@ func _tocar_bash(delta: float, base_e: Transform3D) -> void:
 # ---------- movimento e animação ----------
 func _physics_process(delta: float) -> void:
 	_tempo += delta
+	if morta: _cair_morta(delta); return
 	var dir := Vector2.ZERO; var correr := false; var bloquear := false; var atacar := false
 	if controles:
 		dir = controles.dir

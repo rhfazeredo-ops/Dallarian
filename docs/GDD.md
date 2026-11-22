@@ -202,6 +202,12 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Vendem 3 poções (pilha de 10): **pequena** cura 10% da vida (20 cobre), **média** 20% (75 cobre), **grande** 30%
   (1 prata e 50 cobre). Na bolsa: CONSUMIR.
 
+## 7.1.9 Morte e Estátuas da Guardiã
+- Vida zerou: a câmera tomba de lado até o chão (como a Rachel caindo), a tela fica vermelha e aparece
+  **VOCÊ MORREU**. Depois escurece e ela desperta **de frente para a Estátua da Guardiã** mais perto de onde caiu,
+  com a vida cheia. Os monstros perdem o interesse.
+- Estátuas: entrada sul da vila, meio da Estrada Real e praça de Altamar (modelo provisório de pedra até o do Tripo).
+
 ## 7.1.8 Estrada Real
 - Estrada direta da saída leste da vila até a Ponte dos Guardiões, no portão oeste de Altamar (~1,7 km), com ponte
   no rio do vale e curva suave ao lado do morro. Iluminada: poste com lanterna a cada 18 m, alternando os lados.

@@ -61,6 +61,7 @@ func _ready() -> void:
 	_carregar_progresso()
 	_tela_dano = ColorRect.new(); _tela_dano.color = Color(0.7, 0.0, 0.0, 1.0); _tela_dano.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_tela_dano.mouse_filter = Control.MOUSE_FILTER_IGNORE; _tela_dano.modulate.a = 0.0; cl.add_child(_tela_dano)
+	cl.move_child(_tela_dano, hud.get_index())          # o vermelho fica embaixo do HUD (o "VOCÊ MORREU" por cima)
 	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self); interacao = inter
 	inventario = Inventario.new(); cl.add_child(inventario); inventario.montar(self)
 	loja_ui = Loja.new(); cl.add_child(loja_ui); loja_ui.montar(self)
@@ -124,6 +125,7 @@ func _moradores() -> void:
 # matilhas de 4 a 6 com um líder preto (maior): brancos só nas montanhas, marrons só nas florestas.
 var hud: Hud
 var heroina_desmaiada := false
+var estatuas := []                # Estátuas da Guardiã (onde a Rachel renasce): [posição, direção da frente]
 var _tela_dano: ColorRect
 var matilhas := []
 var fauna: Fauna
@@ -244,19 +246,39 @@ func ferir_heroina(dano: float, de: Vector3, nivel_atacante := 1) -> bool:
 	if hud.vida <= 0.0: _desmaiar()
 	return false
 
-# vida zerou: tela escurece e a Rachel acorda na vila com a vida cheia
+# vida zerou: a Rachel cai (a câmera tomba até o chão), a tela fica vermelha e aparece "VOCÊ MORREU"; depois
+# escurece e ela desperta de frente para a Estátua da Guardiã mais perto de onde caiu, com a vida cheia
 func _desmaiar() -> void:
 	heroina_desmaiada = true
 	for g in matilhas: g.alerta = false; g.atacante = null
-	_tela_dano.color = Color(0, 0, 0, 1)
+	jogador.morrer()
+	if montaria_ui: montaria_ui.cancelar()
+	_tela_dano.color = Color(0.55, 0.0, 0.0, 1.0); _tela_dano.modulate.a = 0.0
 	var tw := _tela_dano.create_tween()
-	tw.tween_property(_tela_dano, "modulate:a", 1.0, 1.0)
-	tw.tween_callback(func():
-		jogador.global_position = Vector3(-4, altura(-4, 48) + 0.3, 48); jogador.velocity = Vector3.ZERO
-		hud.vida = hud.vida_max)
-	tw.tween_interval(1.2)
-	tw.tween_property(_tela_dano, "modulate:a", 0.0, 1.2)
+	tw.tween_property(_tela_dano, "modulate:a", 0.55, 1.1)
+	tw.tween_callback(func(): hud.morte = true)
+	tw.tween_interval(3.2)
+	tw.tween_property(_tela_dano, "color", Color(0, 0, 0, 1), 1.0)
+	tw.parallel().tween_property(_tela_dano, "modulate:a", 1.0, 1.0)
+	tw.tween_callback(_renascer)
+	tw.tween_interval(0.9)
+	tw.tween_property(_tela_dano, "modulate:a", 0.0, 1.3)
 	tw.tween_callback(func(): _tela_dano.color = Color(0.7, 0, 0, 1); heroina_desmaiada = false)
+
+func _renascer() -> void:
+	hud.morte = false
+	var pj := Vector2(jogador.global_position.x, jogador.global_position.z)
+	var melhor: Array = []; var md := 1e9
+	for e in estatuas:
+		var d: float = (e[0] as Vector2).distance_to(pj)
+		if d < md: md = d; melhor = e
+	var p := Vector2(-4, 48); var olha := Vector2(-4, 40)
+	if not melhor.is_empty(): olha = melhor[0]; p = melhor[0] + (melhor[1] as Vector2) * 4.5
+	jogador.global_position = Vector3(p.x, altura(p.x, p.y) + 0.3, p.y); jogador.velocity = Vector3.ZERO
+	var d2 := olha - p; jogador.rotation.y = atan2(-d2.x, -d2.y)
+	jogador.reviver()
+	hud.vida = hud.vida_max
+	hud.avisar("Você despertou aos pés da Estátua da Guardiã.", Color(0.85, 0.9, 1.0))
 
 # lobo morto: XP (o líder dá um pouco mais) e deixa dentes e garras na bolsa
 # nenhum monstro pode ficar dentro d'água (rio, lago, canal, fosso, mar ou poças do pântano)
@@ -1852,8 +1874,50 @@ func _lugares() -> void:
 	_caverna()
 	_barricada()
 	_cidade()
+	_estatuas_guardia()
 	_barracas()
 	_postes()
+
+# Estátuas da Guardiã: onde a Rachel desperta quando morre (a mais perto de onde caiu). Uma na entrada sul da
+# vila, uma no meio da Estrada Real e uma na praça de Altamar. Modelo provisório de pedra (pedestal em degraus,
+# figura de manto com capuz, mãos juntas e asas) até chegar o do Tripo.
+func _estatuas_guardia() -> void:
+	var c := Regiao.CIDADE_C
+	for par in [[Vector2(16, 62), Vector2(-4, 48)], [Vector2(850, -285), Vector2(840, -310)], [c + Vector2(-20, 13), c + Vector2(-20, 0)]]:
+		var alvo: Vector2 = par[0]; var frente_para: Vector2 = par[1]
+		var p := alvo
+		for t in 40:                                      # procura um lugar livre perto do escolhido
+			var a := t * 2.4; var q := alvo + Vector2(cos(a), sin(a)) * (t * 0.7)
+			if reg.folga_caminho(q.x, q.y) > 3.0 and not perto_de_casa(q.x, q.y, 3.5) and reg.agua(q.x, q.y) == 0.0:
+				p = q; break
+		var fr := (frente_para - p).normalized()
+		if fr == Vector2.ZERO: fr = Vector2(0, 1)
+		_estatua_guardia(p, fr)
+		estatuas.append([p, fr])
+
+func _estatua_guardia(p: Vector2, fr: Vector2) -> void:
+	var ang := atan2(fr.x, fr.y)
+	var y := reg.aplanar(p, Vector2(2.4, 2.4), -ang, 3.0)
+	lugares.append([p, 5.0])
+	var pedra := mat("pedra", 1.0, Color(1.35, 1.38, 1.32)); var musgo := mat("pedra", 1.0, Color(0.95, 1.1, 0.85))
+	var st := _st()
+	_caixa(st, Vector3(0, 0.25, 0), Vector3(3.6, 0.5, 3.6)); _caixa(st, Vector3(0, 0.75, 0), Vector3(2.8, 0.5, 2.8))
+	_peca(st, musgo, Vector3(p.x, y - 0.05, p.y), ang)
+	st = _st()
+	cilindro(st, Vector3(0, 1.0, 0), 0.95, 0.42, 2.5, 8, true)                 # manto
+	_caixa(st, Vector3(0, 3.65, 0.02), Vector3(0.5, 0.6, 0.5))                  # cabeça
+	cilindro(st, Vector3(0, 3.3, -0.05), 0.42, 0.12, 1.0, 6)                   # capuz
+	_caixa(st, Vector3(0, 2.85, 0.32), Vector3(0.36, 0.42, 0.26))               # mãos juntas no peito
+	for lado in [-1.0, 1.0]:                                                    # asas abertas para trás
+		var wg := _st()
+		_caixa(wg, Vector3(lado * 0.7, 0.0, 0.0), Vector3(1.4, 2.2, 0.16))
+		var tw := Transform3D(Basis(Vector3.UP, lado * 0.55) * Basis(Vector3(0, 0, 1), lado * 0.35), Vector3(lado * 0.3, 3.0, -0.35))
+		st.append_from(wg.commit(), 0, tw)
+	_peca(st, pedra, Vector3(p.x, y - 0.05, p.y), ang)
+	_colisor_caixa(Vector3(p.x, y, p.y), Vector3(3.6, 3.8, 3.6), ang)
+	# chama azulada aos pés (de noite ilumina como uma lanterna)
+	var fogo := Vector3(p.x, y + 1.2, p.y) + Vector3(fr.x, 0, fr.y) * 1.55
+	luzes.append(fogo)
 
 # pontes de madeira onde as estradas cruzam o rio (com rampas nas pontas e colisão)
 func _pontes() -> void:
@@ -2493,6 +2557,9 @@ func _modo_teste() -> void:
 				var fr: Morador = freiras[1 if args.ir == "freira_vila" else 0]
 				olha = fr.posto; alvo = fr.posto + (fr.olhar_posto - fr.posto).normalized() * 3.2
 			"estrada_real": alvo = Vector2(640, -215); olha = Vector2(840, -310)
+			"estatua0", "estatua1", "estatua2":
+				var es: Array = estatuas[int(String(args.ir).right(1))]
+				olha = es[0]; alvo = es[0] + (es[1] as Vector2) * 8.0
 			"cavalarico": alvo = estabulo_pos + Vector2(-19.0, 6.0); olha = estabulo_pos + Vector2(-19.5, 0.0)
 			"taverna": alvo = taverna_pos + Vector2(10.0, -26.0); olha = taverna_pos
 			"rua_oeste": alvo = cidade_pos + Vector2(-205.0, 0.0); olha = cidade_pos
@@ -2510,6 +2577,7 @@ func _modo_teste() -> void:
 		get_tree().create_timer(1.0).timeout.connect(func():
 			for cv in raiz.find_children("Cavalo*", "Node3D", false, false):
 				for ch in cv.get_children(): if ch.get_script() != null and "vel" in ch: ch.vel = float(args.cavalo_andar))
+	if args.has("morrer"): get_tree().create_timer(2.0).timeout.connect(func(): hud.vida = 1.0; ferir_heroina(50.0, jogador.global_position + Vector3(0, 0, -2), 1))
 	if args.has("loja_freira"):
 		get_tree().create_timer(3.0).timeout.connect(func(): bolsa.cobre = 500; print("NPC: ", interacao._tipo_npc); interacao._abrir_loja())
 		get_tree().create_timer(3.4).timeout.connect(func():

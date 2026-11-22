@@ -104,3 +104,5 @@
   poções de vida pequena (10%), média (20%) e grande (30%).
 - **Estrada Real**: ligação direta da vila até a ponte de Altamar (a volta antiga pelo norte saiu).
 - Estrada Real iluminada: 85 postes com lanterna (a cada 18 m, alternando os lados) acendem à noite.
+- **Morte em primeira pessoa**: a câmera cai no chão, tela vermelha e "VOCÊ MORREU"; a Rachel desperta de frente
+  para a **Estátua da Guardiã** mais perto (vila, meio da Estrada Real e praça de Altamar).

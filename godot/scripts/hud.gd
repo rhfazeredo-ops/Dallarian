@@ -70,6 +70,7 @@ var tex_moldura: Texture2D = load("res://assets/ui/moldura_retrato.png")
 func _draw() -> void:
 	var tela := get_viewport_rect().size
 	_desenhar_anuncio(tela)
+	_desenhar_morte(tela)
 	var k := 0.2                                              # escala da plaqueta na tela
 	var pw := 2172.0 * k; var ph := 724.0 * k
 	var p0 := Vector2(tela.x - pw - 24.0, 18.0)               # canto superior esquerdo da plaqueta
@@ -273,6 +274,23 @@ var _avisos := []                 # [texto, cor, tempo]
 func avisar(t: String, cor := Color(1, 1, 1)) -> void:
 	_avisos.append([t, cor, 3.0])
 	if _avisos.size() > 5: _avisos.pop_front()
+
+# "VOCÊ MORREU": letras grandes no meio da tela, aparecem devagar enquanto a Rachel está caída
+var morte := false
+var _morte_alfa := 0.0
+func _desenhar_morte(tela: Vector2) -> void:
+	_morte_alfa = move_toward(_morte_alfa, 1.0 if morte else 0.0, get_process_delta_time() * (0.8 if morte else 2.0))
+	if _morte_alfa <= 0.0: return
+	var txt := "VOCÊ MORREU"; var tam := 96
+	var w := fonte.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+	var pos := Vector2((tela.x - w) * 0.5, tela.y * 0.45)
+	draw_string_outline(fonte, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 14, Color(0, 0, 0, 0.9 * _morte_alfa))
+	draw_string(fonte, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, Color(0.95, 0.12, 0.08, _morte_alfa))
+	var sub := "Você vai despertar na Estátua da Guardiã mais próxima..."
+	var w2 := fonte.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
+	var p2 := Vector2((tela.x - w2) * 0.5, tela.y * 0.45 + 64)
+	draw_string_outline(fonte, p2, sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, 8, Color(0, 0, 0, 0.85 * _morte_alfa))
+	draw_string(fonte, p2, sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(1, 0.9, 0.85, _morte_alfa))
 
 # recado grande no meio da tela (ex.: MONTARIA ADQUIRIDA + nome), some sozinho em ~3,5 s
 var _anuncio := ["", "", 0.0]
