@@ -16,6 +16,10 @@ var _rodape: Label
 var _retrato: Texture2D
 var _abas := {}
 var _foto: Control
+var _retrato_bram: Texture2D
+var _nome_lbl: Label
+var _cargo_lbl: Label
+var cfg := {}                    # vendedor atual: nome, cargo, itens, retrato, falas_compra, falas_venda (vazio = Bram)
 # mercadorias do Bram (por enquanto: bolsas; as de 40 e 50 vão para mercadores de cidade)
 const MERCADORIAS := ["espada_ferro", "bolsa_10", "bolsa_16", "bolsa_20", "bolsa_30"]
 const FALAS_VENDA := ["Dente de lobo dá bom cabo de faca. Pago justo.", "Garra afiada assim? Isso eu compro.", "Cobre por cobre, negócio fechado."]
@@ -26,9 +30,11 @@ func montar(mundo) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tirar_retrato()
 
-func abrir(quem: Morador) -> void:
-	npc = quem; aberta = true; _aba = "comprar"; _pagina = 0
+func abrir(quem: Morador, c := {}) -> void:
+	npc = quem; aberta = true; _aba = "comprar"; _pagina = 0; cfg = c
 	if _janela == null: _montar()
+	_nome_lbl.text = cfg.get("nome", "Bram"); _cargo_lbl.text = cfg.get("cargo", "<Ferreiro>")
+	_retrato = cfg.get("retrato", _retrato_bram); _foto.queue_redraw()
 	_janela.visible = true; _atualizar()
 	m.inventario.abrir(true)
 	if npc: npc.falando_com = m.jogador; npc.gesticula = true
@@ -58,8 +64,8 @@ func _montar() -> void:
 				pts.append(Vector2(48, 48) + q * 43.0); uvs.append(Vector2(0.5, 0.5) + q * 0.5)
 			foto.draw_colored_polygon(pts, Color.WHITE, uvs, _retrato))
 	var nomes := VBoxContainer.new(); nomes.size_flags_horizontal = Control.SIZE_EXPAND_FILL; topo.add_child(nomes)
-	nomes.add_child(UI.rotulo("Bram", 36, UI.AMARELO))
-	nomes.add_child(UI.rotulo("<Ferreiro>", 24, Color(0.85, 0.85, 0.85)))
+	_nome_lbl = UI.rotulo("Bram", 36, UI.AMARELO); nomes.add_child(_nome_lbl)
+	_cargo_lbl = UI.rotulo("<Ferreiro>", 24, Color(0.85, 0.85, 0.85)); nomes.add_child(_cargo_lbl)
 	topo.add_child(UI.botao_fechar(fechar))
 	# mercadorias
 	_grade = GridContainer.new(); _grade.columns = 2
@@ -89,7 +95,7 @@ func _atualizar() -> void:
 		var b: Button = _abas[aba]; b.modulate = Color(1, 1, 1) if aba == _aba else Color(0.6, 0.6, 0.6)
 	var lista := []
 	if _aba == "comprar":
-		for id in MERCADORIAS: lista.append([id, 1, int(Bolsa.ITENS[id].compra), -1])
+		for id in cfg.get("itens", MERCADORIAS): lista.append([id, 1, int(Bolsa.ITENS[id].compra), -1])
 	else:
 		for k in m.bolsa.recompra.size():
 			var r: Array = m.bolsa.recompra[k]; lista.append([r[0], r[1], r[2], k])
@@ -114,8 +120,10 @@ func _celula(it: Array) -> Control:
 	nome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(nome)
 	var preco: int = it[2]
 	var pode: bool = m.bolsa.cobre >= preco
-	var d := UI.dinheiro(preco, 22, UI.TEXTO if pode else Color(1, 0.3, 0.3))   # só o número fica vermelho
-	v.add_child(d)
+	if Bolsa.eh_montaria(id) and id in m.bolsa.montarias: v.add_child(UI.rotulo("Já é sua", 22, Color(0.6, 0.9, 0.5)))
+	else:
+		var d := UI.dinheiro(preco, 22, UI.TEXTO if pode else Color(1, 0.3, 0.3))   # só o número fica vermelho
+		v.add_child(d)
 	c.mouse_filter = Control.MOUSE_FILTER_STOP
 	c.gui_input.connect(func(ev):
 		if (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed):
@@ -128,7 +136,9 @@ func _comprar(it: Array) -> void:
 	else: erro = m.bolsa.comprar(it[0])
 	if erro != "": m.hud.avisar(erro, Color(1, 0.35, 0.3)); return
 	m.hud.avisar("Comprou: %s" % Bolsa.ITENS[it[0]].nome, Color(1, 1, 1))
-	if it[3] < 0: m.interacao._fala_bram(FALAS_COMPRA[randi() % FALAS_COMPRA.size()])
+	if Bolsa.eh_montaria(it[0]): m.hud.avisar("Nova montaria! Escolha no menu do personagem e use o botão da ferradura.", Color(0.6, 0.9, 0.5))
+	var fc: Array = cfg.get("falas_compra", FALAS_COMPRA)
+	if it[3] < 0: m.interacao._fala_npc(cfg.get("nome", "Bram"), fc[randi() % fc.size()])
 
 func vender(k: int, i: int) -> void:
 	var s = m.bolsa.slot(k, i)
@@ -136,7 +146,8 @@ func vender(k: int, i: int) -> void:
 	var ganho: int = m.bolsa.vender_slot(k, i)
 	if ganho > 0:
 		m.hud.avisar("Vendeu %s: +%s" % [Bolsa.ITENS[s[0]].nome, Bolsa.texto_dinheiro(ganho)], Color(0.95, 0.75, 0.4))
-		m.interacao._fala_bram(FALAS_VENDA[randi() % FALAS_VENDA.size()])
+		var fv: Array = cfg.get("falas_venda", FALAS_VENDA)
+		m.interacao._fala_npc(cfg.get("nome", "Bram"), fv[randi() % fv.size()])
 
 # retrato do vendedor tirado do modelo dele (como o da Rachel no HUD)
 func _tirar_retrato() -> void:
@@ -157,6 +168,7 @@ func _tirar_retrato() -> void:
 			var mt := orig.duplicate() as BaseMaterial3D; mt.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 			mi.material_override = mt
 	for k in 4: await RenderingServer.frame_post_draw
-	_retrato = ImageTexture.create_from_image(vp.get_texture().get_image())
+	_retrato_bram = ImageTexture.create_from_image(vp.get_texture().get_image())
+	if cfg.is_empty(): _retrato = _retrato_bram
 	vp.queue_free()
 	if _foto: _foto.queue_redraw()

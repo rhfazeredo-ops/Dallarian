@@ -48,7 +48,6 @@ func _init() -> void:
 			elif bairro != "" and bairro != "parque": c = Color(0.78, 0.75, 0.7)
 			if absf(dc - Regiao.CIDADE_R) < 4.0: c = Color(0.88, 0.86, 0.8)
 			elif absf(dc - Regiao.CANAL) < 5.0 or Vector2(x, z).distance_to(Regiao.LAGO_PARQUE) < 15.0: c = Color(0.3, 0.5, 0.7)
-			elif absf(x - Regiao.FOSSO_X) < 8.0 and absf(z - Regiao.CIDADE_C.y) < 132.0: c = Color(0.3, 0.5, 0.7) if absf(z - Regiao.CIDADE_C.y) > 8.0 else Color(0.8, 0.78, 0.72)
 			im.set_pixel(i, j, c)
 	im.save_png("res://assets/ui/mapa_base.png")
 	print("MAPA ok")

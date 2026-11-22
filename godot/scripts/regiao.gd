@@ -113,9 +113,11 @@ func _init() -> void:
 	for i in rio.size() - 1: tot += rio[i].distance_to(rio[i + 1]); _rio_comp.append(tot)
 	for i in rio.size(): _rio_comp[i] /= tot
 	_rasterizar(rio, d_rio, t_rio, 48.0)
+	_preparar_rio2()
 	_achar_pontes()
 
-func _rasterizar(linha: PackedVector2Array, dist: PackedFloat32Array, tt, alcance: float) -> void:
+func _rasterizar(linha: PackedVector2Array, dist: PackedFloat32Array, tt, alcance: float, comp: PackedFloat32Array = PackedFloat32Array()) -> void:
+	if comp.is_empty(): comp = _rio_comp
 	for s in linha.size() - 1:
 		var a := linha[s]; var b := linha[s + 1]
 		var i0 := int((min(a.x, b.x) - alcance - X0) / GRADE); var i1 := int((max(a.x, b.x) + alcance - X0) / GRADE)
@@ -129,7 +131,7 @@ func _rasterizar(linha: PackedVector2Array, dist: PackedFloat32Array, tt, alcanc
 					dist[k] = d
 					if tt != null:
 						var u: float = 0.0 if a.distance_to(b) < 0.01 else a.distance_to(q) / a.distance_to(b)
-						tt[k] = lerp(_rio_comp[s], _rio_comp[s + 1], u)
+						tt[k] = lerp(comp[s], comp[s + 1], u)
 
 func _amostra(g: PackedFloat32Array, x: float, z: float) -> float:
 	var fx := clampf((x - X0) / GRADE, 0.0, NX - 1.001); var fz := clampf((z - Z0) / GRADE, 0.0, NZ - 1.001)
@@ -139,6 +141,37 @@ func _amostra(g: PackedFloat32Array, x: float, z: float) -> float:
 
 func dist_estrada(x: float, z: float) -> float: return _amostra(d_estrada, x, z)
 func dist_rio(x: float, z: float) -> float: return _amostra(d_rio, x, z)
+func dist_rio2(x: float, z: float) -> float: return _amostra(d_rio2, x, z)
+func dist_rios(x: float, z: float) -> float: return minf(dist_rio(x, z), dist_rio2(x, z))
+
+# ---------- rio do leste: nasce nas montanhas do norte, passa na frente do portão oeste da cidade e deságua no mar ----------
+var rio2 := PackedVector2Array([Vector2(1590, -1190), Vector2(1625, -1060), Vector2(1606, -930), Vector2(1618, -800),
+	Vector2(1618, -640), Vector2(1618, -560), Vector2(1612, -420), Vector2(1575, -270), Vector2(1510, -110), Vector2(1490, 60),
+	Vector2(1545, 230), Vector2(1660, 390), Vector2(1810, 520), Vector2(1960, 610), Vector2(2120, 660), Vector2(2330, 690)])
+var d_rio2 := PackedFloat32Array()
+var t_rio2 := PackedFloat32Array()
+var _rio2_comp := PackedFloat32Array()
+var _rio2_nivel := PackedFloat32Array()
+func _preparar_rio2() -> void:
+	d_rio2.resize(NX * NZ); d_rio2.fill(1e6); t_rio2.resize(NX * NZ); t_rio2.fill(0.0)
+	var tot := 0.0; _rio2_comp.append(0.0)
+	for i in rio2.size() - 1: tot += rio2[i].distance_to(rio2[i + 1]); _rio2_comp.append(tot)
+	for i in rio2.size(): _rio2_comp[i] /= tot
+	# nível da água: segue o vale, desce até a altura do portão da cidade e depois até o mar (sempre descendo)
+	var ant := 1e6
+	for i in rio2.size():
+		var p: Vector2 = rio2[i]
+		var nv := base(p.y) - 1.3
+		if p.distance_to(CIDADE_C) < CIDADE_R + 260.0: nv = minf(nv, ALTURA_CIDADE - 1.3)
+		nv = lerpf(nv, 0.1, smoothstep(COSTA - 260.0, COSTA, p.x))
+		ant = minf(ant, nv); _rio2_nivel.append(ant)
+	_rasterizar(rio2, d_rio2, t_rio2, 64.0, _rio2_comp)
+func largura_rio2(t: float) -> float: return lerp(12.0, 30.0, t)
+func nivel_rio2(t: float) -> float:
+	var i := 0
+	while i < _rio2_comp.size() - 2 and _rio2_comp[i + 1] < t: i += 1
+	var u: float = clampf((t - _rio2_comp[i]) / maxf(_rio2_comp[i + 1] - _rio2_comp[i], 0.0001), 0.0, 1.0)
+	return lerpf(_rio2_nivel[i], _rio2_nivel[i + 1], u)
 func dist_trilha(x: float, z: float) -> float: return _amostra(d_trilha, x, z)
 # folga até a beira do caminho mais perto (estrada larga: 2,6 m do meio; trilha: 1,3 m)
 func folga_caminho(x: float, z: float) -> float: return minf(dist_estrada(x, z) - 2.6, dist_trilha(x, z) - 1.3)
@@ -201,9 +234,6 @@ func altura(x: float, z: float) -> float:
 	if dcid < 60.0: h = lerp(ALTURA_CIDADE, h, smoothstep(0.0, 60.0, dcid))
 	var dcan := absf(Vector2(x, z).distance_to(CIDADE_C) - CANAL)
 	if dcan < 7.0: h = minf(h, ALTURA_CIDADE - 1.8 * (1.0 - smoothstep(4.0, 7.0, dcan)))      # leito do canal
-	# fosso na frente do portão oeste (a ponte dos guardiões passa por cima)
-	var fx := absf(x - FOSSO_X); var fz := absf(z - CIDADE_C.y)
-	if fx < 12.0 and fz < 150.0: h = minf(h, ALTURA_CIDADE - 3.0 * (1.0 - smoothstep(7.0, 12.0, fx)) * (1.0 - smoothstep(130.0, 150.0, fz)))
 	# lago do parque
 	var dl_p := Vector2(x, z).distance_to(LAGO_PARQUE)
 	if dl_p < 22.0: h = minf(h, ALTURA_CIDADE - 2.2 * (1.0 - smoothstep(14.0, 22.0, dl_p)))
@@ -212,6 +242,15 @@ func altura(x: float, z: float) -> float:
 	var dz_cid := maxf(absf(z - CIDADE_C.y) - CIDADE_R * 0.7, 0.0)
 	costa = lerpf(costa, CIDADE_C.x + CIDADE_R + 45.0, 1.0 - smoothstep(60.0, 160.0, dz_cid))
 	if x > costa - 30.0: h = lerp(h, 1.2 - (x - costa) * 0.16, smoothstep(costa - 30.0, costa, x))
+	# rio do leste (das montanhas do norte, na frente da cidade, até o mar): margens um pouco altas e leito fundo
+	var d2 := dist_rio2(x, z)
+	if d2 < 60.0:
+		var t2 := _amostra(t_rio2, x, z)
+		var l2 := largura_rio2(t2) * 0.5; var n2 := nivel_rio2(t2)
+		if d2 < l2 + 14.0 and x < COSTA - 80.0: h = maxf(h, lerpf(n2 + 0.9, h, smoothstep(l2 + 4.0, l2 + 14.0, d2)))
+		if d2 < l2 + 8.0:
+			var leito := n2 - 2.2 * (1.0 - smoothstep(l2 * 0.35, l2, d2))
+			h = lerp(minf(h, leito), h, smoothstep(l2, l2 + 8.0, d2))
 	# pântano ao sul
 	var pant := smoothstep(Ws(370.0), Ws(430.0), z + ruido_grande.get_noise_2d(x * 2.0, 0.0) * 30.0)
 	if pant > 0.0: h = lerp(h, 0.25 + ruido.get_noise_2d(x * 1.7, z * 1.7) * 0.9, pant)
@@ -290,7 +329,10 @@ func agua(x: float, z: float) -> float:
 	if Vector2(x - LAGO.x, z - LAGO.y).length() < LAGO.z + 2.0: return nivel_lago()
 	if Vector2(x, z).distance_to(LAGO_PARQUE) < 15.0: return ALTURA_CIDADE - 1.0
 	if absf(Vector2(x, z).distance_to(CIDADE_C) - CANAL) < 5.0: return ALTURA_CIDADE - 0.6
-	if absf(x - FOSSO_X) < 8.0 and absf(z - CIDADE_C.y) < 135.0: return ALTURA_CIDADE - 1.3
+	var d2 := dist_rio2(x, z)
+	if d2 < 40.0:
+		var t2 := _amostra(t_rio2, x, z)
+		if d2 < largura_rio2(t2) * 0.5 + 0.5: return nivel_rio2(t2)
 	return 0.0
 
 # ---------- o que tem aqui ----------

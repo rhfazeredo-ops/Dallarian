@@ -22,6 +22,13 @@ const ITENS := {
 		"modelo": "madeira", "desc": "Tábuas presas com tiras de couro."},
 	"nucleo_golem": {"nome": "Coração de barro do Grumo", "venda": 250, "compra": 0, "pilha": 5, "qual": "incomum",
 		"desc": "Ainda pulsa, morno. Dizem que guarda a força do vale."},
+	# montarias (compradas no estábulo de Altamar): não ocupam a bolsa, vão para o menu do personagem
+	"cavalo_branco": {"nome": "Cavalo branco", "venda": 0, "compra": 80, "pilha": 1, "qual": "incomum", "tipo_m": "montaria", "cor": Color(0.94, 0.93, 0.9),
+		"crina": Color(0.8, 0.78, 0.74), "desc": "Manso e elegante. Aumenta a velocidade em 60%."},
+	"cavalo_marrom": {"nome": "Cavalo marrom", "venda": 0, "compra": 80, "pilha": 1, "qual": "incomum", "tipo_m": "montaria", "cor": Color(0.55, 0.34, 0.2),
+		"crina": Color(0.2, 0.13, 0.08), "desc": "Forte e incansável. Aumenta a velocidade em 60%."},
+	"cavalo_preto": {"nome": "Cavalo preto", "venda": 0, "compra": 80, "pilha": 1, "qual": "incomum", "tipo_m": "montaria", "cor": Color(0.18, 0.17, 0.19),
+		"crina": Color(0.08, 0.07, 0.08), "desc": "Veloz como a noite. Aumenta a velocidade em 60%."},
 	"escama_lodoso": {"nome": "Escama de Lodoso", "venda": 8, "compra": 0, "pilha": 20, "qual": "lixo",
 		"desc": "Escamas escorregadias amarradas com alga. Ainda cheiram a rio."},
 	"presa_aranha": {"nome": "Presa de aranha-musgo", "venda": 15, "compra": 0, "pilha": 20, "qual": "lixo",
@@ -47,6 +54,8 @@ var bolsas := []                  # [{id, slots: [null ou [id, qtd]]}, ou null] 
 var cobre := 0
 var recompra := []                # últimos vendidos: [id, qtd, preço total]
 var equip := {"arma": "espada_treino", "escudo": "escudo_madeira"}
+var montarias := []                # ids das montarias que a Rachel tem
+var montaria_sel := ""             # a escolhida no menu (a que aparece no botão de montar)
 signal equipou(lugar: String, id: String)
 
 func _init() -> void:
@@ -134,8 +143,16 @@ func recomprar(k: int) -> String:
 	cobre -= r[2]; pegar(r[0], r[1]); recompra.remove_at(k); mudou.emit()
 	return ""
 
+static func eh_montaria(id: String) -> bool: return ITENS[id].get("tipo_m", "") == "montaria"
+
 func comprar(id: String) -> String:
 	var preco: int = ITENS[id].compra
+	if eh_montaria(id):
+		if id in montarias: return "Você já tem essa montaria."
+		if cobre < preco: return "Dinheiro insuficiente."
+		cobre -= preco; montarias.append(id)
+		if montaria_sel == "": montaria_sel = id
+		mudou.emit(); return ""
 	if cobre < preco: return "Dinheiro insuficiente."
 	if not cabe(id, 1): return "Suas bolsas estão cheias."
 	cobre -= preco; pegar(id, 1)
@@ -174,13 +191,16 @@ static func moedas(c: int) -> Array: return [c / 10000, (c / 100) % 100, c % 100
 
 func salvar(nivel: int, xp: float) -> void:
 	var f := FileAccess.open(ARQUIVO, FileAccess.WRITE)
-	if f: f.store_string(JSON.stringify({"nivel": nivel, "xp": xp, "cobre": cobre, "bolsas": bolsas, "equip": equip}))
+	if f: f.store_string(JSON.stringify({"nivel": nivel, "xp": xp, "cobre": cobre, "bolsas": bolsas, "equip": equip, "montarias": montarias, "montaria_sel": montaria_sel}))
 
 func carregar() -> Dictionary:
 	if not FileAccess.file_exists(ARQUIVO): return {}
 	var d = JSON.parse_string(FileAccess.get_file_as_string(ARQUIVO))
 	if typeof(d) != TYPE_DICTIONARY: return {}
 	cobre = int(d.get("cobre", 0))
+	montarias = []
+	for mt in d.get("montarias", []): if ITENS.has(mt): montarias.append(mt)
+	montaria_sel = String(d.get("montaria_sel", "")) if String(d.get("montaria_sel", "")) in montarias else ""
 	var eq: Dictionary = d.get("equip", {})
 	for k in ["arma", "escudo"]: if ITENS.has(eq.get(k, "")): equip[k] = eq[k]
 	if d.has("bolsas"):

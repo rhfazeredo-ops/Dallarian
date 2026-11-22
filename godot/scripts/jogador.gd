@@ -86,6 +86,35 @@ var alvo: Node3D = null            # mira travada (Tab / botão ALVO): a câmera
 var bloqueios_desde_erguer := 0    # o 1º ataque depois de levantar o escudo é bloqueado inteiro
 var congelar := -1.0             # teste: para a ação nesse ponto (0..1)
 var pose_fixa := false           # teste: mãos paradas numa pose (mostrar_pose)
+# montaria: o cavalo fica preso embaixo da Rachel (a câmera sobe para a altura da sela e os braços somem;
+# vê-se o pescoço e a cabeça do cavalo balançando no galope). 60% mais rápido, como no WoW.
+const VEL_MONTARIA := 1.6
+const ALTURA_OLHOS := 1.62
+const ALTURA_MONTADA := 2.75
+var montado := false
+var montaria_id := ""
+var cavalo: Node3D
+var _anim_cavalo: Node
+var _corpo_cavalo: CollisionShape3D   # caixa do corpo do cavalo (acima do chão, para não prender em degraus)
+
+func montar_em(id: String, modelo: Node3D) -> void:
+	if montado: desmontar()
+	montado = true; montaria_id = id; cavalo = modelo
+	add_child(cavalo); cavalo.position = Vector3(0, 0, -0.1)       # a sela fica embaixo da câmera
+	_corpo_cavalo = CollisionShape3D.new(); var bx := BoxShape3D.new(); bx.size = Vector3(0.9, 1.3, 2.6)
+	_corpo_cavalo.shape = bx; _corpo_cavalo.position = Vector3(0, 1.4, -0.35); add_child(_corpo_cavalo)
+	for c in cavalo.get_children():
+		if c.get_script() != null: _anim_cavalo = c; c.inclinar = -0.6
+	mao.visible = false; alvo = null
+	pescoco.position.y = ALTURA_MONTADA - 0.5          # "sobe" na sela (termina de subir no _physics_process)
+
+func desmontar() -> void:
+	if not montado: return
+	montado = false; montaria_id = ""
+	if cavalo: cavalo.queue_free()
+	if _corpo_cavalo: _corpo_cavalo.queue_free(); _corpo_cavalo = null
+	cavalo = null; _anim_cavalo = null
+	mao.visible = true
 
 func _ready() -> void:
 	var cs := CollisionShape3D.new(); var cap := CapsuleShape3D.new(); cap.radius = 0.35; cap.height = 1.75
@@ -407,11 +436,16 @@ func _physics_process(delta: float) -> void:
 		if controles.consumir_pulo(): _pulo_pedido = 0.2     # guarda o pedido um pouquinho
 		correr = controles.correndo(); bloquear = controles.bloqueando(); atacar = controles.atacando()
 	_seguir_alvo(delta)
+	if montado:
+		if atacar: desmontar(); controles._seg["atacar"] = false; controles.ataque_mouse = false   # atacar desmonta (como no WoW)
+		atacar = false; bloquear = false
+	pescoco.position.y = move_toward(pescoco.position.y, ALTURA_MONTADA if montado else ALTURA_OLHOS, delta * 3.0)
 	if bloquear and not bloqueando: bloqueios_desde_erguer = 0        # levantou o escudo agora
 	bloqueando = bloquear
 	correr = correr and dir.y < -0.3 and not bloquear
 	var vel := VEL_CORRER if correr else (VEL * 0.55 if bloquear else VEL)
 	if GOLPES.has(_acao): vel *= 0.45                # atacando: o corpo pesa, anda devagar
+	if montado: vel *= VEL_MONTARIA
 	correr = correr and not GOLPES.has(_acao)
 	# pulo: funciona parado, andando ou correndo. Tolerâncias: o toque vale por 0,2 s e dá para pular até
 	# 0,15 s depois de sair do chão (descendo morro o corpo "descola" um instante do chão irregular)
@@ -427,6 +461,7 @@ func _physics_process(delta: float) -> void:
 	if is_on_floor() and not _no_chao and vy < -3.0: _queda = clamp(-vy * 0.012, 0.0, 0.12)   # afunda ao cair
 	_no_chao = is_on_floor()
 	_ataque(atacar, bloquear, delta)
+	if _anim_cavalo: _anim_cavalo.vel = Vector2(velocity.x, velocity.z).length() if is_on_floor() else 0.0
 
 	# base (sem ação): repouso, correndo ou bloqueando
 	var base_d: Array = MAO["bloq" if bloquear else ("correr" if correr else "repouso")]

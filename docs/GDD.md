@@ -176,6 +176,17 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   ficar a mais de 40 m) solta. Um X discreto no meio da tela mostra onde a espada bate.
 - **Nenhum monstro na água:** nascem e renascem só em terra seca e não entram em rio, lago, canal, fosso ou mar.
 
+## 7.1.5 Rio do leste, estábulo e montarias
+- **Rio do leste:** nasce no alto das montanhas do norte, desce passando em frente ao portão oeste de Altamar,
+  faz curvas pelo sul e deságua no mar. Para entrar na cidade pelo oeste é preciso atravessar a **Ponte dos Guardiões**.
+- Logo depois do portão oeste: **taverna** (placa da caneca) ao sul da rua e o **estábulo** ao norte — telheiro com
+  cocheiras, cercado com três cavalos (branco, marrom e preto) e **Edric, o cavalariço**.
+- Edric tem LOJA e CONVERSAR. Cada cavalo custa 80 cobre e aumenta a velocidade em 60%.
+- **Montarias como no WoW:** o cavalo comprado vai para o **menu do personagem** (botão ao lado do mapa; PC: tecla C),
+  aba MONTARIAS, onde se escolhe qual usar. O **botão da ferradura** (perto do escudo; PC: tecla V) mostra a barra
+  "Montando..." de 1,5 s (andar ou atacar cancela) e a Rachel aparece já montada; apertar de novo desmonta.
+  Atacar também desmonta. Os cavalos são provisórios (blocos) até chegarem os modelos do Tripo.
+
 ## 7.2 Interface
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados
   quando ainda não descobertos (até 140 m), acesos depois de descobertos (até 400 m), com o aviso "LOCAL

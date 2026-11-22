@@ -491,7 +491,7 @@ func _pedaco(k: Vector2i) -> void:
 				if rng.randf() < 0.08 + smoothstep(0.1, 0.5, f) * 0.35: arbusto = true
 				else: continue
 			if not reg.dentro(x, z) or reg.dist_estrada(x, z) < (3.0 if arbusto else 5.0) or Vector2(x, z).length() < (30.0 if arbusto else 45.0): continue
-			if reg.campo_em(x, z) >= 0 or reg.dist_rio(x, z) < (9.0 if arbusto else 12.0): continue
+			if reg.campo_em(x, z) >= 0 or reg.dist_rios(x, z) < (9.0 if arbusto else 12.0): continue
 			if Vector2(x - Regiao.LAGO.x, z - Regiao.LAGO.y).length() < Regiao.LAGO.z + 6.0: continue
 			var h := reg.altura(x, z)
 			if h > 36.0 or h < 0.6 or (x > Regiao.Ws(380.0) and h < 2.5): continue

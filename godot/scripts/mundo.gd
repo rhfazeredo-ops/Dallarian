@@ -65,6 +65,7 @@ func _ready() -> void:
 	inventario = Inventario.new(); cl.add_child(inventario); inventario.montar(self)
 	loja_ui = Loja.new(); cl.add_child(loja_ui); loja_ui.montar(self)
 	mapa = Mapa.new(); cl.add_child(mapa); mapa.montar(self)
+	montaria_ui = Montaria.new(); cl.add_child(montaria_ui); montaria_ui.montar(self)
 	menu = Menu.new(); cl.add_child(menu); menu.montar(self)
 	# bússola com os locais importantes: [nome, posição, ícone, raio para descobrir]
 	var bus := Bussola.new(); cl.add_child(bus)
@@ -1202,6 +1203,7 @@ func _st() -> SurfaceTool:
 # ---------- água ----------
 func _agua() -> void:
 	var am := ShaderMaterial.new(); am.shader = load("res://shaders/agua.gdshader"); am.set_shader_parameter("neblina", NEBLINA)
+	_faixa_rio(reg.rio2, reg.largura_rio2, func(t: float) -> float: return reg.nivel_rio2(t), am)
 	# mar (leste) e poças do pântano (sul): um plano no nível 0
 	var mar := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(Regiao.X1 - Regiao.X0 + 800.0, Regiao.LIM * 2.0 + 800.0); mar.mesh = pm
 	mar.position = Vector3((Regiao.X0 + Regiao.X1) * 0.5, 0, 0)
@@ -1297,6 +1299,10 @@ func _espuma() -> void:
 # de pedra clara com calçada de tijolo, postes de luz e árvores. Os modelos do dono vão substituindo as peças.
 var cidade_pos := Vector2.ZERO
 var cidade_y := 0.0
+var estabulo_pos := Vector2.ZERO
+var taverna_pos := Vector2.ZERO
+var estabulo_npc: Morador
+var montaria_ui: Montaria
 var cidade_lojas := []              # [nome, posição da porta] — banco, taverna, lojas (para as interações depois)
 var arvores_cidade := []            # [posição Vector3, escala] — a floresta desenha
 func _mat_tex(arq: String) -> ShaderMaterial:
@@ -1356,17 +1362,13 @@ func _cidade() -> void:
 		var arco := _st(); _caixa(arco, Vector3(0, alt + 1.0, 0), Vector3(esp + 1.5, 4.0, 20.0))
 		st.append_from(arco.commit(), 0, Transform3D(Basis(Vector3.UP, atan2(-sin(pa), cos(pa)) + PI * 0.5), Vector3(pp.x, y, pp.y)))
 	_peca(st, pedra_esc, Vector3.ZERO)
-	# ---- fosso e Ponte dos Guardiões (portão oeste)
+	# ---- Ponte dos Guardiões sobre o rio do leste (portão oeste)
 	var fx := Regiao.FOSSO_X
 	var agua_m := ShaderMaterial.new(); agua_m.shader = load("res://shaders/agua.gdshader"); agua_m.set_shader_parameter("neblina", NEBLINA)
 	st = _st()
-	_quad(st, Vector3(fx - 8.0, y - 1.3, c.y + 132.0), Vector3(fx + 8.0, y - 1.3, c.y + 132.0), Vector3(fx + 8.0, y - 1.3, c.y - 132.0), Vector3(fx - 8.0, y - 1.3, c.y - 132.0), 1, 1)
-	var fosso := MeshInstance3D.new(); fosso.mesh = st.commit(); fosso.material_override = agua_m; raiz.add_child(fosso)
-	st = _st()
-	for lado in [-1.0, 1.0]:                                     # muretas de pedra das margens do fosso
-		for zz in range(-130, 131, 4):
-			_caixa(st, Vector3(fx + lado * 8.6, y + 0.1, c.y + zz), Vector3(1.0, 1.0, 4.1))
-	var x_ponte0 := fx - 14.0; var x_ponte1 := fx + 14.0
+	var x_ponte0 := fx - 19.0; var x_ponte1 := fx + 19.0
+	for lado in [-1.0, 1.0]:                                     # pilares
+		for xx in [fx - 9.0, fx, fx + 9.0]: _caixa(st, Vector3(xx, y - 3.0, c.y + lado * 5.0), Vector3(2.0, 6.0, 2.0))
 	_caixa(st, Vector3((x_ponte0 + x_ponte1) * 0.5, y + 0.1, c.y), Vector3(x_ponte1 - x_ponte0, 0.6, 16.0))
 	for lado in [-1.0, 1.0]:
 		for xx in range(int(x_ponte0), int(x_ponte1), 3):
@@ -1384,6 +1386,7 @@ func _cidade() -> void:
 			_poste_em(Vector2(sp.x - 6.0, c.y + lado * 7.0), Vector2(sp.x - 6.0, c.y))
 	# ---- castelo (norte) com escadaria, portão entre torres e estandartes
 	var cas := c + Vector2(0, -RR + 52.0)
+	estabulo_pos = c + Vector2(-178.0, -34.0); taverna_pos = c + Vector2(-180.0, 34.0)   # antes das casas (para não cair casa em cima)
 	st = _st()
 	_caixa(st, Vector3(cas.x, y + 9.0, cas.y), Vector3(64.0, 20.0, 40.0))
 	_caixa(st, Vector3(cas.x, y + 18.0, cas.y - 6.0), Vector3(24.0, 36.0, 22.0))
@@ -1499,6 +1502,7 @@ func _cidade() -> void:
 			if not estilos.has(bairro): continue
 			if Regiao.rua_cidade(q.x, q.y) < 9.5 + w * 0.5: continue
 			if q.distance_to(cas) < 50.0 or q.distance_to(cat) < 46.0 or q.distance_to(tc) < 12.0 or q.distance_to(tm) < 22.0: continue
+			if q.distance_to(estabulo_pos) < 30.0 or q.distance_to(taverna_pos) < 22.0: continue
 			if bairro == "catedral": continue
 			var ang := atan2(c.x - q.x, c.y - q.y) + (0.0 if dentro else PI)
 			var est: Array = estilos[bairro]
@@ -1516,6 +1520,7 @@ func _cidade() -> void:
 				var cx := _st()
 				for b in 3: _caixa(cx, Vector3(q.x + fr.x * (d * 0.5 + 2.0) + ld.x * (b - 1) * 2.2, y + 0.6, q.y + fr.y * (d * 0.5 + 2.0) + ld.y * (b - 1) * 2.2), Vector3(1.2, 1.2, 1.2))
 				_peca(cx, mat("madeira"), Vector3.ZERO)
+	_estabulo_e_taverna(c, y)
 	# ---- parque: árvores, lago e bancos
 	var lp: Vector2 = Regiao.LAGO_PARQUE
 	st = _st()
@@ -1576,6 +1581,96 @@ func _cidade() -> void:
 				_poste_em(q, c + dr * dist)
 	lugares.append([c, RR + 15.0])
 	if args.has("perf"): print("CIDADE: %d casas, %d lojas" % [feitas, cidade_lojas.size()])
+
+# logo depois do portão oeste: estábulo (telheiro, cocheiras, cercado com três cavalos e o cavalariço) ao norte da
+# rua principal e a taverna "O Ferradura Dourada" ao sul
+func _estabulo_e_taverna(c: Vector2, y: float) -> void:
+	var e := estabulo_pos
+	var madeira := mat("madeira"); var tel := mat("telha", 1.0, Color(0.55, 0.3, 0.2))
+	# telheiro aberto com cocheiras
+	var st := _st()
+	for q in [Vector2(-9, -5), Vector2(9, -5), Vector2(-9, 5), Vector2(9, 5), Vector2(-3, -5), Vector2(3, -5)]:
+		_caixa(st, Vector3(e.x + q.x, y + 2.2, e.y + q.y - 6.0), Vector3(0.4, 4.4, 0.4))
+	for xx in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(e.x + xx, y + 0.7, e.y - 6.0), Vector3(0.2, 1.4, 9.0))     # divisórias
+	_caixa(st, Vector3(e.x, y + 1.2, e.y - 10.8), Vector3(18.0, 2.4, 0.3))                                # parede do fundo
+	_peca(st, madeira, Vector3.ZERO)
+	st = _st()
+	_quad(st, Vector3(e.x - 10.0, y + 4.4, e.y - 0.4), Vector3(e.x + 10.0, y + 4.4, e.y - 0.4), Vector3(e.x + 10.0, y + 5.8, e.y - 11.2), Vector3(e.x - 10.0, y + 5.8, e.y - 11.2), 5, 3)
+	_peca(st, tel, Vector3.ZERO)
+	st = _st()                                                                                             # palha no chão e cochos
+	for xx in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(e.x + xx + 3.0, y + 0.3, e.y - 9.8), Vector3(2.2, 0.6, 1.0))
+	_peca(st, mat("palha"), Vector3.ZERO)
+	_colisor_caixa(Vector3(e.x, y, e.y - 10.8), Vector3(18.0, 3.0, 0.4), 0.0)
+	# cercado
+	var cerca := _st()
+	var cx0 := e.x - 12.0; var cx1 := e.x + 12.0; var cz0 := e.y + 1.0; var cz1 := e.y + 15.0
+	for seg in [[Vector2(cx0, cz0), Vector2(cx0, cz1)], [Vector2(cx0, cz1), Vector2(cx1, cz1)], [Vector2(cx1, cz1), Vector2(cx1, cz0)]]:
+		var a: Vector2 = seg[0]; var b: Vector2 = seg[1]; var n := int(a.distance_to(b) / 3.0)
+		for i in n + 1:
+			var p := a.lerp(b, float(i) / n); _caixa(cerca, Vector3(p.x, y + 0.6, p.y), Vector3(0.25, 1.2, 0.25))
+		var m2 := (a + b) * 0.5; var comp := a.distance_to(b); var ang := atan2(b.x - a.x, b.y - a.y)
+		for hh in [0.5, 1.0]:
+			var tr := _st(); _caixa(tr, Vector3(0, 0, 0), Vector3(0.12, 0.14, comp))
+			cerca.append_from(tr.commit(), 0, Transform3D(Basis(Vector3.UP, ang), Vector3(m2.x, y + hh, m2.y)))
+		_colisor_caixa(Vector3(m2.x, y, m2.y), Vector3(0.3, 1.3, comp), ang)
+	_peca(cerca, madeira, Vector3.ZERO)
+	# três cavalos no cercado (o modelo provisório de blocos)
+	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto"]
+	for i in 3:
+		var cv := cavalo(cores[i]); raiz.add_child(cv)
+		cv.position = Vector3(e.x - 7.0 + i * 7.0, y, e.y + 8.0 + (i % 2) * 2.0); cv.rotation.y = 0.4 - i * 0.6
+		cv.set_meta("parado", true)
+		_colisor_caixa(Vector3(cv.position.x, y, cv.position.z), Vector3(1.0, 1.8, 2.6), cv.rotation.y)
+	# o cavalariço (vende os cavalos)
+	var npc := Morador.new(); raiz.add_child(npc); npc.tipo = "forte"
+	var np := e + Vector2(-2.0, -2.0)
+	npc.position = Vector3(np.x, y, np.y)
+	npc.montar(self, 4242, np, 2.5)
+	estabulo_npc = npc
+	# taverna grande com placa
+	var t := taverna_pos
+	var ang_t := PI                                                        # porta virada para a rua principal (norte)
+	_casa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, mat("parede"), mat("telha", 1.0, Color(0.32, 0.46, 0.9)), true)
+	_placa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, "taverna")
+	cidade_lojas.append(["taverna", t + Vector2(0, -7.0)])
+	var b := _st()
+	for k in 4: _caixa(b, Vector3(t.x - 6.0 + k * 1.1, y + 0.5, t.y - 7.0), Vector3(0.8, 1.0, 0.8))   # barris na porta
+	_peca(b, mat("madeira", 1.0, Color(0.7, 0.5, 0.35)), Vector3.ZERO)
+	# placa do estábulo (ferradura) num poste
+	var pp := e + Vector2(12.5, 2.0)
+	var pst := _st(); _caixa(pst, Vector3(pp.x, y + 1.6, pp.y), Vector3(0.25, 3.2, 0.25)); _peca(pst, madeira, Vector3.ZERO)
+	_placa(Vector3(pp.x - 0.3, y - 0.4, pp.y), PI * 0.5, 0.6, 0.6, 4.6, "estabulo")
+
+# cavalo provisório feito de blocos (frente = -Z), na cor da montaria; patas, cabeça e cauda em nós próprios para animar
+func cavalo(id: String) -> Node3D:
+	var info: Dictionary = Bolsa.ITENS[id]
+	var cor_m := mat("", 1.0, info.cor); var crina := mat("", 1.0, info.crina); var casco := mat("", 1.0, Color(0.15, 0.12, 0.1))
+	var sela := mat("", 1.0, Color(0.42, 0.24, 0.12))
+	var raizc := Node3D.new(); raizc.name = "Cavalo"
+	var corpo := MeshInstance3D.new(); var st := _st()
+	_caixa(st, Vector3(0, 1.35, 0), Vector3(0.75, 0.8, 2.0))
+	st.set_material(cor_m); var mesh := st.commit()
+	st = _st(); _caixa(st, Vector3(0, 1.78, 0.1), Vector3(0.8, 0.1, 0.8)); _caixa(st, Vector3(0, 1.3, 0.1), Vector3(0.82, 0.8, 0.5)); st.set_material(sela); st.commit(mesh)
+	corpo.mesh = mesh; raizc.add_child(corpo)
+	var pescoco := Node3D.new(); pescoco.name = "Pescoco"; pescoco.position = Vector3(0, 1.6, -0.85); raizc.add_child(pescoco)
+	var mp := MeshInstance3D.new(); st = _st()
+	_caixa(st, Vector3(0, 0.35, -0.25), Vector3(0.42, 0.95, 0.5))                  # pescoço
+	_caixa(st, Vector3(0, 0.75, -0.65), Vector3(0.36, 0.38, 0.8))                  # cabeça
+	_caixa(st, Vector3(-0.12, 1.0, -0.38), Vector3(0.08, 0.2, 0.08)); _caixa(st, Vector3(0.12, 1.0, -0.38), Vector3(0.08, 0.2, 0.08))   # orelhas
+	st.set_material(cor_m); var mesh_p := st.commit()
+	st = _st(); _caixa(st, Vector3(0, 0.6, -0.05), Vector3(0.12, 1.0, 0.25)); st.set_material(crina); st.commit(mesh_p)    # crina
+	st = _st(); _caixa(st, Vector3(0, 0.7, -0.75), Vector3(0.4, 0.06, 0.4)); st.set_material(sela); st.commit(mesh_p)      # cabresto
+	mp.mesh = mesh_p; pescoco.add_child(mp)
+	for i in 4:
+		var perna := Node3D.new(); perna.name = "Perna%d" % i
+		perna.position = Vector3(-0.25 if i % 2 == 0 else 0.25, 1.05, -0.75 if i < 2 else 0.75); raizc.add_child(perna)
+		var ml := MeshInstance3D.new(); st = _st(); _caixa(st, Vector3(0, -0.5, 0), Vector3(0.18, 1.0, 0.2)); st.set_material(cor_m); var mesh_l := st.commit()
+		st = _st(); _caixa(st, Vector3(0, -1.0, 0), Vector3(0.2, 0.12, 0.24)); st.set_material(casco); st.commit(mesh_l)
+		ml.mesh = mesh_l; perna.add_child(ml)
+	var cauda := Node3D.new(); cauda.name = "Cauda"; cauda.position = Vector3(0, 1.6, 1.0); raizc.add_child(cauda)
+	var mc := MeshInstance3D.new(); st = _st(); _caixa(st, Vector3(0, -0.4, 0.12), Vector3(0.16, 0.9, 0.16)); st.set_material(crina); mc.mesh = st.commit(); cauda.add_child(mc)
+	var s := Node.new(); s.set_script(load("res://scripts/cavalo_anim.gd")); raizc.add_child(s)
+	return raizc
 
 # placa de loja pendurada numa trave saindo da fachada (desenho em assets/ui/placas/<nome>.png)
 func _placa(pos: Vector3, ang: float, w: float, d: float, h: float, nome: String) -> void:
@@ -1638,6 +1733,27 @@ func _particulas_magia(pos: Vector3) -> void:
 	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; mt.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	mt.albedo_color = Color(0.85, 0.5, 1.0); q.material = mt; p.mesh = q
 	p.visibility_aabb = AABB(Vector3(-8, -4, -8), Vector3(16, 12, 16)); raiz.add_child(p)
+
+# faixa de água seguindo uma linha de rio (nível e largura por posição ao longo dele)
+func _faixa_rio(linha: PackedVector2Array, largura: Callable, nivel: Callable, am: Material) -> void:
+	var st := _st(); var pts := []
+	for i in linha.size() - 1:
+		var a: Vector2 = linha[i]; var b: Vector2 = linha[i + 1]
+		var n := int(ceil(a.distance_to(b) / 3.0))
+		for k in n: pts.append(a.lerp(b, float(k) / n))
+	pts.append(linha[linha.size() - 1])
+	var tot := 0.0; var ts := [0.0]
+	for i in range(1, pts.size()): tot += pts[i].distance_to(pts[i - 1]); ts.append(tot)
+	var ant_l := Vector3.ZERO; var ant_r := Vector3.ZERO
+	for i in pts.size():
+		var t: float = ts[i] / tot
+		var d: Vector2 = (pts[min(i + 1, pts.size() - 1)] - pts[max(i - 1, 0)]).normalized()
+		var nrm: Vector2 = Vector2(-d.y, d.x) * (float(largura.call(t)) * 0.5 + 1.0)
+		var yy: float = nivel.call(t) - 0.12
+		var l := Vector3(pts[i].x + nrm.x, yy, pts[i].y + nrm.y); var r := Vector3(pts[i].x - nrm.x, yy, pts[i].y - nrm.y)
+		if i > 0: _quad(st, ant_l, ant_r, r, l, 1, 1)
+		ant_l = l; ant_r = r
+	_peca(st, am, Vector3.ZERO)
 
 # ---------- lugares da região ----------
 func _lugares() -> void:
@@ -2272,9 +2388,25 @@ func _modo_teste() -> void:
 			"porto_cidade": alvo = Vector2(Regiao.CIDADE.end.x + 22.0, cidade_pos.y + 30.0); olha = Vector2(Regiao.CIDADE.end.x + 120.0, cidade_pos.y - 10.0)
 			"portao_leste": alvo = Vector2(Regiao.CIDADE.end.x + 30.0, cidade_pos.y + 4.0); olha = Vector2(Regiao.CIDADE.end.x - 40.0, cidade_pos.y)
 			"alto": alvo = cidade_pos + Vector2(-260, 230); olha = cidade_pos
+			"estabulo": alvo = estabulo_pos + Vector2(2.0, 30.0); olha = estabulo_pos + Vector2(0, 2)
+			"cavalarico": alvo = estabulo_pos + Vector2(-2.0, 1.2); olha = estabulo_pos + Vector2(-2.0, -2.0)
+			"taverna": alvo = taverna_pos + Vector2(10.0, -26.0); olha = taverna_pos
+			"rua_oeste": alvo = cidade_pos + Vector2(-205.0, 0.0); olha = cidade_pos
 		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position
 		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)
 		if String(args.ir) == "alto": jogador.global_position.y += 60.0; jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35
+		if args.has("subir"): jogador.global_position.y += float(args.subir); jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.6"))
+	if args.has("dar_cavalos"):    # teste: dá as três montarias (e dinheiro)
+		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
+		bolsa.montaria_sel = String(args.get("cavalo", "cavalo_preto")) if String(args.get("cavalo", "")) != "" else bolsa.montarias[0]
+	if args.has("montar"):         # teste: aperta o botão de montar; com --montar=andar anda depois de montado
+		get_tree().create_timer(1.0).timeout.connect(func(): montaria_ui.alternar_montaria())
+		if String(args.montar) == "andar": get_tree().create_timer(3.0).timeout.connect(func(): controles.dir = Vector2(0, -1); controles.set_process(false))
+	if args.has("personagem"): get_tree().create_timer(0.8).timeout.connect(func(): montaria_ui.abrir_menu(String(args.personagem)))
+	if args.has("loja_estabulo"):
+		get_tree().create_timer(2.5).timeout.connect(func():
+			var q := estabulo_npc.global_position + Vector3(0, 0, 1.6); jogador.global_position = q; jogador.rotation.y = 0.0)
+		get_tree().create_timer(3.2).timeout.connect(func(): print("NPC perto: ", interacao.npc); interacao._abrir_loja())
 	if args.has("travar"):         # teste: perto de uma matilha, trava a mira e anda de lado
 		get_tree().create_timer(2.5).timeout.connect(func():
 			controles._alvo = true
@@ -2338,6 +2470,12 @@ func _modo_teste() -> void:
 			for f in int(args.get("quadros", "20")):
 				await RenderingServer.frame_post_draw
 				get_viewport().get_texture().get_image().save_png(String(args.shot).replace(".png", "-%02d.png" % q)); q += 1
+		get_tree().quit(); return
+	if args.has("tempos"):         # vários prints: --tempos=1.5,3,5 → saida-0.png, saida-1.png...
+		var antes := 0.0; var q := 0
+		for t in String(args.tempos).split(","):
+			await get_tree().create_timer(float(t) - antes).timeout; antes = float(t)
+			get_viewport().get_texture().get_image().save_png(String(args.shot).replace(".png", "-%d.png" % q)); q += 1
 		get_tree().quit(); return
 	await get_tree().create_timer(float(args.get("espera", "2"))).timeout
 	get_viewport().get_texture().get_image().save_png(args.shot)

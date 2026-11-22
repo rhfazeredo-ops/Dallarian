@@ -41,6 +41,21 @@ var _fala_i := 0
 var painel_barraca: Control
 var escuro: ColorRect
 var _dormindo := false
+# estábulo de Altamar: o cavalariço vende os cavalos (LOJA) e conversa
+var painel_estabulo: HBoxContainer
+const NOME_CAVALARICO := "Edric"
+const DIALOGOS_CAVALARICO := [
+	[["heroina", "Que cavalos bonitos! Eles estão à venda?", ""],
+	 ["cavalarico", "Os melhores do Vale de Aldren, moça. Oitenta de cobre cada um, com sela e tudo. Um cavalo te leva longe antes do lobo te alcançar.", ""]],
+	[["heroina", "Qual deles você escolheria?", ""],
+	 ["cavalarico", "O branco é manso, o marrom aguenta qualquer estrada e o preto... o preto corre como se o vento devesse dinheiro a ele.", ""]],
+	[["heroina", "Como eu chamo o cavalo quando estiver na estrada?", ""],
+	 ["cavalarico", "Um bom cavalo sempre ouve o assobio da dona. Assobia e ele vem. Assobia de novo e ele volta pro pasto.", ""]],
+]
+const LOJA_ESTABULO := {"nome": "Edric", "cargo": "<Cavalariço>", "itens": ["cavalo_branco", "cavalo_marrom", "cavalo_preto"],
+	"falas_compra": ["Trate bem dele, que ele trata bem de você.", "Escolha boa! Esse aí não refuga estrada."],
+	"falas_venda": ["Hum, isso eu revendo na cidade.", "Fechado. Cobre na mão."]}
+var _tipo_npc := ""               # "ferreiro" ou "cavalarico"
 
 func montar(mundo) -> void:
 	m = mundo
@@ -53,6 +68,13 @@ func montar(mundo) -> void:
 	painel.add_child(_botao("LOJA", true, _abrir_loja))
 	painel.add_child(_botao("CONVERSAR", true, _conversar))
 	painel.visible = false
+	painel_estabulo = HBoxContainer.new(); painel_estabulo.add_theme_constant_override("separation", 26)
+	painel_estabulo.anchor_left = 0.5; painel_estabulo.anchor_right = 0.5; painel_estabulo.anchor_top = 1; painel_estabulo.anchor_bottom = 1
+	painel_estabulo.offset_left = -165; painel_estabulo.offset_right = 165; painel_estabulo.offset_top = -380; painel_estabulo.offset_bottom = -210
+	add_child(painel_estabulo)
+	painel_estabulo.add_child(_botao("LOJA", true, _abrir_loja))
+	painel_estabulo.add_child(_botao("CONVERSAR", true, _conversar))
+	painel_estabulo.visible = false
 	painel_barraca = _botao("DESCANSAR", true, _descansar)
 	painel_barraca.anchor_left = 0.5; painel_barraca.anchor_right = 0.5; painel_barraca.anchor_top = 1; painel_barraca.anchor_bottom = 1
 	painel_barraca.offset_left = -75; painel_barraca.offset_right = 75; painel_barraca.offset_top = -380; painel_barraca.offset_bottom = -210
@@ -105,10 +127,15 @@ func _botao(txt: String, ativo: bool, f: Callable) -> Control:
 func _abrir_loja() -> void:
 	if npc == null: return
 	_falando = false; painel.visible = false; caixa.visible = false
-	m.loja_ui.abrir(npc)
+	if _tipo_npc == "cavalarico":
+		var c := LOJA_ESTABULO.duplicate(); c["retrato"] = load("res://assets/ui/itens/cavalo_marrom.png")
+		m.loja_ui.abrir(npc, c)
+	else: m.loja_ui.abrir(npc)
 
-func _fala_bram(t: String) -> void:
-	legenda.text = "Bram: " + t; legenda.modulate.a = 1.0; move_child(legenda, get_child_count() - 1)
+func _fala_bram(t: String) -> void: _fala_npc("Bram", t)
+
+func _fala_npc(quem: String, t: String) -> void:
+	legenda.text = quem + ": " + t; legenda.modulate.a = 1.0; move_child(legenda, get_child_count() - 1)
 	var tw := legenda.create_tween(); tw.tween_interval(2.5); tw.tween_property(legenda, "modulate:a", 0.0, 0.5)
 
 # descansar na barraca: tela escurece, o tempo passa até as 6h e amanhece
@@ -149,7 +176,8 @@ func _conversar() -> void:
 	if npc == null: return
 	_conversou = true; legenda.modulate.a = 0.0
 	_falando = true; painel.visible = false
-	_dialogo = DIALOGOS_FERREIRO[_fala_i % DIALOGOS_FERREIRO.size()]; _fala_i += 1
+	var lista: Array = DIALOGOS_CAVALARICO if _tipo_npc == "cavalarico" else DIALOGOS_FERREIRO
+	_dialogo = lista[_fala_i % lista.size()]; _fala_i += 1
 	_fala = 0; caixa.visible = true
 	npc.falando_com = m.jogador
 	_mostrar_fala()
@@ -157,10 +185,10 @@ func _conversar() -> void:
 # mostra a fala atual (legenda + voz); sem voz, fica o tempo de leitura
 func _mostrar_fala() -> void:
 	var f: Array = _dialogo[_fala]
-	nome_lbl.text = NOME_HEROINA if f[0] == "heroina" else "Bram, o ferreiro"
+	nome_lbl.text = NOME_HEROINA if f[0] == "heroina" else ("Edric, o cavalariço" if f[0] == "cavalarico" else "Bram, o ferreiro")
 	nome_lbl.add_theme_color_override("font_color", Color(0.62, 0.82, 1.0) if f[0] == "heroina" else Color(0.98, 0.8, 0.42))
 	fala_lbl.text = f[1]
-	if npc: npc.gesticula = f[0] == "ferreiro"
+	if npc: npc.gesticula = f[0] != "heroina"
 	voz.stop()
 	if f[2] != "" and ResourceLoader.exists(f[2]):
 		voz.stream = load(f[2]); voz.play(); _tempo_fala = voz.stream.get_length() + 0.6
@@ -188,16 +216,22 @@ func _process(_d: float) -> void:
 	for mo in m.raiz.get_children():
 		if mo is Morador and mo.profissao == "ferreiro" and mo.global_position.distance_to(m.jogador.global_position) < (ALCANCE if not _falando else 12.0):
 			perto = mo
+	var tipo := "ferreiro" if perto else ""
+	var cv: Morador = m.estabulo_npc
+	if perto == null and cv and cv.global_position.distance_to(m.jogador.global_position) < (6.0 if not _falando else 12.0):
+		perto = cv; tipo = "cavalarico"
 	if perto != npc:
 		if npc and _falando: _fechar()
 		if m.loja_ui and m.loja_ui.aberta: m.loja_ui.fechar()
-		if perto != null and npc == null:
+		if perto != null and npc == null and tipo == "ferreiro":
 			_conversou = false
 			_fala_solta(CHEGA[_chega_i % CHEGA.size()]); _chega_i += 1
-		elif perto == null and npc != null and _conversou:
+		elif perto == null and npc != null and _conversou and _tipo_npc == "ferreiro":
 			_fala_solta(TCHAU, true)
-		npc = perto
-	painel.visible = npc != null and not _falando and not (m.loja_ui != null and m.loja_ui.aberta)
+		npc = perto; _tipo_npc = tipo
+	var livre: bool = npc != null and not _falando and not (m.loja_ui != null and m.loja_ui.aberta)
+	painel.visible = livre and _tipo_npc == "ferreiro"
+	painel_estabulo.visible = livre and _tipo_npc == "cavalarico"
 	var na_barraca := perto_da_barraca() and not _dormindo
 	painel_barraca.visible = na_barraca and npc == null
 	Audio.falando = _falando and voz.playing
