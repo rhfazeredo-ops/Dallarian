@@ -216,6 +216,10 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   no rio do vale e curva suave ao lado do morro. Iluminada: poste com lanterna a cada 18 m, alternando os lados.
 
 ## 7.2 Interface
+- **Joystick fixo** no canto de baixo à esquerda (celular). Empurrando para cima além da borda aparece o botão
+  **TRAVAR** logo acima: levando o dedo até ele, a Rachel corre sozinha para a frente (**AUTO**). Com a trava ligada o
+  joystick só vira para os lados; puxar para trás ou tocar no AUTO desliga. Abrir bolsa, loja ou menu também para.
+  PC: tecla R liga/desliga.
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados
   quando ainda não descobertos (até 140 m), acesos depois de descobertos (até 400 m), com o aviso "LOCAL
   DESCOBERTO". Locais: Vila do Vale, Ferraria do Bram, Mosteiro da Ilha, Porto dos Pescadores, Píer do Rio,

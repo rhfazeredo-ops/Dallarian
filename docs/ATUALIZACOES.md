@@ -110,3 +110,5 @@
   Guardiã** (com a chama azul acesa à noite) no lugar dos provisórios; ícones novos das 3 poções e das frutinhas.
 - **12 Estátuas da Guardiã** espalhadas pelo mapa (a Rachel volta na mais perto) e **caveirinha** de onde ela
   morreu no mapa e na bússola, que some em 5 minutos.
+- **Joystick fixo** no canto de baixo e **corrida automática**: passando da borda para cima aparece TRAVAR; com o
+  AUTO ligado ela corre sozinha e o joystick só vira para os lados (puxar para trás ou tocar no AUTO desliga; PC: R).

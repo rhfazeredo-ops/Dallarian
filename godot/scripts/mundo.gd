@@ -2610,6 +2610,17 @@ func _modo_teste() -> void:
 	if args.has("estatuas"):
 		for e in estatuas: print("ESTATUA %s alt=%.1f" % [str((e[0] as Vector2).round()), reg.altura(e[0].x, e[0].y)])
 	if args.has("mapa_depois"): get_tree().create_timer(float(args.mapa_depois)).timeout.connect(func(): mapa.alternar())
+	if args.has("trava"):          # teste: dedo no joystick, empurra para cima até a trava, solta e a Rachel segue sozinha
+		var toque := func(pressed: bool, pos: Vector2):
+			var ev := InputEventScreenTouch.new(); ev.index = 0; ev.pressed = pressed; ev.position = pos; controles._input(ev)
+		var arrasta := func(pos: Vector2):
+			var ev := InputEventScreenDrag.new(); ev.index = 0; ev.position = pos; controles._input(ev)
+		get_tree().create_timer(2.0).timeout.connect(func(): toque.call(true, controles._centro_fixo()))
+		get_tree().create_timer(2.3).timeout.connect(func(): arrasta.call(controles._centro_fixo() + Vector2(0, -150)))
+		get_tree().create_timer(2.8).timeout.connect(func(): arrasta.call(controles._pos_trava()); print("TRAVA: ", controles.auto, " pos ", jogador.global_position.round()))
+		get_tree().create_timer(3.2).timeout.connect(func(): toque.call(false, controles._pos_trava()))
+		get_tree().create_timer(3.6).timeout.connect(func(): toque.call(true, controles._centro_fixo()); arrasta.call(controles._centro_fixo() + Vector2(90, 0)))
+		get_tree().create_timer(5.0).timeout.connect(func(): print("AUTO: ", controles.auto, " dir ", controles.dir, " pos ", jogador.global_position.round()))
 	if args.has("morrer"): get_tree().create_timer(2.0).timeout.connect(func(): hud.vida = 1.0; ferir_heroina(50.0, jogador.global_position + Vector3(0, 0, -2), 1))
 	if args.has("loja_freira"):
 		get_tree().create_timer(3.0).timeout.connect(func(): bolsa.cobre = 500; print("NPC: ", interacao._tipo_npc); interacao._abrir_loja())
