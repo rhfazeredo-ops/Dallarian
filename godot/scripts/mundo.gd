@@ -47,7 +47,7 @@ func _ready() -> void:
 	_agua()
 	_espuma()
 	_juntar_estaticos()
-	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self)
+	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self); floresta = fl
 	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
 	var grama := Grama.new(); raiz.add_child(grama); grama.montar(self)
 	_moradores()
@@ -1312,6 +1312,7 @@ var cidade_y := 0.0
 var estabulo_pos := Vector2.ZERO
 var taverna_pos := Vector2.ZERO
 var estabulo_npc: Morador
+var floresta: Floresta
 var montaria_ui: Montaria
 var cidade_lojas := []              # [nome, posição da porta] — banco, taverna, lojas (para as interações depois)
 var arvores_cidade := []            # [posição Vector3, escala] — a floresta desenha
@@ -2461,6 +2462,27 @@ func _modo_teste() -> void:
 		get_tree().create_timer(1.0).timeout.connect(func():
 			for cv in raiz.find_children("Cavalo*", "Node3D", false, false):
 				for ch in cv.get_children(): if ch.get_script() != null and "vel" in ch: ch.vel = float(args.cavalo_andar))
+	if args.has("fluxo_frutinhas"): # teste: vai até o arbusto de frutinhas mais perto, coleta, abre a bolsa e come uma
+		get_tree().create_timer(1.5).timeout.connect(func():
+			var pj := jogador.global_position; var melhor := Vector3.ZERO; var md := 1e9
+			for k in floresta.bagas.keys():
+				for q in floresta.bagas[k][1]:
+					var d: float = (q - pj).length()
+					if d < md: md = d; melhor = q
+			var dir := Vector3(1, 0, 0.3).normalized()
+			jogador.global_position = melhor + dir * 1.8 + Vector3(0, 0.3, 0)
+			jogador.rotation.y = atan2(dir.x, dir.z); jogador.pescoco.rotation.x = -0.35
+			print("ARBUSTO a %.0f m" % md))
+		get_tree().create_timer(3.0).timeout.connect(func():
+			hud.vida = 60.0; interacao._coletar(); inventario.abrir())
+		get_tree().create_timer(3.6).timeout.connect(func():
+			for k in bolsa.bolsas.size():
+				if bolsa.bolsas[k] == null: continue
+				for i in bolsa.bolsas[k].slots.size():
+					var sl = bolsa.bolsas[k].slots[i]
+					if sl != null and sl[0] == "frutinhas":
+						var antes := hud.vida; var c := bolsa.consumir(k, i); hud.vida = minf(hud.vida + c, hud.vida_max)
+						print("CONSUMIU: vida %.0f -> %.0f; sobrou %s" % [antes, hud.vida, str(bolsa.slot(k, i))]); return)
 	if args.has("fluxo_cavalo"):   # teste: compra o cavalo branco, abre a bolsa, "toque duplo" nele e abre as montarias
 		get_tree().create_timer(1.2).timeout.connect(func():
 			bolsa.cobre = 500; print("COMPRA: '", bolsa.comprar("cavalo_branco"), "'"); inventario.abrir())

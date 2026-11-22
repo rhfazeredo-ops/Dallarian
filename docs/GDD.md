@@ -190,6 +190,12 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   Atacar também desmonta. Cavalos modelados no Tripo, com rig automático: as patas andam em trote, o pescoço balança e o rabo mexe.
 - Os dois rios têm juncos nas margens e peixes nadando.
 
+## 7.1.6 Coleta: frutinhas silvestres
+- Os arbustos com pontinhos vermelhos dão **frutinhas**: chegando perto aparece **COLETAR** (PC: F) e vêm 1 a 3
+  **Frutinhas silvestres** para a bolsa (pilha de 20, vendem por 1 cobre). O arbusto fica sem frutinhas e elas
+  voltam em 5 minutos.
+- Na bolsa, tocar nas frutinhas mostra **CONSUMIR**: cada uma recupera **5 de vida** (para uma emergência).
+
 ## 7.2 Interface
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados
   quando ainda não descobertos (até 140 m), acesos depois de descobertos (até 400 m), com o aviso "LOCAL

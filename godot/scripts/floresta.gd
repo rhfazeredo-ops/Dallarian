@@ -23,6 +23,45 @@ var _mat_cartao := {}
 var _nx := 0
 var _nz := 0
 var _montados := {}             # Vector2i → nó do pedaço
+# arbustos de frutinhas vermelhas (flor_b): dá para COLETAR; colhido fica sem frutinhas (cor verde por cima dos
+# pontinhos) e as frutinhas voltam em 5 min. Os pedaços são montados e soltos, então o "colhido" fica guardado
+# pela posição do arbusto.
+const VOLTA_BAGAS := 300.0
+const JARDIM := Vector2i(-999, -999)
+const COR_COLHIDO := Color(0.5, 0.72, 0.42)
+var bagas := {}                 # pedaço (ou JARDIM) → [MultiMesh, [posições]]
+var colhidos := {}              # chave da posição → quando as frutinhas voltam
+var _t_bagas := 0.0
+func _chave(p: Vector3) -> Vector2i: return Vector2i(roundi(p.x * 4.0), roundi(p.z * 4.0))
+func _registrar_bagas(k: Vector2i, mm: MultiMesh, itens: Array) -> void:
+	var pos := []
+	for i in itens.size():
+		var p: Vector3 = itens[i][0].origin; pos.append(p)
+		if colhidos.has(_chave(p)) and colhidos[_chave(p)] > m._tempo_jogo(): mm.set_instance_color(i, COR_COLHIDO)
+	bagas[k] = [mm, pos]
+# arbusto com frutinhas a até "raio" metros: [MultiMesh, índice, posição] (ou vazio)
+func baga_perto(p: Vector3, raio := 2.3) -> Array:
+	var melhor := []; var md := raio
+	for k in bagas.keys():
+		if k != JARDIM and (_origem_ped(k) + Vector2(PED, PED) * 0.5).distance_to(Vector2(p.x, p.z)) > PED: continue
+		var l: Array = bagas[k][1]
+		for i in l.size():
+			var q: Vector3 = l[i]
+			var d := Vector2(q.x - p.x, q.z - p.z).length()
+			if d < md and not (colhidos.has(_chave(q)) and colhidos[_chave(q)] > m._tempo_jogo()):
+				md = d; melhor = [bagas[k][0], i, q]
+	return melhor
+func colher(b: Array) -> void:
+	colhidos[_chave(b[2])] = m._tempo_jogo() + VOLTA_BAGAS
+	(b[0] as MultiMesh).set_instance_color(b[1], COR_COLHIDO)
+func _tick_bagas() -> void:                 # frutinhas que já voltaram: pontinhos vermelhos de novo
+	var agora: float = m._tempo_jogo()
+	for k in bagas.keys():
+		var mm: MultiMesh = bagas[k][0]; var l: Array = bagas[k][1]
+		for i in l.size():
+			var ch := _chave(l[i])
+			if colhidos.has(ch) and colhidos[ch] <= agora:
+				colhidos.erase(ch); mm.set_instance_color(i, Color(1, 1, 1))
 func _origem_ped(k: Vector2i) -> Vector2: return Vector2(Regiao.X0 + k.x * PED, Regiao.Z0 + k.y * PED)
 
 # monta os pedaços até a distância de vista (todos de uma vez no começo; depois um por quadro) e solta os longe
@@ -46,7 +85,7 @@ func _montar_perto(tudo: bool) -> void:
 		if not tudo: break
 	for k in _montados.keys():
 		if (_origem_ped(k) + Vector2(PED, PED) * 0.5).distance_to(p) > alcance + PED * 1.5:
-			_montados[k].queue_free(); _montados.erase(k); arvores.erase(k)
+			_montados[k].queue_free(); _montados.erase(k); arvores.erase(k); bagas.erase(k)
 			if corpos.has(k): corpos[k].queue_free(); corpos.erase(k)
 # pontas dos galhos na malha do tronco (cartões saem delas)
 const PONTAS := [Vector3(1.4, 4.2, 0.3), Vector3(-1.2, 4.7, -0.5), Vector3(0.2, 4.9, 1.2)]
@@ -478,7 +517,9 @@ func _jardins() -> void:
 			var cor := Color(1, 1, 1) * rng.randf_range(0.9, 1.08) if nome != "arbusto" else _verde(rng, 0.0)
 			itens[nome].append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(q.x, reg.altura(q.x, q.y) - 0.05, q.y)), cor])
 	for nome in itens.keys():
-		if not itens[nome].is_empty(): add_child(_mm(malhas[nome][1], itens[nome], true))
+		if itens[nome].is_empty(): continue
+		var mi := _mm(malhas[nome][1], itens[nome], true); add_child(mi)
+		if nome == "flor_b": _registrar_bagas(JARDIM, mi.multimesh, itens[nome])
 
 # ---------- distribuição ----------
 func _pedaco(k: Vector2i) -> void:
@@ -538,7 +579,9 @@ func _pedaco(k: Vector2i) -> void:
 		if par.size() > 2:                         # copa completa perto, simplificada longe
 			var perto := _mm(par[1], itens, true); perto.visibility_range_end = PERTO; no.add_child(perto)
 			var longe := _mm(par[2], itens, true); longe.visibility_range_begin = PERTO; no.add_child(longe)
-		elif par[1]: no.add_child(_mm(par[1], itens, true))
+		elif par[1]:
+			var mi := _mm(par[1], itens, true); no.add_child(mi)
+			if nome == "flor_b": _registrar_bagas(k, mi.multimesh, itens)
 
 func _mm(malha: ArrayMesh, itens: Array, cores: bool) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = cores; mm.mesh = malha
@@ -564,6 +607,8 @@ func _process(_d: float) -> void:
 	if m.jogador == null: return
 	_t_montar -= _d
 	if _t_montar <= 0.0: _t_montar = 0.1; _montar_perto(false)
+	_t_bagas -= _d
+	if _t_bagas <= 0.0: _t_bagas = 2.0; _tick_bagas()
 	var jp: Vector3 = m.jogador.global_position; var p := Vector2(jp.x, jp.z)
 	for k in arvores.keys():
 		var centro := _origem_ped(k) + Vector2(PED, PED) * 0.5

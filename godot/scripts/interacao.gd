@@ -41,6 +41,9 @@ var _fala_i := 0
 var painel_barraca: Control
 var escuro: ColorRect
 var _dormindo := false
+# arbusto de frutinhas: botão COLETAR (PC: F)
+var painel_coletar: Control
+var _baga: Array = []
 # estábulo de Altamar: o cavalariço vende os cavalos (LOJA) e conversa
 var painel_estabulo: HBoxContainer
 const NOME_CAVALARICO := "Edric"
@@ -56,7 +59,8 @@ const LOJA_ESTABULO := {"nome": "Edric", "cargo": "<Cavalariço>", "itens": ["ca
 	"falas_compra": ["Trate bem dele, que ele trata bem de você.", "Escolha boa! Esse aí não refuga estrada."],
 	"falas_venda": ["Hum, isso eu revendo na cidade.", "Fechado. Cobre na mão."]}
 var _tipo_npc := ""
-var _ferreiros := []               # "ferreiro" ou "cavalarico"
+var _ferreiros := []
+var _t_baga := 0.0               # "ferreiro" ou "cavalarico"
 
 func montar(mundo) -> void:
 	m = mundo
@@ -80,6 +84,10 @@ func montar(mundo) -> void:
 	painel_barraca.anchor_left = 0.5; painel_barraca.anchor_right = 0.5; painel_barraca.anchor_top = 1; painel_barraca.anchor_bottom = 1
 	painel_barraca.offset_left = -75; painel_barraca.offset_right = 75; painel_barraca.offset_top = -380; painel_barraca.offset_bottom = -210
 	painel_barraca.visible = false; add_child(painel_barraca)
+	painel_coletar = _botao("COLETAR", true, _coletar)
+	painel_coletar.anchor_left = 0.5; painel_coletar.anchor_right = 0.5; painel_coletar.anchor_top = 1; painel_coletar.anchor_bottom = 1
+	painel_coletar.offset_left = -75; painel_coletar.offset_right = 75; painel_coletar.offset_top = -380; painel_coletar.offset_bottom = -210
+	painel_coletar.visible = false; add_child(painel_coletar)
 	escuro = ColorRect.new(); escuro.color = Color(0, 0, 0, 1); escuro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	escuro.mouse_filter = Control.MOUSE_FILTER_IGNORE; escuro.modulate.a = 0.0; escuro.visible = false; add_child(escuro)
 	# caixa de fala
@@ -154,6 +162,15 @@ func _descansar() -> void:
 	tw.tween_property(escuro, "modulate:a", 0.0, 1.4)
 	tw.parallel().tween_property(aviso, "modulate:a", 0.0, 1.4).set_delay(0.8)
 	tw.tween_callback(func(): escuro.visible = false; _dormindo = false)
+
+# colhe o arbusto de frutinhas mais perto: 1 a 3 frutinhas para a bolsa; o arbusto fica sem frutinhas por 5 min
+func _coletar() -> void:
+	if _baga.is_empty() or m.floresta == null: return
+	var n := randi_range(1, 3)
+	var sobra: int = m.bolsa.pegar("frutinhas", n)
+	if n - sobra <= 0: m.hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3)); return
+	m.floresta.colher(_baga); _baga = []
+	m.hud.avisar("+%d %s" % [n - sobra, Bolsa.ITENS["frutinhas"].nome], Color(1, 1, 1))
 
 func perto_da_barraca() -> bool:
 	var pj: Vector3 = m.jogador.global_position
@@ -237,6 +254,11 @@ func _process(_d: float) -> void:
 	painel_estabulo.visible = livre and _tipo_npc == "cavalarico"
 	var na_barraca := perto_da_barraca() and not _dormindo
 	painel_barraca.visible = na_barraca and npc == null
+	_t_baga -= _d
+	if _t_baga <= 0.0:                          # procura arbusto perto 5× por segundo (não a cada quadro)
+		_t_baga = 0.2
+		_baga = m.floresta.baga_perto(m.jogador.global_position) if (m.floresta and npc == null and not na_barraca and not m.jogador.montado) else []
+	painel_coletar.visible = not _baga.is_empty() and npc == null and not na_barraca
 	Audio.falando = _falando and voz.playing
 	if _falando:
 		_tempo_fala -= _d
@@ -246,4 +268,5 @@ func _process(_d: float) -> void:
 		if _falando: _tocar_caixa()
 		elif npc: _conversar()
 		elif na_barraca: _descansar()
+		elif not _baga.is_empty(): _coletar()
 	_f_antes = f

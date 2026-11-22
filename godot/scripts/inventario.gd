@@ -132,6 +132,15 @@ func _tocar(k: int, i: int, alvo: Control) -> void:
 		var erro: String = m.bolsa.equipar_item(k, i, m.hud.nivel)
 		if erro != "": m.hud.avisar(erro, Color(1, 0.35, 0.3))
 		_esconder_dica()))
+	if info.has("cura"): botoes.append(UI.botao("CONSUMIR", func():
+		var cura: int = m.bolsa.consumir(k, i)
+		if cura > 0:
+			var antes: float = m.hud.vida
+			m.hud.vida = minf(m.hud.vida + cura, m.hud.vida_max)
+			m.hud.numero_heroi("+%d" % int(round(m.hud.vida - antes)), Color(0.3, 1.0, 0.3))
+		var s2 = m.bolsa.slot(k, i)
+		if s2 == null: _esconder_dica()
+		else: _tocar(k, i, alvo)))
 	if Bolsa.eh_bolsa(id): botoes.append(UI.botao("EQUIPAR", func():
 		var erro: String = m.bolsa.equipar_bolsa(k, i)
 		if erro != "": m.hud.avisar(erro, Color(1, 0.35, 0.3))
@@ -188,6 +197,7 @@ func _mostrar_dica(id: String, qtd: int, alvo: Control, botoes: Array, equipada 
 	if equipada and info.has("tipo"): v.add_child(UI.rotulo("(equipado)", 20, Color(0.7, 0.7, 0.7)))
 	if info.pilha > 1: v.add_child(UI.rotulo("Pilha: %d / %d" % [qtd, info.pilha], 20, Color(0.8, 0.8, 0.8)))
 	if Bolsa.eh_montaria(id): v.add_child(UI.rotulo("Toque duas vezes para aprender esta montaria.", 20, Color(0.12, 1.0, 0.0)))
+	if info.has("cura"): v.add_child(UI.rotulo("Usar: recupera %d de vida." % int(info.cura), 20, Color(0.12, 1.0, 0.0)))
 	var d := UI.rotulo("\"%s\"" % info.desc, 21, UI.AMARELO); d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d.custom_minimum_size = Vector2(380, 0); v.add_child(d)
 	var pv := HBoxContainer.new(); pv.add_child(UI.rotulo("Preço de venda: ", 21))

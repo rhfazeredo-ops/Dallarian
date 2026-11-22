@@ -31,6 +31,8 @@ const ITENS := {
 		"crina": Color(0.3, 0.17, 0.1), "desc": "Brilha como trigo ao sol. Aumenta a velocidade em 60%."},
 	"cavalo_preto": {"nome": "Cavalo preto", "venda": 0, "compra": 80, "pilha": 1, "qual": "incomum", "tipo_m": "montaria", "cor": Color(0.18, 0.17, 0.19),
 		"crina": Color(0.08, 0.07, 0.08), "desc": "Veloz como a noite. Aumenta a velocidade em 60%."},
+	"frutinhas": {"nome": "Frutinhas silvestres", "venda": 1, "compra": 0, "pilha": 20, "qual": "comum", "cura": 5,
+		"desc": "Frutinhas vermelhas colhidas no mato. Azedinhas, mas matam a fome."},
 	"escama_lodoso": {"nome": "Escama de Lodoso", "venda": 8, "compra": 0, "pilha": 20, "qual": "lixo",
 		"desc": "Escamas escorregadias amarradas com alga. Ainda cheiram a rio."},
 	"presa_aranha": {"nome": "Presa de aranha-musgo", "venda": 15, "compra": 0, "pilha": 20, "qual": "lixo",
@@ -125,6 +127,16 @@ func pegar(id: String, qtd := 1) -> int:
 func slot(b: int, i: int):
 	if b < 0 or b >= bolsas.size() or bolsas[b] == null: return null
 	return bolsas[b].slots[i]
+
+# consome 1 do espaço (frutinhas etc.): devolve quanto de vida cura (0 se não é consumível)
+func consumir(b: int, i: int) -> int:
+	var s = slot(b, i)
+	if s == null or not ITENS[s[0]].has("cura"): return 0
+	var cura: int = ITENS[s[0]].cura
+	s[1] = int(s[1]) - 1
+	if int(s[1]) <= 0: bolsas[b].slots[i] = null
+	mudou.emit()
+	return cura
 
 # vende a pilha inteira do espaço (como o clique direito no vendedor do WoW)
 func vender_slot(b: int, i: int) -> int:

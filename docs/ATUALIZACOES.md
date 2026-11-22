@@ -98,3 +98,5 @@
 - **Rig dos cavalos**: as patas andam (trote em diagonal, joelho dobrando), o pescoço balança no passo e o rabo
   mexe; parados, respiram e mexem a cabeça e o rabo devagar. Vale para os 4 cavalos, no cercado e montada.
 - Martelada do ferreiro com metade do volume.
+- **Frutinhas silvestres**: arbustos de pontinhos vermelhos têm COLETAR (1 a 3 frutinhas, voltam em 5 min);
+  na bolsa, CONSUMIR recupera 5 de vida.
