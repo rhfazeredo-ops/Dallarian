@@ -38,6 +38,13 @@ func _init() -> void:
 			elif h < 0.05:
 				if reg.zona_pantano(z) > 0.5 and x < Regiao.COSTA - 150.0: c = Color(0.28, 0.34, 0.26)
 				else: c = Color(0.22, 0.42, 0.62).lerp(Color(0.36, 0.6, 0.74), clampf((h + 4.0) / 4.0, 0.0, 1.0))
+			# cidade: muralha redonda, canal em anel e casas em anéis (desenho simples)
+			var dc := Vector2(x, z).distance_to(Regiao.CIDADE_C)
+			if absf(dc - Regiao.CIDADE_R) < 4.0: c = Color(0.85, 0.83, 0.78)
+			elif absf(dc - Regiao.CANAL) < 5.0: c = Color(0.3, 0.5, 0.7)
+			elif dc < Regiao.CIDADE_R and dc > 12.0:
+				for ra in [40.0, 58.0, 76.0, 116.0, 134.0, 158.0, 176.0, 200.0, 216.0]:
+					if absf(dc - ra) < 4.0 and absf(Vector2(x, z).y - Regiao.CIDADE_C.y) > 8.0 and absf(Vector2(x, z).x - Regiao.CIDADE_C.x) > 8.0: c = Color(0.3, 0.38, 0.65)
 			im.set_pixel(i, j, c)
 	im.save_png("res://assets/ui/mapa_base.png")
 	print("MAPA ok")

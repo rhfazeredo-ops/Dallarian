@@ -112,10 +112,12 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Escudo levantado de frente bloqueia a mordida. Lobo comum cai com 3 golpes leves (o forte vale 2); dá XP
   (15, líder 40). Vida da Rachel zerada: desmaia e acorda na vila.
 
-- **Altamar**, a cidade grande (canto nordeste, entre as montanhas e o mar): muralha de 9 m com torres e três portões
-  (oeste, sul e o do porto), rua principal do portão oeste até o cais, praça com chafariz, castelo encostado nas
-  montanhas, catedral, ~400 casas de pedra e sobrados, cais com dois navios (futuro: barco para outro continente).
-  Lugar planejado para banco, lojas e taverna. Estrada nova liga a vila ao portão oeste.
+- **Altamar**, a cidade grande e REDONDA (canto nordeste, entre as montanhas e o mar), inspirada nas grandes capitais
+  de MMO: muralha redonda de pedra clara (raio 230 m) com torres de telhado azul e três portões (oeste com duas
+  estátuas de guardiões, sul e o do porto), quatro ruas principais saindo da praça central (chafariz e estátua),
+  canal em anel com quatro pontes, castelo na muralha norte, catedral, ~400 casas em anéis, cais com dois navios
+  de velas azuis. Lugar planejado para banco, lojas e taverna.
+- **A vila** também é redonda: casas em dois anéis em volta da praça do poço, viradas para o centro.
 
 ## 7.1.1 Dia e noite
 - Relógio do jogo: 1 hora = 1 minuto real (o dia inteiro dura 24 min); começa às 9h.

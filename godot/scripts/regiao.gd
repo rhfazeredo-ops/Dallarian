@@ -25,7 +25,11 @@ const NX := 950              # células nas grades (oeste → leste)
 const NZ := 600              # células nas grades (norte → sul)
 const COSTA := 2220.0        # linha da praia (o mar vai daqui até o fim do mapa)
 # cidade grande murada com porto, no canto nordeste, entre as montanhas e o mar: [x0, z0, x1, z1] das muralhas
-const CIDADE := Rect2(1640.0, -830.0, 500.0, 420.0)
+# cidade grande redonda (centro e raio da muralha); um canal em anel corta a cidade no raio CANAL
+const CIDADE_C := Vector2(1890.0, -600.0)
+const CIDADE_R := 230.0
+const CANAL := 95.0
+const CIDADE := Rect2(CIDADE_C - Vector2(CIDADE_R, CIDADE_R), Vector2(CIDADE_R, CIDADE_R) * 2.0)   # caixa em volta
 const ALTURA_CIDADE := 6.0       # cidade de porto: um pouco acima do mar
 # O desenho original era de 1,2 km. Para aumentar o mapa sem mexer na vila, tudo até 150 m do centro fica igual
 # e o que está além se afasta ("Ws"/"W": distância/ponto do desenho original → mundo de 2,4 km).
@@ -97,9 +101,9 @@ func _init() -> void:
 	ruido_grande.seed = 4; ruido_grande.frequency = 0.004; ruido_grande.fractal_octaves = 2
 	# estrada nova: do fim da estrada leste até o portão oeste da cidade, e a rua principal até o porto
 	var fim_leste: Vector2 = estradas[2][estradas[2].size() - 1]
-	var porta := Vector2(CIDADE.position.x, CIDADE.get_center().y)
+	var porta := CIDADE_C + Vector2(-CIDADE_R, 0)
 	estradas.append(PackedVector2Array([fim_leste, fim_leste.lerp(porta, 0.3) + Vector2(0, -60), fim_leste.lerp(porta, 0.65) + Vector2(0, -140), porta + Vector2(-60, 0), porta,
-		Vector2(CIDADE.end.x + 40.0, CIDADE.get_center().y)]))
+		CIDADE_C + Vector2(CIDADE_R + 40.0, 0)]))
 	d_estrada.resize(NX * NZ); d_estrada.fill(1e6)
 	d_rio.resize(NX * NZ); d_rio.fill(1e6); t_rio.resize(NX * NZ); t_rio.fill(0.0)
 	for e in estradas: _rasterizar(e, d_estrada, null, 24.0)
@@ -195,10 +199,12 @@ func altura(x: float, z: float) -> float:
 	# cidade: chão plano (um pouco acima da base), suave até 40 m fora das muralhas
 	var dcid := _dist_cidade(x, z)
 	if dcid < 60.0: h = lerp(ALTURA_CIDADE, h, smoothstep(0.0, 60.0, dcid))
+	var dcan := absf(Vector2(x, z).distance_to(CIDADE_C) - CANAL)
+	if dcan < 7.0: h = minf(h, ALTURA_CIDADE - 1.8 * (1.0 - smoothstep(4.0, 7.0, dcan)))      # leito do canal
 	var costa := COSTA + ruido_grande.get_noise_2d(0.0, z * 2.0) * 40.0
 	# na altura da cidade o mar chega até perto da muralha leste (porto)
-	var dz_cid := maxf(maxf(CIDADE.position.y - z, z - CIDADE.end.y), 0.0)
-	costa = lerpf(costa, CIDADE.end.x + 45.0, 1.0 - smoothstep(60.0, 160.0, dz_cid))
+	var dz_cid := maxf(absf(z - CIDADE_C.y) - CIDADE_R * 0.7, 0.0)
+	costa = lerpf(costa, CIDADE_C.x + CIDADE_R + 45.0, 1.0 - smoothstep(60.0, 160.0, dz_cid))
 	if x > costa - 30.0: h = lerp(h, 1.2 - (x - costa) * 0.16, smoothstep(costa - 30.0, costa, x))
 	# pântano ao sul
 	var pant := smoothstep(Ws(370.0), Ws(430.0), z + ruido_grande.get_noise_2d(x * 2.0, 0.0) * 30.0)
@@ -219,9 +225,7 @@ func altura(x: float, z: float) -> float:
 # altura de uma serra a "d" metros da borda: sobe rápido no pé e para em "alto"
 # distância até a cidade (0 dentro das muralhas)
 func _dist_cidade(x: float, z: float) -> float:
-	var dx := maxf(maxf(CIDADE.position.x - x, x - CIDADE.end.x), 0.0)
-	var dz := maxf(maxf(CIDADE.position.y - z, z - CIDADE.end.y), 0.0)
-	return Vector2(dx, dz).length()
+	return maxf(Vector2(x, z).distance_to(CIDADE_C) - CIDADE_R, 0.0)
 func na_cidade(x: float, z: float, folga := 0.0) -> bool: return _dist_cidade(x, z) <= folga
 
 func _serra(d: float, alto: float) -> float: return alto * (1.0 - exp(-d / 32.0))
