@@ -30,11 +30,8 @@ void vertex() {
   agua = INSTANCE_CUSTOM.r;
   vec3 luz = luz_amb + luz_sol * max(dot(n, normalize(sol)), 0.0);
   cor = COLOR.rgb * mix(luz, vec3(1.0), agua) * (1.0 + relampago * 0.7);
-  // perto da câmera as manchas encolhem (senão a perspectiva as deixa enormes perto dos pés)
-  vec3 centro = MODEL_MATRIX[3].xyz;
-  float dc = length(centro - CAMERA_POSITION_WORLD);
-  float encolhe = agua > 0.5 ? 1.0 : mix(0.35, 1.0, smoothstep(1.2, 7.0, dc));
-  wpos = (MODEL_MATRIX * vec4(VERTEX * vec3(encolhe, 1.0, encolhe), 1.0)).xyz;
+  // tamanho fixo (antes encolhiam perto da câmera: andando, as manchas cresciam e encolhiam como bolhas no chão)
+  wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
   vec4 vp = VIEW_MATRIX * vec4(wpos, 1.0);
   POSITION = PROJECTION_MATRIX * vp;
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);

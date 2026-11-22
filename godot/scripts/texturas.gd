@@ -22,6 +22,7 @@ static func pegar(nome: String) -> ImageTexture:
 		"pinho": im = _pinho()
 		"telha": im = _telha()
 		_: im = _aco()
+	im.generate_mipmaps()                      # para o filtro com mipmap: de longe a textura não cintila
 	var t := ImageTexture.create_from_image(im); _cache[nome] = t; return t
 
 # telhas em fileiras, em tons claros de cinza (a cor do material pinta: azul, roxo...)

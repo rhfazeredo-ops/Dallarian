@@ -19,6 +19,7 @@ uniform float encolhe = 0.0;       // morte: patas dobram para dentro
 uniform float flash = 0.0;
 uniform vec3 pivo_e;               // raiz das patas (lado +Z)
 global uniform float relampago;
+global uniform float tremor_ps1;
 varying vec3 luz;
 varying float nb;
 vec3 roty(vec3 p, vec3 c, float a) { p -= c; float s = sin(a), k = cos(a); return vec3(p.x * k + p.z * s, p.y, -p.x * s + p.z * k) + c; }
@@ -45,7 +46,7 @@ void vertex() {
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);
   vec4 c = PROJECTION_MATRIX * vp;
   vec2 g = grade * 0.5;
-  c.xy = round(c.xy / c.w * g) / g * c.w;
+  if (tremor_ps1 > 0.5) c.xy = round(c.xy / c.w * g) / g * c.w;   // tremido PS1 (opção no menu, desligado por padrão)
   POSITION = c;
 }
 void fragment() {

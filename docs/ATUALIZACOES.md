@@ -114,3 +114,5 @@
   AUTO ligado ela corre sozinha e o joystick só vira para os lados (puxar para trás ou tocar no AUTO desliga; PC: R).
 - Poças da estrada sem reflexo: agora são azul chapado, no mesmo estilo do rio e do mar.
 - **Música de Altamar** ("The White City Gates"): toca ao atravessar os muros da cidade; saindo, volta a música do vale.
+- **Imagem mais estável**: o "tremido PS1" dos vértices agora vem desligado (opção no menu); texturas com mipmap
+  (de longe não cintilam); manchas do chão com tamanho fixo (andando, não crescem e encolhem como bolhas).

@@ -12,6 +12,7 @@ var aberto := false
 var distancia := 270.0
 var nitidez := 3              # a imagem 3D é desenhada em 1/nitidez da tela: 4 = leve, 3 = média, 2 = alta
 var pontilhado := false       # filtro retrô (paleta curta + pontilhado Bayer): desligado por padrão
+var tremido := false          # vértices presos à grade de tela baixa (tremor do PS1): desligado por padrão
 var _botao: BotaoAcao
 var _painel: PanelContainer
 var _conteudo: VBoxContainer
@@ -32,6 +33,7 @@ func montar(mundo) -> void:
 	if m.args.has("pontilhado"): pontilhado = true
 	aplicar_distancia(distancia)
 	m.aplicar_imagem(nitidez, pontilhado)
+	RenderingServer.global_shader_parameter_set("tremor_ps1", 1.0 if tremido else 0.0)
 
 func _process(_d: float) -> void:
 	var t := Input.is_key_pressed(KEY_ESCAPE)
@@ -99,6 +101,8 @@ func _abrir_config() -> void:
 		nitidez = v; m.aplicar_imagem(nitidez, pontilhado); _salvar(); _abrir_config())
 	_opcoes("Pontilhado retrô", [["DESLIGADO", 0], ["LIGADO", 1]], 1 if pontilhado else 0, func(v):
 		pontilhado = v == 1; m.aplicar_imagem(nitidez, pontilhado); _salvar(); _abrir_config())
+	_opcoes("Tremido PS1", [["DESLIGADO", 0], ["LIGADO", 1]], 1 if tremido else 0, func(v):
+		tremido = v == 1; RenderingServer.global_shader_parameter_set("tremor_ps1", 1.0 if tremido else 0.0); _salvar(); _abrir_config())
 	_conteudo.add_child(UI.rotulo("Nitidez alta = imagem mais limpa, mas pesa mais no celular.", 22, Color(0.8, 0.78, 0.7)))
 	var b := UI.botao("VOLTAR", _abrir_principal, true, 26, 220.0); _conteudo.add_child(b)
 	_centralizar()
@@ -133,7 +137,7 @@ func aplicar_distancia(d: float) -> void:
 
 func _salvar() -> void:
 	var f := FileAccess.open(ARQUIVO, FileAccess.WRITE)
-	if f: f.store_string(JSON.stringify({"distancia": distancia, "nitidez": nitidez, "pontilhado": pontilhado}))
+	if f: f.store_string(JSON.stringify({"distancia": distancia, "nitidez": nitidez, "pontilhado": pontilhado, "tremido": tremido}))
 
 func _carregar() -> void:
 	if m.args.has("shot") and not m.args.has("vista"): return
@@ -142,3 +146,4 @@ func _carregar() -> void:
 		if typeof(d) == TYPE_DICTIONARY:
 			distancia = clampf(float(d.get("distancia", distancia)), MIN_VISTA, MAX_VISTA)
 			nitidez = clampi(int(d.get("nitidez", nitidez)), 2, 4); pontilhado = bool(d.get("pontilhado", pontilhado))
+			tremido = bool(d.get("tremido", tremido))

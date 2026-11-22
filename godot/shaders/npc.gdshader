@@ -3,6 +3,7 @@
 // morador, mantendo o sombreado pintado. Visual PS1: vértices tremendo, luz por vértice, textura sem
 // suavização, neblina.
 shader_type spatial;
+global uniform float tremor_ps1;
 render_mode unshaded, cull_back;
 #include "res://shaders/noite.gdshaderinc"
 uniform sampler2D tex : source_color, filter_nearest_mipmap;
@@ -37,7 +38,7 @@ void vertex() {
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);
   vec4 c = PROJECTION_MATRIX * vp;
   vec2 g = grade * 0.5;
-  c.xy = round(c.xy / c.w * g) / g * c.w;
+  if (tremor_ps1 > 0.5) c.xy = round(c.xy / c.w * g) / g * c.w;   // tremido PS1 (opção no menu, desligado por padrão)
   POSITION = c;
 }
 void fragment() {

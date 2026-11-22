@@ -3,7 +3,7 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 #include "res://shaders/noite.gdshaderinc"
-uniform sampler2D tex : source_color, filter_nearest, repeat_enable;
+uniform sampler2D tex : source_color, filter_nearest_mipmap, repeat_enable;   // mipmap: longe não cintila
 uniform bool usa_tex = true;
 uniform vec4 cor : source_color = vec4(1.0);
 uniform vec2 grade = vec2(320.0, 180.0);          // resolução da "grade" dos vértices
@@ -15,6 +15,7 @@ global uniform float neb_ini;
 global uniform float neb_fim;
 uniform float escala_uv = 1.0;
 global uniform float relampago;
+global uniform float tremor_ps1;
 varying vec3 luz;
 varying float nb;
 void vertex() {
@@ -27,7 +28,7 @@ void vertex() {
   nb *= 1.0 - smoothstep(14.0, 70.0, (MODEL_MATRIX * vec4(VERTEX, 1.0)).y) * 0.5;
   vec4 c = PROJECTION_MATRIX * vp;
   vec2 g = grade * 0.5;
-  c.xy = round(c.xy / c.w * g) / g * c.w;            // "tremida" dos vértices
+  if (tremor_ps1 > 0.5) c.xy = round(c.xy / c.w * g) / g * c.w;   // tremido PS1 (opção no menu, desligado por padrão)            // "tremida" dos vértices
   POSITION = c;
   UV *= escala_uv;
 }
