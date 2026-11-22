@@ -15,11 +15,18 @@ var _baixando: HTTPRequest
 
 func _ready() -> void:
 	var fundo := ColorRect.new(); fundo.color = Color(0.06, 0.05, 0.05); fundo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(fundo)
+	if ResourceLoader.exists("res://assets/ui/tela_inicio.png"):                # arte de Altamar de fundo (cobre a tela)
+		var img := TextureRect.new(); img.texture = load("res://assets/ui/tela_inicio.png")
+		img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		img.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(img)
+		var sombra := ColorRect.new(); sombra.color = Color(0, 0, 0, 0.35); sombra.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(sombra)
 	var v := VBoxContainer.new(); v.set_anchors_and_offsets_preset(Control.PRESET_CENTER); v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.custom_minimum_size = Vector2(900, 200); v.position -= Vector2(450, 100); add_child(v)
 	var t := Label.new(); t.text = "DALLARIAN"; t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_font_size_override("font_size", 72); t.add_theme_color_override("font_color", Color(1.0, 0.82, 0.3)); v.add_child(t)
+	t.add_theme_constant_override("outline_size", 14); t.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	_texto = Label.new(); _texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; _texto.add_theme_font_size_override("font_size", 30)
+	_texto.add_theme_constant_override("outline_size", 8); _texto.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	_texto.text = "Abrindo..."; v.add_child(_texto)
 	_barra = ProgressBar.new(); _barra.custom_minimum_size = Vector2(900, 26); _barra.visible = false; _barra.show_percentage = false; v.add_child(_barra)
 	await get_tree().process_frame
