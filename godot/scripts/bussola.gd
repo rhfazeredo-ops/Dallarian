@@ -93,6 +93,13 @@ func _draw() -> void:
 			var relc := wrapf(rad_to_deg(atan2(dc.x, -dc.y)) - rumo, -180.0, 180.0)
 			relc = clampf(relc, -CAMPO * 0.5 + 6.0, CAMPO * 0.5 - 6.0)          # fora da vista: fica preso na ponta
 			_icone_chefe(Vector2(cx + relc * px_por_grau, meio - 2), dc.length())
+	# onde a Rachel morreu (5 min): caveirinha branca na direção certa, presa na ponta se estiver fora da vista
+	if m.has_method("morte_marcada") and m.morte_marcada():
+		var dm: Vector2 = m.morte_pos - p
+		if dm.length() > 6.0:
+			var relm := wrapf(rad_to_deg(atan2(dm.x, -dm.y)) - rumo, -180.0, 180.0)
+			relm = clampf(relm, -CAMPO * 0.5 + 6.0, CAMPO * 0.5 - 6.0)
+			Caveira.desenhar(self, Vector2(cx + relm * px_por_grau, meio - 2), 9.0, Color(0.95, 0.93, 0.88))
 	# marcador do centro: um tracinho
 	draw_line(Vector2(cx, meio + 12), Vector2(cx, meio + 20), Color(1, 0.86, 0.55, 0.85), 2.0)
 

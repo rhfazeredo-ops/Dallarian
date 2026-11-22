@@ -108,3 +108,5 @@
   para a **Estátua da Guardiã** mais perto (vila, meio da Estrada Real e praça de Altamar).
 - Modelos do Tripo: a **freira** (Irmã Celina e Irmã Odília, paradas orando com as mãos juntas) e a **Estátua da
   Guardiã** (com a chama azul acesa à noite) no lugar dos provisórios; ícones novos das 3 poções e das frutinhas.
+- **12 Estátuas da Guardiã** espalhadas pelo mapa (a Rachel volta na mais perto) e **caveirinha** de onde ela
+  morreu no mapa e na bússola, que some em 5 minutos.

@@ -68,6 +68,10 @@ func _draw() -> void:
 	var xr := Rect2(_quadro.end.x - 64, _quadro.position.y + 12, 52, 52)
 	draw_rect(xr, Color(0.45, 0.08, 0.06)); draw_rect(xr, UI.DOURADO, false, 3.0)
 	draw_string(fonte, xr.position + Vector2(15, 39), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, UI.AMARELO)
+	# onde a Rachel morreu: caveirinha branca pequena (some 5 min depois)
+	if m.has_method("morte_marcada") and m.morte_marcada():
+		var um := Vector2((m.morte_pos.x - Regiao.X0) / (Regiao.X1 - Regiao.X0), (m.morte_pos.y - Regiao.Z0) / (Regiao.Z1 - Regiao.Z0))
+		Caveira.desenhar(self, _quadro.position + um * _quadro.size, 11.0, Color(0.95, 0.93, 0.88))
 	# a Rachel: setinha dourada na posição dela, girando conforme ela olha (pisca de leve)
 	if m.jogador == null: return
 	var p: Vector3 = m.jogador.global_position

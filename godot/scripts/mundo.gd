@@ -126,6 +126,9 @@ func _moradores() -> void:
 var hud: Hud
 var heroina_desmaiada := false
 var estatuas := []                # Estátuas da Guardiã (onde a Rachel renasce): [posição, direção da frente]
+var morte_pos := Vector2.ZERO     # onde a Rachel morreu por último (caveirinha no mapa e na bússola por 5 min)
+var morte_ate := -1.0
+func morte_marcada() -> bool: return morte_ate > _tempo_jogo()
 var _tela_dano: ColorRect
 var matilhas := []
 var fauna: Fauna
@@ -253,6 +256,7 @@ func _desmaiar() -> void:
 	for g in matilhas: g.alerta = false; g.atacante = null
 	jogador.morrer()
 	if montaria_ui: montaria_ui.cancelar()
+	morte_pos = Vector2(jogador.global_position.x, jogador.global_position.z); morte_ate = _tempo_jogo() + 300.0
 	_tela_dano.color = Color(0.55, 0.0, 0.0, 1.0); _tela_dano.modulate.a = 0.0
 	var tw := _tela_dano.create_tween()
 	tw.tween_property(_tela_dano, "modulate:a", 0.55, 1.1)
@@ -1876,17 +1880,36 @@ func _lugares() -> void:
 	_barracas()
 	_postes()
 
-# Estátuas da Guardiã: onde a Rachel desperta quando morre (a mais perto de onde caiu). Uma na entrada sul da
-# vila, uma no meio da Estrada Real e uma na praça de Altamar. Modelo provisório de pedra (pedestal em degraus,
-# figura de manto com capuz, mãos juntas e asas) até chegar o do Tripo.
+# Estátuas da Guardiã: onde a Rachel desperta quando morre (a mais perto de onde caiu). Espalhadas em pontos
+# marcantes, sem encher o mapa: vila, meio da Estrada Real, praça de Altamar e perto dos lugares mais perigosos
+# ou afastados (porto, moinho, torre em ruínas, acampamento de bandidos, caverna, desfiladeiro, lago, leste).
 func _estatuas_guardia() -> void:
 	var c := Regiao.CIDADE_C
-	for par in [[Vector2(16, 62), Vector2(-4, 48)], [Vector2(850, -285), Vector2(840, -310)], [c + Vector2(-20, 13), c + Vector2(-20, 0)]]:
+	var lago := Vector2(Regiao.LAGO.x, Regiao.LAGO.y)
+	var bandidos := Regiao.W(Vector2(-330, 300)); var ruinas := Regiao.W(Vector2(220, -260)); var moinho := Regiao.W(Vector2(-244, 100))
+	var desf := Vector2(0, -Regiao.Ws(468.0))
+	var pontos := [
+		[Vector2(16, 62), Vector2(-4, 48)],                                   # entrada sul da vila
+		[Vector2(850, -285), Vector2(840, -310)],                             # meio da Estrada Real
+		[c + Vector2(-20, 13), c + Vector2(-20, 0)],                          # praça de Altamar
+		[porto_pos + Vector2(-30, -18), porto_pos],                           # Porto dos Pescadores
+		[moinho + Vector2(26, -20), moinho],                                  # Moinho
+		[ruinas + Vector2(-40, 30), ruinas],                                  # Torre em Ruínas (e a serraria perto)
+		[bandidos + bandidos.direction_to(Vector2.ZERO) * 70.0, bandidos],    # antes do Acampamento de Bandidos
+		[caverna_pos + caverna_pos.direction_to(Vector2.ZERO) * 40.0, caverna_pos],   # Caverna do Oeste
+		[desf + Vector2(30, 45), desf],                                       # Desfiladeiro do Norte
+		[lago + lago.direction_to(Vector2.ZERO) * (Regiao.LAGO.z + 22.0), lago],      # margem do lago do mosteiro
+		[Vector2(1350, 260), Vector2(1350, 200)],                             # terras do leste (sul)
+		[Vector2(1250, -880), Vector2(1250, -820)],                           # terras do leste (norte)
+	]
+	for par in pontos:
 		var alvo: Vector2 = par[0]; var frente_para: Vector2 = par[1]
 		var p := alvo
-		for t in 40:                                      # procura um lugar livre perto do escolhido
-			var a := t * 2.4; var q := alvo + Vector2(cos(a), sin(a)) * (t * 0.7)
-			if reg.folga_caminho(q.x, q.y) > 3.0 and not perto_de_casa(q.x, q.y, 3.5) and reg.agua(q.x, q.y) == 0.0:
+		for t in 80:                                      # procura um lugar livre e seco perto do escolhido
+			var a := t * 2.4; var q := alvo + Vector2(cos(a), sin(a)) * (t * 0.8)
+			if not reg.dentro(q.x, q.y): continue
+			if reg.folga_caminho(q.x, q.y) > 3.0 and not perto_de_casa(q.x, q.y, 3.5) and reg.agua(q.x, q.y) == 0.0 \
+					and reg.dist_rios(q.x, q.y) > 10.0 and reg.altura(q.x, q.y) > 0.8 and not perto_de_lugar(q.x, q.y, 3.0):
 				p = q; break
 		var fr := (frente_para - p).normalized()
 		if fr == Vector2.ZERO: fr = Vector2(0, 1)
@@ -2584,6 +2607,9 @@ func _modo_teste() -> void:
 		get_tree().create_timer(1.0).timeout.connect(func():
 			for cv in raiz.find_children("Cavalo*", "Node3D", false, false):
 				for ch in cv.get_children(): if ch.get_script() != null and "vel" in ch: ch.vel = float(args.cavalo_andar))
+	if args.has("estatuas"):
+		for e in estatuas: print("ESTATUA %s alt=%.1f" % [str((e[0] as Vector2).round()), reg.altura(e[0].x, e[0].y)])
+	if args.has("mapa_depois"): get_tree().create_timer(float(args.mapa_depois)).timeout.connect(func(): mapa.alternar())
 	if args.has("morrer"): get_tree().create_timer(2.0).timeout.connect(func(): hud.vida = 1.0; ferir_heroina(50.0, jogador.global_position + Vector3(0, 0, -2), 1))
 	if args.has("loja_freira"):
 		get_tree().create_timer(3.0).timeout.connect(func(): bolsa.cobre = 500; print("NPC: ", interacao._tipo_npc); interacao._abrir_loja())

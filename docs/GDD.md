@@ -206,7 +206,10 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Vida zerou: a câmera tomba de lado até o chão (como a Rachel caindo), a tela fica vermelha e aparece
   **VOCÊ MORREU**. Depois escurece e ela desperta **de frente para a Estátua da Guardiã** mais perto de onde caiu,
   com a vida cheia. Os monstros perdem o interesse.
-- Estátuas: entrada sul da vila, meio da Estrada Real e praça de Altamar (modelo do Tripo, chama azul acesa à noite).
+- 12 estátuas (modelo do Tripo, chama azul acesa à noite): entrada sul da vila, meio da Estrada Real, praça de Altamar,
+  Porto dos Pescadores, Moinho, Torre em Ruínas, antes do Acampamento de Bandidos, Caverna do Oeste, Desfiladeiro do
+  Norte, margem do lago do mosteiro e duas nas terras do leste. Morreu, volta na mais perto.
+- Onde a Rachel morreu aparece uma **caveirinha** branca no mapa e na bússola por **5 minutos**.
 
 ## 7.1.8 Estrada Real
 - Estrada direta da saída leste da vila até a Ponte dos Guardiões, no portão oeste de Altamar (~1,7 km), com ponte
