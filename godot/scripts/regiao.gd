@@ -99,10 +99,11 @@ func _init() -> void:
 	morros.append_array([Vector4(1150, 380, 130, 14), Vector4(1480, -140, 110, 11), Vector4(1100, -560, 120, 15), Vector4(1700, 520, 140, 10)])
 	ruido.seed = 11; ruido.frequency = 0.018; ruido.fractal_octaves = 3
 	ruido_grande.seed = 4; ruido_grande.frequency = 0.004; ruido_grande.fractal_octaves = 2
-	# estrada nova: do fim da estrada leste até o portão oeste da cidade, e a rua principal até o porto
-	var fim_leste: Vector2 = estradas[2][estradas[2].size() - 1]
+	# ESTRADA REAL: direto da saída leste da vila até a Ponte dos Guardiões (portão oeste de Altamar), em curvas
+	# suaves passando ao lado do morro de (1100, -560); continua como rua principal da cidade até o porto
 	var porta := CIDADE_C + Vector2(-CIDADE_R, 0)
-	estradas.append(PackedVector2Array([fim_leste, fim_leste.lerp(porta, 0.3) + Vector2(0, -60), fim_leste.lerp(porta, 0.65) + Vector2(0, -140), porta + Vector2(-60, 0), porta,
+	estradas.append(PackedVector2Array([Vector2(60, 10), Vector2(300, -60), Vector2(560, -170), Vector2(840, -310),
+		Vector2(1080, -405), Vector2(1290, -500), Vector2(1470, -580), porta + Vector2(-60, 0), porta,
 		CIDADE_C + Vector2(CIDADE_R + 40.0, 0)]))
 	d_estrada.resize(NX * NZ); d_estrada.fill(1e6)
 	d_rio.resize(NX * NZ); d_rio.fill(1e6); t_rio.resize(NX * NZ); t_rio.fill(0.0)

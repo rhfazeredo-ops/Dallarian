@@ -33,6 +33,13 @@ const ITENS := {
 		"crina": Color(0.08, 0.07, 0.08), "desc": "Veloz como a noite. Aumenta a velocidade em 60%."},
 	"frutinhas": {"nome": "Frutinhas silvestres", "venda": 1, "compra": 0, "pilha": 20, "qual": "comum", "cura": 5,
 		"desc": "Frutinhas vermelhas colhidas no mato. Azedinhas, mas matam a fome."},
+	# poções de vida (vendidas pelas freiras): curam uma parte da vida máxima
+	"pocao_p": {"nome": "Poção de vida pequena", "venda": 5, "compra": 20, "pilha": 10, "qual": "comum", "cura_pct": 10,
+		"desc": "Um frasquinho de chá de ervas benzido pelas irmãs. Sabor de mel e hortelã."},
+	"pocao_m": {"nome": "Poção de vida média", "venda": 18, "compra": 75, "pilha": 10, "qual": "comum", "cura_pct": 20,
+		"desc": "Água da fonte do mosteiro com raiz-de-cura. Fecha cortes e afasta o cansaço."},
+	"pocao_g": {"nome": "Poção de vida grande", "venda": 38, "compra": 150, "pilha": 10, "qual": "incomum", "cura_pct": 30,
+		"desc": "A receita mais antiga das irmãs, guardada a sete chaves. Põe de pé até um cavaleiro caído."},
 	"escama_lodoso": {"nome": "Escama de Lodoso", "venda": 8, "compra": 0, "pilha": 20, "qual": "lixo",
 		"desc": "Escamas escorregadias amarradas com alga. Ainda cheiram a rio."},
 	"presa_aranha": {"nome": "Presa de aranha-musgo", "venda": 15, "compra": 0, "pilha": 20, "qual": "lixo",
@@ -129,10 +136,15 @@ func slot(b: int, i: int):
 	return bolsas[b].slots[i]
 
 # consome 1 do espaço (frutinhas etc.): devolve quanto de vida cura (0 se não é consumível)
-func consumir(b: int, i: int) -> int:
+static func eh_consumivel(id: String) -> bool: return ITENS[id].has("cura") or ITENS[id].has("cura_pct")
+static func texto_cura(id: String) -> String:
+	var it: Dictionary = ITENS[id]
+	return "Usar: recupera %d%% da vida." % int(it.cura_pct) if it.has("cura_pct") else "Usar: recupera %d de vida." % int(it.cura)
+func consumir(b: int, i: int, vida_max := 100.0) -> int:
 	var s = slot(b, i)
-	if s == null or not ITENS[s[0]].has("cura"): return 0
-	var cura: int = ITENS[s[0]].cura
+	if s == null or not eh_consumivel(s[0]): return 0
+	var it: Dictionary = ITENS[s[0]]
+	var cura: int = int(round(vida_max * float(it.cura_pct) / 100.0)) if it.has("cura_pct") else int(it.cura)
 	s[1] = int(s[1]) - 1
 	if int(s[1]) <= 0: bolsas[b].slots[i] = null
 	mudou.emit()

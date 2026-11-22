@@ -58,6 +58,18 @@ const DIALOGOS_CAVALARICO := [
 const LOJA_ESTABULO := {"nome": "Edric", "cargo": "<Cavalariço>", "itens": ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"],
 	"falas_compra": ["Trate bem dele, que ele trata bem de você.", "Escolha boa! Esse aí não refuga estrada."],
 	"falas_venda": ["Hum, isso eu revendo na cidade.", "Fechado. Cobre na mão."]}
+# freiras (Irmã Celina na vila, Irmã Odília na catedral): vendem poções de vida
+const DIALOGOS_FREIRA := [
+	[["heroina", "Bom dia, irmã. A senhora cuida de quem chega ferido?", ""],
+	 ["freira", "Que a luz te guarde, minha filha. Cuido, sim. Quem volta da mata com mordida de lobo sempre encontra um banco e uma poção aqui.", ""]],
+	[["heroina", "Essas poções são feitas de quê?", ""],
+	 ["freira", "Ervas do horto, mel das nossas abelhas e água da fonte benta. E muita reza enquanto ferve, que ninguém é de ferro.", ""]],
+	[["heroina", "A senhora não tem medo de ficar aqui fora sozinha?", ""],
+	 ["freira", "Medo eu tenho é de quem sai sem levar uma poção na bolsa. Vai com Deus, e volta inteira.", ""]],
+]
+const LOJA_FREIRA := {"cargo": "<Irmã de caridade>", "itens": ["pocao_p", "pocao_m", "pocao_g"],
+	"falas_compra": ["Que te faça bem, minha filha.", "Beba devagar, que cura melhor.", "A luz te acompanhe na estrada."],
+	"falas_venda": ["Tudo serve para os pobres do vale.", "Deus lhe pague."]}
 var _tipo_npc := ""
 var _ferreiros := []
 var _t_baga := 0.0               # "ferreiro" ou "cavalarico"
@@ -139,6 +151,9 @@ func _abrir_loja() -> void:
 	if _tipo_npc == "cavalarico":
 		var c := LOJA_ESTABULO.duplicate(); c["retrato"] = load("res://assets/ui/itens/cavalo_marrom.png")
 		m.loja_ui.abrir(npc, c)
+	elif _tipo_npc == "freira":
+		var c := LOJA_FREIRA.duplicate(); c["retrato"] = load("res://assets/ui/itens/pocao_m.png"); c["nome"] = String(npc.get_meta("nome", "Irmã"))
+		m.loja_ui.abrir(npc, c)
 	else: m.loja_ui.abrir(npc)
 
 func _fala_bram(t: String) -> void: _fala_npc("Bram", t)
@@ -194,7 +209,7 @@ func _conversar() -> void:
 	if npc == null: return
 	_conversou = true; legenda.modulate.a = 0.0
 	_falando = true; painel.visible = false
-	var lista: Array = DIALOGOS_CAVALARICO if _tipo_npc == "cavalarico" else DIALOGOS_FERREIRO
+	var lista: Array = DIALOGOS_CAVALARICO if _tipo_npc == "cavalarico" else (DIALOGOS_FREIRA if _tipo_npc == "freira" else DIALOGOS_FERREIRO)
 	_dialogo = lista[_fala_i % lista.size()]; _fala_i += 1
 	_fala = 0; caixa.visible = true
 	npc.falando_com = m.jogador
@@ -203,7 +218,7 @@ func _conversar() -> void:
 # mostra a fala atual (legenda + voz); sem voz, fica o tempo de leitura
 func _mostrar_fala() -> void:
 	var f: Array = _dialogo[_fala]
-	nome_lbl.text = NOME_HEROINA if f[0] == "heroina" else ("Edric, o cavalariço" if f[0] == "cavalarico" else "Bram, o ferreiro")
+	nome_lbl.text = NOME_HEROINA if f[0] == "heroina" else ("Edric, o cavalariço" if f[0] == "cavalarico" else ("Bram, o ferreiro" if f[0] == "ferreiro" else String(npc.get_meta("nome", "Irmã")) if npc else "Irmã"))
 	nome_lbl.add_theme_color_override("font_color", Color(0.62, 0.82, 1.0) if f[0] == "heroina" else Color(0.98, 0.8, 0.42))
 	fala_lbl.text = f[1]
 	if npc: npc.gesticula = f[0] != "heroina"
@@ -240,6 +255,9 @@ func _process(_d: float) -> void:
 	var cv: Morador = m.estabulo_npc
 	if perto == null and cv and cv.global_position.distance_to(m.jogador.global_position) < (6.0 if not _falando else 12.0):
 		perto = cv; tipo = "cavalarico"
+	if perto == null:
+		for fr in m.freiras:
+			if fr.global_position.distance_to(m.jogador.global_position) < (5.0 if not _falando else 12.0): perto = fr; tipo = "freira"
 	if perto != npc:
 		if npc and _falando: _fechar()
 		if m.loja_ui and m.loja_ui.aberta: m.loja_ui.fechar()
@@ -251,7 +269,7 @@ func _process(_d: float) -> void:
 		npc = perto; _tipo_npc = tipo
 	var livre: bool = npc != null and not _falando and not (m.loja_ui != null and m.loja_ui.aberta)
 	painel.visible = livre and _tipo_npc == "ferreiro"
-	painel_estabulo.visible = livre and _tipo_npc == "cavalarico"
+	painel_estabulo.visible = livre and (_tipo_npc == "cavalarico" or _tipo_npc == "freira")
 	var na_barraca := perto_da_barraca() and not _dormindo
 	painel_barraca.visible = na_barraca and npc == null
 	_t_baga -= _d

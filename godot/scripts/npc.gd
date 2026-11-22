@@ -40,6 +40,7 @@ var ritmo := 1.0                  # velhos andam mais devagar
 var _corre := 0.0                 # 0..1: quanto a animação é de corrida (crianças brincando)
 # profissão: "" (morador comum), "ferreiro", "lenhador", "fazendeiro" — fica no posto trabalhando
 var profissao := ""
+var roupa := {}                   # cores fixas da roupa (ex.: hábito da freira) no lugar das sorteadas
 var posto := Vector2.ZERO
 var olhar_posto := Vector2.ZERO
 var campo: Array = []             # fazendeiro: o campo (centro x, z, largura, comprimento, ângulo°, tipo)
@@ -60,7 +61,8 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	if tipo == "" and profissao == "" and sorteio >= 0.44:
 		tipo = ["fem", "fem", "gorda", "velha", "forte", "velho"][int((sorteio - 0.44) / 0.56 * 6.0) % 6]
 	if tipo != "": skin = 20 + TIPOS.keys().find(tipo)
-	if MODELOS_PROF.has(profissao): skin = {"ferreiro": 11, "lenhador": 12, "fazendeiro": 13}[profissao]   # modelo e textura próprios
+	if MODELOS_PROF.has(profissao): skin = {"ferreiro": 11, "lenhador": 12, "fazendeiro": 13}[profissao]
+	if not roupa.is_empty() and not MODELOS_PROF.has(profissao): skin = 0; tipo = ""    # cores próprias: modelo base   # modelo e textura próprios
 	var alt := rng.randf_range(1.62, 1.86); var larg := rng.randf_range(0.92, 1.12)
 	if tipo != "":
 		var tp: Array = TIPOS[tipo]; alt = rng.randf_range(tp[1], tp[2]); larg = rng.randf_range(0.97, 1.03); ritmo = tp[3]
@@ -89,6 +91,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	sm.set_shader_parameter("cor_cabelo", CABELOS[rng.randi() % CABELOS.size()])
 	sm.set_shader_parameter("cor_tunica", TUNICAS[rng.randi() % TUNICAS.size()] * rng.randf_range(0.9, 1.1))
 	sm.set_shader_parameter("cor_calca", CALCAS[rng.randi() % CALCAS.size()])
+	for kr in roupa: sm.set_shader_parameter(kr, roupa[kr])
 	for b in ["Hip", "Pelvis", "Waist", "Spine01", "Spine02", "L_Thigh", "R_Thigh", "L_Calf", "R_Calf", "L_Upperarm", "R_Upperarm", "L_Forearm", "R_Forearm", "NeckTwist01", "Head"]:
 		var i := esq.find_bone(b)
 		if i >= 0: _ids[b] = i; _resto[b] = esq.get_bone_global_rest(i)
@@ -412,7 +415,7 @@ func _animar(delta: float, anda: float) -> void:
 			"ferreiro": _anim_ferreiro(alvo)
 			"lenhador": hip = _anim_lenhador(alvo)
 			"fazendeiro": hip = _anim_fazendeiro(alvo)
-			"cavalarico":                                     # parado de braços cruzados, olhando a estrada
+			"cavalarico", "freira":                           # parado de braços cruzados (a freira: mãos juntas)
 				_pose_cruzados(alvo, resp)
 				alvo["Head"] = _q(Vector3(0, 1, 0), sin(_t * 0.25) * 0.35)
 	elif estado == "atividade" or (estado == "brincar" and a < 0.2 and _tempo_estado < 0.0):

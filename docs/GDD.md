@@ -196,6 +196,16 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   voltam em 5 minutos.
 - Na bolsa, tocar nas frutinhas mostra **CONSUMIR**: cada uma recupera **5 de vida** (para uma emergência).
 
+## 7.1.7 Freiras e poções de vida
+- **Irmã Celina** fica na frente da igreja da vila e **Irmã Odília** na escadaria da catedral de Altamar, com LOJA e
+  CONVERSAR (diálogos de freira). Modelo provisório (morador com hábito preto) até chegar o do Tripo.
+- Vendem 3 poções (pilha de 10): **pequena** cura 10% da vida (20 cobre), **média** 20% (75 cobre), **grande** 30%
+  (1 prata e 50 cobre). Na bolsa: CONSUMIR.
+
+## 7.1.8 Estrada Real
+- Estrada direta da saída leste da vila até a Ponte dos Guardiões, no portão oeste de Altamar (~1,7 km), com ponte
+  no rio do vale e curva suave ao lado do morro.
+
 ## 7.2 Interface
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados
   quando ainda não descobertos (até 140 m), acesos depois de descobertos (até 400 m), com o aviso "LOCAL

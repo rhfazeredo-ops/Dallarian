@@ -100,3 +100,6 @@
 - Martelada do ferreiro com metade do volume.
 - **Frutinhas silvestres**: arbustos de pontinhos vermelhos têm COLETAR (1 a 3 frutinhas, voltam em 5 min);
   na bolsa, CONSUMIR recupera 5 de vida.
+- **Freiras**: Irmã Celina (igreja da vila) e Irmã Odília (catedral de Altamar), com LOJA e CONVERSAR; vendem
+  poções de vida pequena (10%), média (20%) e grande (30%).
+- **Estrada Real**: ligação direta da vila até a ponte de Altamar (a volta antiga pelo norte saiu).

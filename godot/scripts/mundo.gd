@@ -539,6 +539,10 @@ func _criancas() -> void:
 # trabalhadores: ferreiro na bigorna, lenhador cortando um tronco caído na mata perto da serraria,
 # um fazendeiro dentro de cada campo cercado
 func _profissionais() -> void:
+	if not igreja_vila.is_empty():               # Irmã Celina na frente da igreja da vila
+		var qv: Vector2 = igreja_vila[0]; var dv: Vector2 = igreja_vila[1]
+		var pf := qv + dv * (float(igreja_vila[2]) * 0.5 + 2.4)
+		_freira("Irmã Celina", pf, dv, altura(pf.x, pf.y), 4141)
 	var n := 0
 	# ferreiro: em pé na frente da bigorna (no espaço da ferraria: bigorna em (1,2; -0,4))
 	if ferraria_pos != Vector2.ZERO:
@@ -1053,7 +1057,7 @@ func _vila() -> void:
 			var ang := atan2(-q.x, -q.y)                                         # porta virada para a praça
 			_casa(Vector3(q.x, 0, q.y), ang, w, d, h, parede, telhado)
 			if e_taverna: espec["taverna"] = true
-			if e_igreja: espec["igreja"] = true; _torre_igreja(ang)
+			if e_igreja: espec["igreja"] = true; _torre_igreja(ang); igreja_vila = [q, Vector2(-q.x, -q.y).normalized(), d]
 	# grupos de casas no fim das trilhas: sítio a oeste, casas a leste, casa de pescador no rio, casa ao norte
 	for g in [[Vector2(-58, -36), 3], [Vector2(-46, -54), 3], [Vector2(-64, -48), 3], [Vector2(38, 50), 1], [Vector2(52, 38), 1],
 			[Vector2(100, -74), 2], [Vector2(32, -88), 3]]:
@@ -1313,6 +1317,8 @@ var estabulo_pos := Vector2.ZERO
 var taverna_pos := Vector2.ZERO
 var estabulo_npc: Morador
 var floresta: Floresta
+var freiras := []                 # as irmãs que vendem poções (na frente da igreja da vila e da catedral)
+var igreja_vila := []             # [posição da igreja, direção da porta]
 var montaria_ui: Montaria
 var cidade_lojas := []              # [nome, posição da porta] — banco, taverna, lojas (para as interações depois)
 var arvores_cidade := []            # [posição Vector3, escala] — a floresta desenha
@@ -1429,6 +1435,8 @@ func _cidade() -> void:
 	st = _st(); cilindro(st, Vector3(tc.x, y - 1.0, tc.y), 5.0, 4.4, 34.0, 8, true); _peca(st, pedra, Vector3.ZERO)
 	st = _st(); cilindro(st, Vector3(tc.x, y + 33.0, tc.y), 5.4, 0.0, 26.0, 8); _peca(st, azul, Vector3.ZERO)
 	_colisor_cilindro(Vector3(tc.x, y - 1.0, tc.y), 5.0, 34.0)
+	var dc := (c - cat).normalized()
+	_freira("Irmã Odília", cat + dc * 22.5, dc, y, 4343)                       # na escadaria da catedral
 	# ---- torre dos magos (sudoeste)
 	var tm: Vector2 = c + dirv.call(PI * 0.78) * 168.0
 	st = _st(); cilindro(st, Vector3(tm.x, y - 1.0, tm.y), 7.0, 6.0, 42.0, 10, true); cilindro(st, Vector3(tm.x, y + 40.0, tm.y), 8.0, 8.0, 1.5, 10, true)
@@ -1592,6 +1600,18 @@ func _cidade() -> void:
 				_poste_em(q, c + dr * dist)
 	lugares.append([c, RR + 15.0])
 	if args.has("perf"): print("CIDADE: %d casas, %d lojas" % [feitas, cidade_lojas.size()])
+
+# freira que vende poções de vida, parada na frente da igreja, olhando para a praça (modelo provisório: o
+# morador base com hábito preto e véu branco pintados; troca pelo modelo do Tripo quando chegar)
+func _freira(nome: String, p: Vector2, olhar: Vector2, y: float, semente: int) -> void:
+	var f := Morador.new(); f.profissao = "freira"
+	f.roupa = {"cor_tunica": Color(0.1, 0.09, 0.11), "cor_calca": Color(0.08, 0.07, 0.09), "cor_couro": Color(0.12, 0.1, 0.1),
+		"cor_cabelo": Color(0.92, 0.9, 0.86)}
+	f.posto = p; f.olhar_posto = p + olhar * 5.0
+	f.set_meta("nome", nome)
+	raiz.add_child(f); f.position = Vector3(p.x, y, p.y)
+	f.montar(self, semente, p, 1.0)
+	freiras.append(f)
 
 # logo depois do portão oeste: estábulo (telheiro, cocheiras, cercado com três cavalos e o cavalariço) ao norte da
 # rua principal e a taverna "O Ferradura Dourada" ao sul
@@ -2445,6 +2465,10 @@ func _modo_teste() -> void:
 			"alto": alvo = cidade_pos + Vector2(-260, 230); olha = cidade_pos
 			"estabulo": alvo = estabulo_pos + Vector2(6.0, 34.0); olha = estabulo_pos + Vector2(-10.0, 0)
 			"cercado": alvo = estabulo_pos + Vector2(1.0, 21.0); olha = estabulo_pos + Vector2(1.0, 9.0)
+			"freira_vila", "freira_cidade":
+				var fr: Morador = freiras[1 if args.ir == "freira_vila" else 0]
+				olha = fr.posto; alvo = fr.posto + (fr.olhar_posto - fr.posto).normalized() * 3.2
+			"estrada_real": alvo = Vector2(640, -215); olha = Vector2(840, -310)
 			"cavalarico": alvo = estabulo_pos + Vector2(-19.0, 6.0); olha = estabulo_pos + Vector2(-19.5, 0.0)
 			"taverna": alvo = taverna_pos + Vector2(10.0, -26.0); olha = taverna_pos
 			"rua_oeste": alvo = cidade_pos + Vector2(-205.0, 0.0); olha = cidade_pos
@@ -2462,6 +2486,17 @@ func _modo_teste() -> void:
 		get_tree().create_timer(1.0).timeout.connect(func():
 			for cv in raiz.find_children("Cavalo*", "Node3D", false, false):
 				for ch in cv.get_children(): if ch.get_script() != null and "vel" in ch: ch.vel = float(args.cavalo_andar))
+	if args.has("loja_freira"):
+		get_tree().create_timer(3.0).timeout.connect(func(): bolsa.cobre = 500; print("NPC: ", interacao._tipo_npc); interacao._abrir_loja())
+		get_tree().create_timer(3.4).timeout.connect(func():
+			print("COMPRA: '", bolsa.comprar("pocao_m"), "'"); hud.vida = 40.0
+			for k in bolsa.bolsas.size():
+				if bolsa.bolsas[k] == null: continue
+				for i in bolsa.bolsas[k].slots.size():
+					var sl = bolsa.bolsas[k].slots[i]
+					if sl != null and sl[0] == "pocao_m":
+						var c := bolsa.consumir(k, i, hud.vida_max); hud.vida = minf(hud.vida + c, hud.vida_max)
+						print("POCAO: +%d -> vida %.0f / %.0f" % [c, hud.vida, hud.vida_max]); return)
 	if args.has("fluxo_frutinhas"): # teste: vai até o arbusto de frutinhas mais perto, coleta, abre a bolsa e come uma
 		get_tree().create_timer(1.5).timeout.connect(func():
 			var pj := jogador.global_position; var melhor := Vector3.ZERO; var md := 1e9
