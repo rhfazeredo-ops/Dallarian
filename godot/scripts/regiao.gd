@@ -1,4 +1,4 @@
-# A região inicial do jogo (1,2 × 1,2 km), desenhada em código: relevo, limites, rio, lago, estradas, campos e
+# A região inicial do jogo (2,4 × 2,4 km — tamanho de uma zona grande de MMO), desenhada em código: relevo, limites, rio, lago, estradas, campos e
 # lugares. Tudo que precisa saber "o que tem neste ponto do mapa" pergunta aqui (altura, cor, água, mato).
 #
 #            N  (montanhas, com um desfiladeiro fechado por uma barricada no meio)
@@ -15,9 +15,17 @@
 extends RefCounted
 class_name Regiao
 
-const LIM := 600.0           # metade do lado
+const LIM := 1200.0          # metade do lado
 const GRADE := 4.0           # resolução das grades de distância (m)
-const N := 300               # células por lado nas grades
+const N := 600               # células por lado nas grades
+# O desenho original era de 1,2 km. Para aumentar o mapa sem mexer na vila, tudo até 150 m do centro fica igual
+# e o que está além se afasta ("Ws"/"W": distância/ponto do desenho original → mundo de 2,4 km).
+const PERTO := 150.0
+const K_ESPALHA := (1200.0 - 150.0) / (600.0 - 150.0)
+static func Ws(r: float) -> float: return r if r < PERTO else PERTO + (r - PERTO) * K_ESPALHA
+static func W(p: Vector2) -> Vector2:
+	var r := p.length()
+	return p if r < PERTO else p * (Ws(r) / r)
 
 var ruido := FastNoiseLite.new()
 var ruido_grande := FastNoiseLite.new()
@@ -43,8 +51,10 @@ var trilhas := [
 var rio := PackedVector2Array([Vector2(-270, -520), Vector2(-250, -420), Vector2(-215, -345), Vector2(-170, -300),
 	Vector2(-130, -240), Vector2(-60, -175), Vector2(40, -135), Vector2(115, -70), Vector2(140, 20), Vector2(110, 120),
 	Vector2(40, 200), Vector2(30, 280), Vector2(80, 360), Vector2(150, 430), Vector2(200, 480)])
-const LAGO := Vector3(-170, -300, 58)        # x, z, raio
-const ILHA := Vector3(-168, -296, 16)
+static var LAGO := _lago()        # x, z, raio
+static var ILHA := Vector3(LAGO.x + 2.0 * 1.5, LAGO.y + 4.0 * 1.5, 16.0 * 1.4)
+static func _lago() -> Vector3:
+	var c := W(Vector2(-170, -300)); return Vector3(c.x, c.y, 58.0 * 1.5)
 const CENTRO_VILA := Vector2(0, 0)
 # campos das fazendas: [centro x, centro z, largura, comprimento, ângulo (graus), tipo]  tipo 0 = trigo, 1 = terra arada
 var campos := [
@@ -64,6 +74,14 @@ var pontes := []                             # [posição Vector2, direção da 
 var planos := []                             # chão aplanado embaixo das construções: [centro, meia medida, ângulo, altura, margem, raio²]
 
 func _init() -> void:
+	# afasta tudo do desenho original que fica longe da vila
+	for e in estradas:
+		for i in e.size(): e[i] = W(e[i])
+	for i in rio.size(): rio[i] = W(rio[i])
+	for c in campos:
+		var q := W(Vector2(c[0], c[1])); c[0] = q.x; c[1] = q.y
+	for i in morros.size():
+		var mq := W(Vector2(morros[i].x, morros[i].y)); morros[i] = Vector4(mq.x, mq.y, morros[i].z * 1.6, morros[i].w)
 	ruido.seed = 11; ruido.frequency = 0.018; ruido.fractal_octaves = 3
 	ruido_grande.seed = 4; ruido_grande.frequency = 0.004; ruido_grande.fractal_octaves = 2
 	d_estrada.resize(N * N); d_estrada.fill(1e6)
@@ -114,8 +132,8 @@ func _achar_pontes() -> void:
 
 # ---------- relevo ----------
 # altura de base: desce devagar do norte (12 m) para o sul (2 m)
-func base(z: float) -> float: return lerp(12.0, 2.0, clampf((z + 470.0) / 870.0, 0.0, 1.0))
-func largura_rio(t: float) -> float: return lerp(7.0, 15.0, t)
+func base(z: float) -> float: return lerp(12.0, 2.0, clampf((z + Ws(470.0)) / (Ws(470.0) + Ws(400.0)), 0.0, 1.0))
+func largura_rio(t: float) -> float: return lerp(7.0, 18.0, t)
 func nivel_rio(t: float) -> float:
 	# o nível da água acompanha a base no ponto do rio (aproximado pela posição ao longo dele)
 	var i := 0
@@ -158,20 +176,20 @@ func altura(x: float, z: float) -> float:
 		var di := Vector2(x - ILHA.x, z - ILHA.y).length()
 		h = max(h, nivel_lago() + 1.6 - smoothstep(ILHA.z * 0.7, ILHA.z * 1.3, di) * 5.0)
 	# mar a leste (com praia)
-	var costa := 430.0 + ruido_grande.get_noise_2d(0.0, z * 2.0) * 40.0
+	var costa := Ws(430.0) + ruido_grande.get_noise_2d(0.0, z * 2.0) * 40.0
 	if x > costa - 30.0: h = lerp(h, 1.2 - (x - costa) * 0.16, smoothstep(costa - 30.0, costa, x))
 	# pântano ao sul
-	var pant := smoothstep(370.0, 430.0, z + ruido_grande.get_noise_2d(x * 2.0, 0.0) * 30.0)
+	var pant := smoothstep(Ws(370.0), Ws(430.0), z + ruido_grande.get_noise_2d(x * 2.0, 0.0) * 30.0)
 	if pant > 0.0: h = lerp(h, 0.25 + ruido.get_noise_2d(x * 1.7, z * 1.7) * 0.9, pant)
 	# limites: montanhas ao norte e a oeste, morros escuros ao sul
 	var n_borda := ruido_grande.get_noise_2d(x * 3.0, z * 3.0) * 40.0
-	var dn := (-470.0 + n_borda) - z
+	var dn := (-Ws(470.0) + n_borda) - z
 	var passagem := smoothstep(12.0, 45.0, abs(x))                      # desfiladeiro no meio do norte
 	var var_m: float = 0.75 + ruido.get_noise_2d(x * 0.6, z * 0.6) * 0.6 + abs(ruido_grande.get_noise_2d(x * 4.0, z * 4.0)) * 0.6
 	if dn > 0.0: h += _serra(dn, 85.0) * var_m * (0.2 + 0.8 * passagem)
-	var dw := (-480.0 + n_borda) - x
+	var dw := (-Ws(480.0) + n_borda) - x
 	if dw > 0.0: h += _serra(dw, 85.0) * var_m
-	var ds := z - (520.0 + n_borda)
+	var ds := z - (Ws(520.0) + n_borda)
 	if ds > 0.0: h += _serra(ds, 35.0) * var_m
 	if not planos.is_empty(): h = _planos(x, z, h)
 	return h
@@ -217,12 +235,12 @@ func campo_em(x: float, z: float) -> int:
 		if abs(p.x) < c[2] * 0.5 and abs(p.y) < c[3] * 0.5: return c[5]
 	return -1
 
-func zona_pantano(z: float) -> float: return smoothstep(380.0, 430.0, z)
+func zona_pantano(z: float) -> float: return smoothstep(Ws(380.0), Ws(430.0), z)
 
 func floresta(x: float, z: float) -> float:
 	# 0 = aberto, 1 = mata fechada
 	var f := ruido_grande.get_noise_2d(x * 1.6 + 300.0, z * 1.6) * 1.6 + 0.35
-	f += 0.25 * smoothstep(250.0, 420.0, Vector2(x, z).length())   # mais mata longe da vila
+	f += 0.25 * smoothstep(Ws(250.0), Ws(420.0), Vector2(x, z).length())   # mais mata longe da vila
 	f -= 1.0 - smoothstep(40.0, 110.0, Vector2(x, z).length())       # vila e arredores abertos
 	return clampf(f, 0.0, 1.0)
 
@@ -243,7 +261,7 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 2.5 or abs(Vector2(x - LAGO.x, z - LAGO.y).length() - LAGO.z) < 4.0:
 		c = Color(0.4, 0.33, 0.22)                                             # margem de lama
-	if h < 2.0 and x > 380.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
+	if h < 2.0 and x > Ws(380.0): c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
 	var p := zona_pantano(z)
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
 	if ny < 0.8: c = c.lerp(Color(0.46, 0.5, 0.6), smoothstep(0.8, 0.65, ny))  # pedra
@@ -267,7 +285,7 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	if abs(x) > LIM - 20 or abs(z) > LIM - 20 or ny < 0.8 or h > 30.0: return 0.0
 	if Vector2(x, z).length() < 18.0: return 0.0
 	if h < agua(x, z) + 0.15: return 0.0
-	if x > 380.0 and h < 2.0: return 0.0
+	if x > Ws(380.0) and h < 2.0: return 0.0
 	var campo := campo_em(x, z)
 	if campo == 1: return 0.0
 	if campo == 0: return 1.0

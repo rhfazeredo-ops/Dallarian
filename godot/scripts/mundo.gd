@@ -75,12 +75,12 @@ func _ready() -> void:
 		["Mosteiro da Ilha", Vector2(Regiao.ILHA.x, Regiao.ILHA.y), "torre", 30.0],
 		["Porto dos Pescadores", porto_pos, "farol", 30.0],
 		["Píer do Rio", pier_pos, "agua", 14.0],
-		["Moinho", Vector2(-244, 100), "moinho", 18.0],
-		["Torre em Ruínas", Vector2(220, -260), "ruinas", 25.0],
-		["Serraria", Vector2(286, -170), "arvore", 22.0],
-		["Acampamento de Bandidos", Vector2(-330, 300), "bandidos", 25.0],
+		["Moinho", Regiao.W(Vector2(-244, 100)), "moinho", 18.0],
+		["Torre em Ruínas", Regiao.W(Vector2(220, -260)), "ruinas", 25.0],
+		["Serraria", Regiao.W(Vector2(286, -170)), "arvore", 22.0],
+		["Acampamento de Bandidos", Regiao.W(Vector2(-330, 300)), "bandidos", 25.0],
 		["Caverna do Oeste", caverna_pos, "caverna", 18.0],
-		["Desfiladeiro do Norte", Vector2(0, -468), "montanhas", 40.0],
+		["Desfiladeiro do Norte", Vector2(0, -Regiao.Ws(468.0)), "montanhas", 40.0],
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	fauna.montar(self)
 	_montar_chuva()
@@ -93,7 +93,7 @@ func _ready() -> void:
 
 # moradores: o mesmo modelo com cores e alturas sorteadas, andando pela vila (e alguns no porto e nas fazendas)
 func _moradores() -> void:
-	var grupos := [[Vector2(-3, 0), 58.0, 12], [Vector2(360, 60), 30.0, 3], [Vector2(-215, 60), 40.0, 3]]
+	var grupos := [[Vector2(-3, 0), 58.0, 12], [porto_pos + Vector2(-25, 0), 30.0, 3], [Regiao.W(Vector2(-215, 60)), 40.0, 3]]
 	var n := 0
 	for g in grupos:
 		for i in g[2]:
@@ -132,8 +132,8 @@ var menu: Menu
 func _lobos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
-	for i in 4000:
-		var q := Vector2(rng.randf_range(-540, 540), rng.randf_range(-540, 540))
+	for i in 12000:
+		var q := Vector2(rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
 		if q.length() < 120.0 or reg.folga_caminho(q.x, q.y) < 12.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
 		var longe_barraca := true
@@ -146,7 +146,7 @@ func _lobos() -> void:
 		if h0 - reg.base(q.y) > 5.0: montanha.append(q)
 		elif reg.floresta(q.x, q.y) > 0.6: mata.append(q)
 	var escolhidos := []
-	for lista in [[montanha, "branco", 7], [mata, "marrom", 11]]:
+	for lista in [[montanha, "branco", 16], [mata, "marrom", 26]]:
 		var cands: Array = lista[0]; var feitos := 0
 		cands.shuffle()
 		for q in cands:
@@ -260,9 +260,9 @@ func _desmaiar() -> void:
 func _aranhas() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 707
 	var feitos: Array[Vector2] = []
-	for i in 5000:
-		if feitos.size() >= 14: break
-		var q := Vector2(rng.randf_range(-540, 540), rng.randf_range(-540, 540))
+	for i in 14000:
+		if feitos.size() >= 30: break
+		var q := Vector2(rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
 		if q.length() < 170.0 or reg.floresta(q.x, q.y) < 0.6 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if perto_de_lugar(q.x, q.y, 25.0) or reg.altura(q.x, q.y) - reg.base(q.y) > 6.0: continue
 		var ok := true
@@ -289,14 +289,15 @@ func _lodosos() -> void:
 	for k in 6:
 		var ang := TAU * k / 6.0 + 0.3
 		cands.append(Vector2(Regiao.LAGO.x, Regiao.LAGO.y) + Vector2(cos(ang), sin(ang)) * (Regiao.LAGO.z + 5.0))
-	for z in [-380.0, -200.0, -40.0, 140.0, 300.0]:
-		var x := 380.0
-		while x < 600.0 and reg.altura(x, z) > 1.0: x += 1.0
+	for z0 in [-380.0, -290.0, -200.0, -120.0, -40.0, 50.0, 140.0, 220.0, 300.0]:
+		var z := Regiao.Ws(absf(z0)) * signf(z0)
+		var x := Regiao.Ws(380.0)
+		while x < Regiao.LIM and reg.altura(x, z) > 1.0: x += 1.0
 		cands.append(Vector2(x - 5.0, z))
 	cands.shuffle()
 	var feitos: Array[Vector2] = []
 	for q in cands:
-		if feitos.size() >= 9: break
+		if feitos.size() >= 18: break
 		if q.length() < 160.0 or reg.dist_estrada(q.x, q.y) < 12.0 or perto_de_lugar(q.x, q.y, 18.0) or perto_de_casa(q.x, q.y, 10.0): continue
 		if reg.agua(q.x, q.y) != 0.0 and altura(q.x, q.y) < reg.agua(q.x, q.y): continue
 		var ok := true
@@ -340,7 +341,8 @@ func _golem() -> void:
 	for i in 36:
 		var a := TAU * i / 36.0
 		var melhor := Vector2.ZERO
-		for r in [330.0, 310.0, 350.0, 290.0, 370.0]:
+		for r0 in [330.0, 310.0, 350.0, 290.0, 370.0]:
+			var r := Regiao.Ws(r0)
 			var q: Vector2 = Vector2(cos(a), sin(a)) * float(r)
 			if reg.agua(q.x, q.y) == 0.0 and reg.altura(q.x, q.y) > 0.5 and reg.altura(q.x, q.y) - reg.base(q.y) < 9.0:
 				melhor = q; break
@@ -535,7 +537,7 @@ func _profissionais() -> void:
 			som.stream = batidas[randi() % batidas.size()]; som.pitch_scale = randf_range(0.94, 1.06); som.play()
 		fe.montar(self, 5000 + n, fe.posto, 1.0); n += 1
 	# lenhador: tronco caído na beira da mata, perto da serraria
-	var serra := Vector2(286, -170); var lp := serra + Vector2(0, 22)
+	var serra := Regiao.W(Vector2(286, -170)); var lp := serra + Vector2(0, 22)
 	for t in 40:
 		var a := t * 0.7; var q := serra + Vector2(cos(a), sin(a)) * (18.0 + t * 0.6)
 		if reg.floresta(q.x, q.y) > 0.35 and reg.dist_estrada(q.x, q.y) > 6.0 and not perto_de_casa(q.x, q.y, 3.0) and reg.dist_rio(q.x, q.y) > 14.0:
@@ -888,8 +890,8 @@ var _fogueiras_barraca: Array[Vector2] = []
 func _barracas() -> void:
 	var cand := []
 	var rng := RandomNumberGenerator.new(); rng.seed = 91
-	for i in 900:
-		var q := Vector2(rng.randf_range(-520, 520), rng.randf_range(-520, 520))
+	for i in 3000:
+		var q := Vector2(rng.randf_range(-Regiao.LIM + 80, Regiao.LIM - 80), rng.randf_range(-Regiao.LIM + 80, Regiao.LIM - 80))
 		if q.length() < 170.0 or reg.folga_caminho(q.x, q.y) < 22.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if reg.dist_rio(q.x, q.y) < 25.0 or Vector2(q.x - Regiao.LAGO.x, q.y - Regiao.LAGO.y).length() < Regiao.LAGO.z + 15.0: continue
 		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
@@ -900,13 +902,13 @@ func _barracas() -> void:
 		cand.append(q)
 	# escolhe as mais espalhadas (cada nova o mais longe possível das já escolhidas e da vila)
 	var esc: Array[Vector2] = []
-	while esc.size() < 5 and not cand.is_empty():
+	while esc.size() < 9 and not cand.is_empty():
 		var melhor: Vector2 = cand[0]; var md := -1.0
 		for q in cand:
 			var d: float = q.length() * 0.6
 			for e in esc: d = minf(d, q.distance_to(e))
 			if d > md: md = d; melhor = q
-		if md < 160.0 and esc.size() > 0: break
+		if md < 260.0 and esc.size() > 0: break
 		esc.append(melhor)
 	for q in esc: _barraca(q, rng.randf() * TAU)
 
@@ -1140,7 +1142,7 @@ func _st() -> SurfaceTool:
 func _agua() -> void:
 	var am := ShaderMaterial.new(); am.shader = load("res://shaders/agua.gdshader"); am.set_shader_parameter("neblina", NEBLINA)
 	# mar (leste) e poças do pântano (sul): um plano no nível 0
-	var mar := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(1700, 1700); mar.mesh = pm
+	var mar := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(Regiao.LIM * 2.0 + 600.0, Regiao.LIM * 2.0 + 600.0); mar.mesh = pm
 	mar.material_override = am; raiz.add_child(mar)
 	# rio: faixa que segue a linha do rio, no nível da água de cada trecho
 	var st := _st(); var pts := []
@@ -1190,11 +1192,11 @@ func _espuma() -> void:
 		raiz.add_child(mi)
 	# mar: acha a linha da praia (onde o chão desce abaixo do nível 0) de norte a sul, até o pântano
 	var agua := []; var margem := []; var ys := []
-	var z := -560.0
-	while z < 370.0:
-		var x := 380.0
-		while x < 600.0 and reg.altura(x, z) > 0.05: x += 1.0
-		if x < 600.0:
+	var z := -Regiao.LIM + 40.0
+	while z < Regiao.Ws(370.0):
+		var x := Regiao.Ws(380.0)
+		while x < Regiao.LIM and reg.altura(x, z) > 0.05: x += 1.0
+		if x < Regiao.LIM:
 			agua.append(Vector2(x + 16.0, z)); margem.append(Vector2(x - 1.2, z)); ys.append(0.05)
 		z += 4.0
 	if agua.size() > 1: faixa.call(agua, margem, ys, 0, 1.0, 1.0)
@@ -1341,7 +1343,7 @@ func _fazendas() -> void:
 			if reg.dist_estrada(bp.x, bp.y) > 7.0:
 				_casa(Vector3(bp.x, altura(bp.x, bp.y) - 0.2, bp.y), ang + PI / 2, 8.0, 10.0, 4.2, mat("madeira", 1.0, Color(1.25, 0.62, 0.52)), mat("madeira", 1.0, Color(0.6, 0.55, 0.5)))
 	# moinho de vento entre as fazendas
-	var mp := Vector2(-244, 100); var y := reg.aplanar(mp, Vector2(3.6, 3.6), 0.0, 4.0)
+	var mp := Regiao.W(Vector2(-244, 100)); var y := reg.aplanar(mp, Vector2(3.6, 3.6), 0.0, 4.0)
 	var st := _st(); cilindro(st, Vector3.ZERO, 3.0, 2.2, 9.0, 8, true); _peca(st, mat("pedra"), Vector3(mp.x, y - 0.3, mp.y))
 	st = _st(); cilindro(st, Vector3(0, 8.7, 0), 2.6, 0.0, 3.2, 8); _peca(st, mat("palha"), Vector3(mp.x, y - 0.3, mp.y))
 	st = _st()
@@ -1355,8 +1357,8 @@ func _fazendas() -> void:
 	lugares.append([mp, 5.0])
 
 func _porto() -> void:
-	var z := 58.0; var xc := 380.0
-	while xc < 560.0 and altura(xc, z) > 0.4: xc += 1.0
+	var z := 58.0; var xc := Regiao.Ws(380.0)
+	while xc < Regiao.LIM - 40.0 and altura(xc, z) > 0.4: xc += 1.0
 	var st := _st()
 	var y := 1.5
 	for i in 18:                                        # píer: tábuas sobre estacas
@@ -1386,7 +1388,7 @@ func _mosteiro() -> void:
 	st = _st(); cilindro(st, Vector3(0, 11.0, 0), 2.6, 0.0, 4.0, 8); _peca(st, mat("madeira", 1.0, Color(0.55, 0.5, 0.55)), tp)
 	_colisor_cilindro(tp, 2.0, 11.0)
 	# passarela da margem até a ilha
-	var a := Vector2(-112, -300); var b := Vector2(-153, -297)
+	var a := Vector2(Regiao.LAGO.x + Regiao.LAGO.z + 1.0, Regiao.ILHA.y); var b := Vector2(Regiao.ILHA.x + Regiao.ILHA.z - 1.0, Regiao.ILHA.y)
 	var yp := reg.nivel_lago() + 0.6
 	st = _st()
 	var n := int(a.distance_to(b) / 1.5)
@@ -1400,7 +1402,7 @@ func _mosteiro() -> void:
 	lugares.append([c, 18.0])
 
 func _ruinas() -> void:
-	var c := Vector2(220, -260); var y := reg.aplanar(c, Vector2(5.0, 5.0), 0.0, 6.0)
+	var c := Regiao.W(Vector2(220, -260)); var y := reg.aplanar(c, Vector2(5.0, 5.0), 0.0, 6.0)
 	var st := _st(); var rng := RandomNumberGenerator.new(); rng.seed = 3
 	for k in 10:                                         # torre quebrada: anel de pedras com alturas diferentes
 		var a0 := TAU * k / 10.0; var a1 := TAU * (k + 1) / 10.0; var h := rng.randf_range(2.5, 9.0)
@@ -1428,7 +1430,7 @@ func _ruinas() -> void:
 	lugares.append([c, 18.0])
 
 func _serraria() -> void:
-	var c := Vector2(286, -170); var y := reg.aplanar(c, Vector2(14.0, 12.0), 0.0, 5.0)   # a estrada chega na beira do pátio
+	var c := Regiao.W(Vector2(286, -170)); var y := reg.aplanar(c, Vector2(14.0, 12.0), 0.0, 5.0)   # a estrada chega na beira do pátio
 	_casa(Vector3(c.x, y - 0.2, c.y), 0.4, 7.0, 5.0, 2.8, mat("madeira"), mat("madeira", 1.0, Color(0.6, 0.55, 0.5)))
 	var st := _st()
 	for pilha in [[8.0, 4.0], [9.0, -5.0], [-8.0, 6.0]]:
@@ -1444,7 +1446,7 @@ func _serraria() -> void:
 	lugares.append([c, 16.0])
 
 func _bandidos() -> void:
-	var c := Vector2(-330, 300)
+	var c := Regiao.W(Vector2(-330, 300))
 	var yb := reg.aplanar(c, Vector2(11.0, 11.0), 0.0, 5.0)        # clareira plana do acampamento
 	var st := _st()
 	for k in 3:
@@ -1465,8 +1467,8 @@ func _bandidos() -> void:
 
 func _caverna() -> void:
 	# boca de caverna no pé das montanhas a oeste
-	var z := -200.0; var x := -420.0
-	while x > -560.0 and altura(x, z) < base_vale(z) + 9.0: x -= 2.0
+	var cv := Regiao.W(Vector2(-420, -200)); var z := cv.y; var x := cv.x
+	while x > -Regiao.LIM + 40.0 and altura(x, z) < base_vale(z) + 9.0: x -= 2.0
 	var y := reg.aplanar(Vector2(x + 7.0, z), Vector2(4.0, 5.0), 0.0, 4.0)
 	var st := _st()
 	_caixa(st, Vector3(0, 1.4, -3.2), Vector3(3.0, 6.0, 2.0)); _caixa(st, Vector3(0, 1.4, 3.2), Vector3(3.0, 6.0, 2.0))
@@ -1481,7 +1483,7 @@ func base_vale(z: float) -> float: return reg.base(z)
 
 func _barricada() -> void:
 	# paliçada fechando o desfiladeiro do norte (por enquanto não se passa): estacas enterradas 1,5 m na malha
-	var z := -468.0
+	var z := -Regiao.Ws(468.0)
 	_depois.append(func():
 		var st := _st()
 		for i in 112:

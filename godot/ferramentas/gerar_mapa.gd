@@ -3,7 +3,7 @@
 # Rodar: godot --headless --path . --script res://ferramentas/gerar_mapa.gd   (depois o tools/mapa_pergaminho.py)
 extends SceneTree
 
-const TAM := 768
+const TAM := 1024
 
 func _init() -> void:
 	var reg := Regiao.new()

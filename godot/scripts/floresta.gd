@@ -453,7 +453,7 @@ func _pedaco(k: Vector2i) -> void:
 			if reg.campo_em(x, z) >= 0 or reg.dist_rio(x, z) < (9.0 if arbusto else 12.0): continue
 			if Vector2(x - Regiao.LAGO.x, z - Regiao.LAGO.y).length() < Regiao.LAGO.z + 6.0: continue
 			var h := reg.altura(x, z)
-			if h > 36.0 or h < 0.6 or (x > 380.0 and h < 2.5): continue
+			if h > 36.0 or h < 0.6 or (x > Regiao.Ws(380.0) and h < 2.5): continue
 			if m.perto_de_lugar(x, z, 4.0 if arbusto else 8.0): continue
 			var giro := Basis(Vector3.UP, rng.randf() * TAU)
 			if arbusto:
