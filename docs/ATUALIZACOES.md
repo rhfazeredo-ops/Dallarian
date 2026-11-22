@@ -112,3 +112,4 @@
   morreu no mapa e na bússola, que some em 5 minutos.
 - **Joystick fixo** no canto de baixo e **corrida automática**: passando da borda para cima aparece TRAVAR; com o
   AUTO ligado ela corre sozinha e o joystick só vira para os lados (puxar para trás ou tocar no AUTO desliga; PC: R).
+- Poças da estrada sem reflexo: agora são azul chapado, no mesmo estilo do rio e do mar.

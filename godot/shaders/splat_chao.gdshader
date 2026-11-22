@@ -1,6 +1,6 @@
 // Chão em pixel splats: manchinhas gaussianas DEITADAS sobre o terreno (instâncias de MultiMesh), como
 // pinceladas. Cor por instância, luz do sol pela inclinação do chão, neblina. Corte duro = opaco, sem ordenar.
-// Tipo 1 (INSTANCE_CUSTOM.r) = água de poça: reflete o céu e as nuvens pela direção do olhar.
+// Tipo 1 (INSTANCE_CUSTOM.r) = água de poça: cor chapada azul, no mesmo estilo do rio e do mar (sem reflexo).
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 #include "res://shaders/noite.gdshaderinc"
@@ -15,6 +15,7 @@ uniform float corte = 0.32;
 uniform vec3 ceu_alto : source_color = vec3(0.2, 0.42, 0.82);
 uniform vec3 ceu_meio : source_color = vec3(0.42, 0.64, 0.94);
 uniform vec3 ceu_horiz : source_color = vec3(0.76, 0.86, 0.96);
+uniform vec3 poca : source_color = vec3(0.3, 0.47, 0.62);
 global uniform float relampago;
 varying vec3 cor;
 varying float nb;
@@ -52,10 +53,8 @@ void fragment() {
   if (g < corte) discard;
   vec3 c = cor * (0.9 + 0.12 * step(0.66, g));          // miolo um pouco mais claro (pincelada)
   if (agua > 0.5) {
-    vec3 olhar = normalize(wpos - CAMERA_POSITION_WORLD);
-    vec3 r = reflect(olhar, vec3(0.0, 1.0, 0.0));
-    r.xz += (vec2(noise(wpos.xz * 3.0 + TIME * 0.6), noise(wpos.zx * 3.0 - TIME * 0.5)) - 0.5) * 0.06;   // marolinha
-    c = ceu(normalize(r)) * 0.82 + vec3(0.02, 0.03, 0.05);
+    // água chapada, no tom do rio (sem reflexo do céu): o miolo um degrau mais claro, como pincelada
+    c = poca * (0.92 + 0.14 * step(0.7, g));
   }
   ALBEDO = mix(noite_cor(c, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina * (1.0 + relampago * 0.8)), nb);
 }
