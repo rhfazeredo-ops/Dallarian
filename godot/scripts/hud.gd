@@ -69,6 +69,7 @@ var tex_moldura: Texture2D = load("res://assets/ui/moldura_retrato.png")
 
 func _draw() -> void:
 	var tela := get_viewport_rect().size
+	_desenhar_anuncio(tela)
 	var k := 0.2                                              # escala da plaqueta na tela
 	var pw := 2172.0 * k; var ph := 724.0 * k
 	var p0 := Vector2(tela.x - pw - 24.0, 18.0)               # canto superior esquerdo da plaqueta
@@ -272,6 +273,23 @@ var _avisos := []                 # [texto, cor, tempo]
 func avisar(t: String, cor := Color(1, 1, 1)) -> void:
 	_avisos.append([t, cor, 3.0])
 	if _avisos.size() > 5: _avisos.pop_front()
+
+# recado grande no meio da tela (ex.: MONTARIA ADQUIRIDA + nome), some sozinho em ~3,5 s
+var _anuncio := ["", "", 0.0]
+func anunciar(titulo: String, nome: String) -> void:
+	_anuncio = [titulo, nome, 3.5]
+
+func _desenhar_anuncio(tela: Vector2) -> void:
+	_anuncio[2] = float(_anuncio[2]) - get_process_delta_time()
+	if float(_anuncio[2]) <= 0.0: return
+	var alfa := clampf(float(_anuncio[2]), 0.0, 1.0)
+	for k in 2:
+		var txt: String = _anuncio[k]; var tam := 34 if k == 0 else 48
+		var w := fonte.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+		var pos := Vector2((tela.x - w) * 0.5, tela.y * 0.3 + k * 58.0)
+		draw_string_outline(fonte, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 9, Color(0, 0, 0, 0.85 * alfa))
+		var c := Color(1.0, 0.82, 0.0, alfa) if k == 0 else Color(1, 1, 1, alfa)
+		draw_string(fonte, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, c)
 
 func _desenhar_avisos(tela: Vector2) -> void:
 	var y := tela.y * 0.62

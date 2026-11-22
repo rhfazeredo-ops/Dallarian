@@ -60,7 +60,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	if tipo == "" and profissao == "" and sorteio >= 0.44:
 		tipo = ["fem", "fem", "gorda", "velha", "forte", "velho"][int((sorteio - 0.44) / 0.56 * 6.0) % 6]
 	if tipo != "": skin = 20 + TIPOS.keys().find(tipo)
-	if profissao != "": skin = {"ferreiro": 11, "lenhador": 12, "fazendeiro": 13}[profissao]   # modelo e textura próprios
+	if MODELOS_PROF.has(profissao): skin = {"ferreiro": 11, "lenhador": 12, "fazendeiro": 13}[profissao]   # modelo e textura próprios
 	var alt := rng.randf_range(1.62, 1.86); var larg := rng.randf_range(0.92, 1.12)
 	if tipo != "":
 		var tp: Array = TIPOS[tipo]; alt = rng.randf_range(tp[1], tp[2]); larg = rng.randf_range(0.97, 1.03); ritmo = tp[3]
@@ -69,7 +69,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING      # anda no plano; a altura vem do terreno
 	# modelo: 0,98 m no arquivo, de frente para -X → girado para frente = -Z e escalado
 	visual = Node3D.new(); add_child(visual)
-	var arq: String = MODELOS_PROF[profissao] if profissao != "" else (TIPOS[tipo][0] if tipo != "" else SKINS[skin])
+	var arq: String = MODELOS_PROF[profissao] if MODELOS_PROF.has(profissao) else (TIPOS[tipo][0] if tipo != "" else SKINS[skin])
 	var mod: Node3D = load(arq).instantiate(); visual.add_child(mod)
 	var k := alt / 0.981
 	mod.scale = Vector3(k * larg, k, k * larg); mod.rotation_degrees.y = 90     # o modelo olha para +X
@@ -412,6 +412,9 @@ func _animar(delta: float, anda: float) -> void:
 			"ferreiro": _anim_ferreiro(alvo)
 			"lenhador": hip = _anim_lenhador(alvo)
 			"fazendeiro": hip = _anim_fazendeiro(alvo)
+			"cavalarico":                                     # parado de braços cruzados, olhando a estrada
+				_pose_cruzados(alvo, resp)
+				alvo["Head"] = _q(Vector3(0, 1, 0), sin(_t * 0.25) * 0.35)
 	elif estado == "atividade" or (estado == "brincar" and a < 0.2 and _tempo_estado < 0.0):
 		match atividade:
 			"olhar":

@@ -39,7 +39,8 @@ func alternar_montaria() -> void:
 	if _cast >= 0.0: cancelar(); return
 	if m.bolsa.montarias.is_empty():
 		m.hud.avisar("Você ainda não tem montaria. Compre um cavalo no estábulo de Altamar.", Color(1, 0.75, 0.4)); return
-	if m.bolsa.montaria_sel == "": m.bolsa.montaria_sel = m.bolsa.montarias[0]
+	if m.bolsa.montaria_sel == "":
+		m.hud.avisar("Equipe uma montaria no menu do personagem (aba MONTARIAS).", Color(1, 0.75, 0.4)); return
 	if not j.is_on_floor(): m.hud.avisar("Não dá para montar no ar.", Color(1, 0.35, 0.3)); return
 	_cast = 0.0; _pos_cast = j.global_position
 	queue_redraw()
@@ -137,10 +138,10 @@ func _atualizar() -> void:
 		return
 	# montarias: lista das que a Rachel tem; tocar escolhe (a escolhida fica com moldura dourada)
 	if m.bolsa.montarias.is_empty():
-		var l := UI.rotulo("Nenhuma montaria ainda.\nO cavalariço Edric vende cavalos no estábulo, logo depois do portão oeste de Altamar.", 26, Color(0.85, 0.82, 0.75))
+		var l := UI.rotulo("Nenhuma montaria ainda.\nO cavalariço Edric vende cavalos no estábulo perto da ponte de Altamar. Depois de comprar, toque duas vezes no cavalo na bolsa.", 26, Color(0.85, 0.82, 0.75))
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.custom_minimum_size = Vector2(740, 0); _conteudo.add_child(l)
 		return
-	_conteudo.add_child(UI.rotulo("Toque para escolher. Use o botão da ferradura para montar.", 22, Color(0.8, 0.78, 0.7)))
+	_conteudo.add_child(UI.rotulo("Equipe uma montaria e use o botão do cavalo para montar.", 22, Color(0.8, 0.78, 0.7)))
 	for id in m.bolsa.montarias:
 		var sel: bool = id == m.bolsa.montaria_sel
 		var c := PanelContainer.new(); c.custom_minimum_size = Vector2(740, 100)
@@ -149,15 +150,16 @@ func _atualizar() -> void:
 		var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 14); c.add_child(h)
 		var e := UI.espaco(id, 1, 80.0); e.mouse_filter = Control.MOUSE_FILTER_IGNORE; h.add_child(e)
 		var vv := VBoxContainer.new(); vv.alignment = BoxContainer.ALIGNMENT_CENTER; h.add_child(vv)
-		vv.add_child(UI.rotulo(Bolsa.ITENS[id].nome + ("  (escolhida)" if sel else ""), 26, Bolsa.CORES[Bolsa.ITENS[id].qual]))
+		vv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		vv.add_child(UI.rotulo(Bolsa.ITENS[id].nome + ("  (equipada)" if sel else ""), 26, Bolsa.CORES[Bolsa.ITENS[id].qual]))
 		vv.add_child(UI.rotulo(Bolsa.ITENS[id].desc, 20, Color(0.85, 0.82, 0.75)))
-		c.mouse_filter = Control.MOUSE_FILTER_STOP
-		c.gui_input.connect(func(ev):
-			if (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed):
-				_escolher(id))
+		var bt := UI.botao("EQUIPADA" if sel else "EQUIPAR", func(): _escolher(id), not sel, 22, 170.0)
+		bt.size_flags_vertical = Control.SIZE_SHRINK_CENTER; h.add_child(bt)
 		_conteudo.add_child(c)
 
 func _escolher(id: String) -> void:
+	if id == m.bolsa.montaria_sel: return
 	m.bolsa.montaria_sel = id; m.bolsa.salvar(m.hud.nivel, m.hud.xp)
+	m.hud.avisar("Montaria equipada: %s" % Bolsa.ITENS[id].nome, Color(1, 1, 1))
 	if m.jogador.montado: m.jogador.desmontar(); m.jogador.montar_em(id, m.cavalo(id))     # troca de cavalo na hora
 	_atualizar()

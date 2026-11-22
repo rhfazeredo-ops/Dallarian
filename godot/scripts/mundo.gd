@@ -1386,7 +1386,7 @@ func _cidade() -> void:
 			_poste_em(Vector2(sp.x - 6.0, c.y + lado * 7.0), Vector2(sp.x - 6.0, c.y))
 	# ---- castelo (norte) com escadaria, portão entre torres e estandartes
 	var cas := c + Vector2(0, -RR + 52.0)
-	estabulo_pos = c + Vector2(-178.0, -34.0); taverna_pos = c + Vector2(-180.0, 34.0)   # antes das casas (para não cair casa em cima)
+	estabulo_pos = Vector2(Regiao.FOSSO_X - 58.0, c.y - 42.0); taverna_pos = c + Vector2(-180.0, 34.0)   # antes das casas
 	st = _st()
 	_caixa(st, Vector3(cas.x, y + 9.0, cas.y), Vector3(64.0, 20.0, 40.0))
 	_caixa(st, Vector3(cas.x, y + 18.0, cas.y - 6.0), Vector3(24.0, 36.0, 22.0))
@@ -1502,7 +1502,7 @@ func _cidade() -> void:
 			if not estilos.has(bairro): continue
 			if Regiao.rua_cidade(q.x, q.y) < 9.5 + w * 0.5: continue
 			if q.distance_to(cas) < 50.0 or q.distance_to(cat) < 46.0 or q.distance_to(tc) < 12.0 or q.distance_to(tm) < 22.0: continue
-			if q.distance_to(estabulo_pos) < 30.0 or q.distance_to(taverna_pos) < 22.0: continue
+			if q.distance_to(taverna_pos) < 22.0: continue
 			if bairro == "catedral": continue
 			var ang := atan2(c.x - q.x, c.y - q.y) + (0.0 if dentro else PI)
 			var est: Array = estilos[bairro]
@@ -1585,30 +1585,55 @@ func _cidade() -> void:
 # logo depois do portão oeste: estábulo (telheiro, cocheiras, cercado com três cavalos e o cavalariço) ao norte da
 # rua principal e a taverna "O Ferradura Dourada" ao sul
 func _estabulo_e_taverna(c: Vector2, y: float) -> void:
+	# taverna grande com placa (dentro da cidade, logo depois do portão oeste)
+	var t := taverna_pos
+	var ang_t := PI                                                        # porta virada para a rua principal (norte)
+	_casa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, mat("parede"), mat("telha", 1.0, Color(0.32, 0.46, 0.9)), true)
+	_placa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, "taverna")
+	cidade_lojas.append(["taverna", t + Vector2(0, -7.0)])
+	var b := _st()
+	for k in 4: _caixa(b, Vector3(t.x - 6.0 + k * 1.1, y + 0.5, t.y - 7.0), Vector3(0.8, 1.0, 0.8))   # barris na porta
+	_peca(b, mat("madeira", 1.0, Color(0.7, 0.5, 0.35)), Vector3.ZERO)
+	_estabulo()
+
+# estábulo fora da cidade, do outro lado do rio, ao norte da estrada que chega na ponte: a casinha do cavalariço,
+# o telheiro com as cocheiras ao lado e o cercado com os três cavalos na frente; o Edric fica parado na frente da casa
+func _estabulo() -> void:
 	var e := estabulo_pos
+	var y := reg.aplanar(e + Vector2(-8.0, 3.0), Vector2(26.0, 14.0), 0.0, 6.0)
+	lugares.append([e + Vector2(-8.0, 3.0), 28.0])
 	var madeira := mat("madeira"); var tel := mat("telha", 1.0, Color(0.55, 0.3, 0.2))
+	# casinha do cavalariço (à esquerda do telheiro, porta para a estrada)
+	var hc := e + Vector2(-25.0, -5.0)
+	_casa(Vector3(hc.x, y, hc.y), 0.0, 9.0, 7.0, 3.6, mat("parede"), mat("telha", 1.0, Color(0.6, 0.32, 0.2)), true)
+	var lenha := _st()                                                  # lenha empilhada e um banco do lado da casa
+	for k in 3: _caixa(lenha, Vector3(hc.x - 5.6, y + 0.25 + k * 0.4, hc.y - 1.0 + (k % 2) * 0.2), Vector3(0.9, 0.38, 2.6))
+	_caixa(lenha, Vector3(hc.x + 2.2, y + 0.45, hc.y + 4.4), Vector3(1.8, 0.12, 0.5))
+	_caixa(lenha, Vector3(hc.x + 1.5, y + 0.2, hc.y + 4.4), Vector3(0.15, 0.4, 0.45)); _caixa(lenha, Vector3(hc.x + 2.9, y + 0.2, hc.y + 4.4), Vector3(0.15, 0.4, 0.45))
+	_peca(lenha, mat("madeira", 1.0, Color(0.75, 0.55, 0.38)), Vector3.ZERO)
 	# telheiro aberto com cocheiras
 	var st := _st()
 	for q in [Vector2(-9, -5), Vector2(9, -5), Vector2(-9, 5), Vector2(9, 5), Vector2(-3, -5), Vector2(3, -5)]:
 		_caixa(st, Vector3(e.x + q.x, y + 2.2, e.y + q.y - 6.0), Vector3(0.4, 4.4, 0.4))
-	for xx in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(e.x + xx, y + 0.7, e.y - 6.0), Vector3(0.2, 1.4, 9.0))     # divisórias
+	for xx in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(e.x + xx, y + 0.6, e.y - 7.5), Vector3(0.2, 1.2, 6.0))     # divisórias baixas
 	_caixa(st, Vector3(e.x, y + 1.2, e.y - 10.8), Vector3(18.0, 2.4, 0.3))                                # parede do fundo
 	_peca(st, madeira, Vector3.ZERO)
 	st = _st()
 	_quad(st, Vector3(e.x - 10.0, y + 4.4, e.y - 0.4), Vector3(e.x + 10.0, y + 4.4, e.y - 0.4), Vector3(e.x + 10.0, y + 5.8, e.y - 11.2), Vector3(e.x - 10.0, y + 5.8, e.y - 11.2), 5, 3)
 	_peca(st, tel, Vector3.ZERO)
-	st = _st()                                                                                             # palha no chão e cochos
+	st = _st()                                                                                             # fardos de palha e cochos
 	for xx in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(e.x + xx + 3.0, y + 0.3, e.y - 9.8), Vector3(2.2, 0.6, 1.0))
+	_caixa(st, Vector3(e.x + 11.0, y + 0.45, e.y - 3.0), Vector3(1.4, 0.9, 1.0)); _caixa(st, Vector3(e.x + 11.2, y + 1.3, e.y - 3.1), Vector3(1.4, 0.8, 1.0))
 	_peca(st, mat("palha"), Vector3.ZERO)
 	_colisor_caixa(Vector3(e.x, y, e.y - 10.8), Vector3(18.0, 3.0, 0.4), 0.0)
-	# cercado
+	# cercado na frente do telheiro (aberto do lado da casa, para entrar)
 	var cerca := _st()
 	var cx0 := e.x - 12.0; var cx1 := e.x + 12.0; var cz0 := e.y + 1.0; var cz1 := e.y + 15.0
-	for seg in [[Vector2(cx0, cz0), Vector2(cx0, cz1)], [Vector2(cx0, cz1), Vector2(cx1, cz1)], [Vector2(cx1, cz1), Vector2(cx1, cz0)]]:
-		var a: Vector2 = seg[0]; var b: Vector2 = seg[1]; var n := int(a.distance_to(b) / 3.0)
+	for seg in [[Vector2(cx0, cz0 + 5.0), Vector2(cx0, cz1)], [Vector2(cx0, cz1), Vector2(cx1, cz1)], [Vector2(cx1, cz1), Vector2(cx1, cz0)]]:
+		var a: Vector2 = seg[0]; var bb: Vector2 = seg[1]; var n := int(a.distance_to(bb) / 3.0)
 		for i in n + 1:
-			var p := a.lerp(b, float(i) / n); _caixa(cerca, Vector3(p.x, y + 0.6, p.y), Vector3(0.25, 1.2, 0.25))
-		var m2 := (a + b) * 0.5; var comp := a.distance_to(b); var ang := atan2(b.x - a.x, b.y - a.y)
+			var p := a.lerp(bb, float(i) / n); _caixa(cerca, Vector3(p.x, y + 0.6, p.y), Vector3(0.25, 1.2, 0.25))
+		var m2 := (a + bb) * 0.5; var comp := a.distance_to(bb); var ang := atan2(bb.x - a.x, bb.y - a.y)
 		for hh in [0.5, 1.0]:
 			var tr := _st(); _caixa(tr, Vector3(0, 0, 0), Vector3(0.12, 0.14, comp))
 			cerca.append_from(tr.commit(), 0, Transform3D(Basis(Vector3.UP, ang), Vector3(m2.x, y + hh, m2.y)))
@@ -1618,26 +1643,16 @@ func _estabulo_e_taverna(c: Vector2, y: float) -> void:
 	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto"]
 	for i in 3:
 		var cv := cavalo(cores[i]); raiz.add_child(cv)
-		cv.position = Vector3(e.x - 7.0 + i * 7.0, y, e.y + 8.0 + (i % 2) * 2.0); cv.rotation.y = 0.4 - i * 0.6
-		cv.set_meta("parado", true)
+		cv.position = Vector3(e.x - 5.0 + i * 6.5, y, e.y + 8.0 + (i % 2) * 2.0); cv.rotation.y = 0.4 - i * 0.6
 		_colisor_caixa(Vector3(cv.position.x, y, cv.position.z), Vector3(1.0, 1.8, 2.6), cv.rotation.y)
-	# o cavalariço (vende os cavalos)
-	var npc := Morador.new(); raiz.add_child(npc); npc.tipo = "forte"
-	var np := e + Vector2(-2.0, -2.0)
-	npc.position = Vector3(np.x, y, np.y)
-	npc.montar(self, 4242, np, 2.5)
+	# o cavalariço: parado na frente da casa, do lado do estábulo, olhando para a estrada
+	var npc := Morador.new(); npc.tipo = "forte"; npc.profissao = "cavalarico"
+	npc.posto = hc + Vector2(5.5, 6.0); npc.olhar_posto = npc.posto + Vector2(0.6, 5.0)
+	raiz.add_child(npc); npc.position = Vector3(npc.posto.x, y, npc.posto.y)
+	npc.montar(self, 4242, npc.posto, 1.0)
 	estabulo_npc = npc
-	# taverna grande com placa
-	var t := taverna_pos
-	var ang_t := PI                                                        # porta virada para a rua principal (norte)
-	_casa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, mat("parede"), mat("telha", 1.0, Color(0.32, 0.46, 0.9)), true)
-	_placa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, "taverna")
-	cidade_lojas.append(["taverna", t + Vector2(0, -7.0)])
-	var b := _st()
-	for k in 4: _caixa(b, Vector3(t.x - 6.0 + k * 1.1, y + 0.5, t.y - 7.0), Vector3(0.8, 1.0, 0.8))   # barris na porta
-	_peca(b, mat("madeira", 1.0, Color(0.7, 0.5, 0.35)), Vector3.ZERO)
-	# placa do estábulo (ferradura) num poste
-	var pp := e + Vector2(12.5, 2.0)
+	# placa do estábulo (ferradura) num poste, na quina do cercado virada para a estrada
+	var pp := e + Vector2(13.5, 16.0)
 	var pst := _st(); _caixa(pst, Vector3(pp.x, y + 1.6, pp.y), Vector3(0.25, 3.2, 0.25)); _peca(pst, madeira, Vector3.ZERO)
 	_placa(Vector3(pp.x - 0.3, y - 0.4, pp.y), PI * 0.5, 0.6, 0.6, 4.6, "estabulo")
 
@@ -2388,8 +2403,8 @@ func _modo_teste() -> void:
 			"porto_cidade": alvo = Vector2(Regiao.CIDADE.end.x + 22.0, cidade_pos.y + 30.0); olha = Vector2(Regiao.CIDADE.end.x + 120.0, cidade_pos.y - 10.0)
 			"portao_leste": alvo = Vector2(Regiao.CIDADE.end.x + 30.0, cidade_pos.y + 4.0); olha = Vector2(Regiao.CIDADE.end.x - 40.0, cidade_pos.y)
 			"alto": alvo = cidade_pos + Vector2(-260, 230); olha = cidade_pos
-			"estabulo": alvo = estabulo_pos + Vector2(2.0, 30.0); olha = estabulo_pos + Vector2(0, 2)
-			"cavalarico": alvo = estabulo_pos + Vector2(-2.0, 1.2); olha = estabulo_pos + Vector2(-2.0, -2.0)
+			"estabulo": alvo = estabulo_pos + Vector2(6.0, 34.0); olha = estabulo_pos + Vector2(-10.0, 0)
+			"cavalarico": alvo = estabulo_pos + Vector2(-19.0, 6.0); olha = estabulo_pos + Vector2(-19.5, 0.0)
 			"taverna": alvo = taverna_pos + Vector2(10.0, -26.0); olha = taverna_pos
 			"rua_oeste": alvo = cidade_pos + Vector2(-205.0, 0.0); olha = cidade_pos
 		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position
@@ -2402,6 +2417,16 @@ func _modo_teste() -> void:
 	if args.has("montar"):         # teste: aperta o botão de montar; com --montar=andar anda depois de montado
 		get_tree().create_timer(1.0).timeout.connect(func(): montaria_ui.alternar_montaria())
 		if String(args.montar) == "andar": get_tree().create_timer(3.0).timeout.connect(func(): controles.dir = Vector2(0, -1); controles.set_process(false))
+	if args.has("fluxo_cavalo"):   # teste: compra o cavalo branco, abre a bolsa, "toque duplo" nele e abre as montarias
+		get_tree().create_timer(1.2).timeout.connect(func():
+			bolsa.cobre = 500; print("COMPRA: '", bolsa.comprar("cavalo_branco"), "'"); inventario.abrir())
+		get_tree().create_timer(2.2).timeout.connect(func():
+			for k in bolsa.bolsas.size():
+				if bolsa.bolsas[k] == null: continue
+				for i in bolsa.bolsas[k].slots.size():
+					var sl = bolsa.bolsas[k].slots[i]
+					if sl != null and sl[0] == "cavalo_branco": inventario.usar_montaria(k, i); print("APRENDEU: ", bolsa.montarias); return)
+		get_tree().create_timer(3.0).timeout.connect(func(): inventario.fechar(); montaria_ui.abrir_menu("montarias"))
 	if args.has("personagem"): get_tree().create_timer(0.8).timeout.connect(func(): montaria_ui.abrir_menu(String(args.personagem)))
 	if args.has("loja_estabulo"):
 		get_tree().create_timer(2.5).timeout.connect(func():

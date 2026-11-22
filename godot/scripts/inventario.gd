@@ -105,14 +105,27 @@ func _janela_bolsa(k: int, b: Dictionary) -> PanelContainer:
 func _toque(e: InputEvent) -> bool:
 	return (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or (e is InputEventScreenTouch and e.pressed)
 
+func usar_montaria(k: int, i: int) -> void:
+	var id: String = m.bolsa.aprender_montaria(k, i)
+	if id == "": return
+	m.hud.avisar("Montaria adquirida: %s" % Bolsa.ITENS[id].nome, Color(0.12, 1.0, 0.0))
+	m.hud.anunciar("MONTARIA ADQUIRIDA", Bolsa.ITENS[id].nome)
+	m.bolsa.salvar(m.hud.nivel, m.hud.xp)
+
 # ---------- dica (tooltip) ----------
 func _esconder_dica() -> void:
 	if _dica: _dica.queue_free(); _dica = null
 
+var _ultimo_toque := [-1, -1, 0]       # bolsa, espaço, quando (para o toque duplo)
 func _tocar(k: int, i: int, alvo: Control) -> void:
 	var s = m.bolsa.slot(k, i)
 	if s == null: _esconder_dica(); return
 	var id: String = s[0]; var info := Bolsa.info(id)
+	var agora := Time.get_ticks_msec()
+	var duplo: bool = _ultimo_toque[0] == k and _ultimo_toque[1] == i and agora - int(_ultimo_toque[2]) < 450
+	_ultimo_toque = [k, i, agora]
+	if Bolsa.eh_montaria(id) and duplo and not modo_venda:       # toque duplo no cavalo: vira montaria
+		_esconder_dica(); usar_montaria(k, i); return
 	var botoes := []
 	if modo_venda: botoes.append(UI.botao("VENDER", func(): m.loja_ui.vender(k, i); _esconder_dica()))
 	if Bolsa.lugar_equip(id) != "": botoes.append(UI.botao("EQUIPAR", func():
@@ -174,6 +187,7 @@ func _mostrar_dica(id: String, qtd: int, alvo: Control, botoes: Array, equipada 
 		v.add_child(UI.rotulo("Requer nível %d" % info.nivel, 21, Color(1, 1, 1) if m.hud.nivel >= int(info.nivel) else Color(1, 0.3, 0.3)))
 	if equipada and info.has("tipo"): v.add_child(UI.rotulo("(equipado)", 20, Color(0.7, 0.7, 0.7)))
 	if info.pilha > 1: v.add_child(UI.rotulo("Pilha: %d / %d" % [qtd, info.pilha], 20, Color(0.8, 0.8, 0.8)))
+	if Bolsa.eh_montaria(id): v.add_child(UI.rotulo("Toque duas vezes para aprender esta montaria.", 20, Color(0.12, 1.0, 0.0)))
 	var d := UI.rotulo("\"%s\"" % info.desc, 21, UI.AMARELO); d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d.custom_minimum_size = Vector2(380, 0); v.add_child(d)
 	var pv := HBoxContainer.new(); pv.add_child(UI.rotulo("Preço de venda: ", 21))

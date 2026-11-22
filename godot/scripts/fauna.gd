@@ -8,9 +8,10 @@ var m
 var reg: Regiao
 var rng := RandomNumberGenerator.new()
 # rio: comprimento acumulado de cada ponto da linha
-var _acum := PackedFloat32Array()
-var _total := 0.0
-var _s_perto := 0.0            # ponto do rio mais perto da Rachel (metros ao longo do rio)
+# vale para os dois rios: [linha, comprimentos acumulados, total, largura(t), nível(t)]
+var _rios := []
+var _s_perto := [0.0, 0.0]     # ponto de cada rio mais perto da Rachel (metros ao longo do rio)
+var _rio_perto := 0            # o rio mais perto da Rachel (os cardumes renascem nele)
 var _t_proc := 0.0
 # peixes
 const MAX_PEIXES := 48
@@ -21,9 +22,11 @@ var bandos := []               # {pos, rumo, giro, alt, aves:[{no, asa_e, asa_d,
 
 func montar(mundo) -> void:
 	m = mundo; reg = m.reg; rng.seed = 2024
-	_acum.append(0.0)
-	for i in range(1, reg.rio.size()):
-		_total += reg.rio[i].distance_to(reg.rio[i - 1]); _acum.append(_total)
+	for par in [[reg.rio, reg.largura_rio, reg.nivel_rio], [reg.rio2, reg.largura_rio2, reg.nivel_rio2]]:
+		var linha: Array = par[0]; var acum := PackedFloat32Array([0.0]); var tot := 0.0
+		for i in range(1, linha.size()):
+			tot += linha[i].distance_to(linha[i - 1]); acum.append(tot)
+		_rios.append([linha, acum, tot, par[1], par[2]])
 	# peixes: um MultiMesh com um quadrado deitado por peixe
 	var pm := PlaneMesh.new(); pm.size = Vector2(1, 0.6)
 	_mm = MultiMesh.new(); _mm.transform_format = MultiMesh.TRANSFORM_3D; _mm.use_custom_data = true; _mm.mesh = pm
@@ -36,27 +39,29 @@ func montar(mundo) -> void:
 	for i in 3: bandos.append(_novo_bando(true))
 
 # ---------- rio ----------
-func _no_rio(s: float) -> Array:            # [ponto, direção, t (0..1)]
-	s = clampf(s, 0.0, _total - 0.01)
+func _no_rio(s: float, r := 0) -> Array:            # [ponto, direção, t (0..1)]
+	var linha: Array = _rios[r][0]; var acum: PackedFloat32Array = _rios[r][1]; var tot: float = _rios[r][2]
+	s = clampf(s, 0.0, tot - 0.01)
 	var i := 1
-	while i < _acum.size() - 1 and _acum[i] < s: i += 1
-	var a: Vector2 = reg.rio[i - 1]; var b: Vector2 = reg.rio[i]
-	var u := (s - _acum[i - 1]) / maxf(_acum[i] - _acum[i - 1], 0.01)
-	return [a.lerp(b, u), (b - a).normalized(), s / _total]
+	while i < acum.size() - 1 and acum[i] < s: i += 1
+	var a: Vector2 = linha[i - 1]; var b: Vector2 = linha[i]
+	var u := (s - acum[i - 1]) / maxf(acum[i] - acum[i - 1], 0.01)
+	return [a.lerp(b, u), (b - a).normalized(), s / tot]
 
-func _mais_perto_no_rio(p: Vector2) -> float:
+func _mais_perto_no_rio(p: Vector2, r := 0) -> Array:   # [metros ao longo do rio, distância]
+	var linha: Array = _rios[r][0]; var acum: PackedFloat32Array = _rios[r][1]
 	var melhor := 0.0; var md := 1e9
-	for i in range(1, reg.rio.size()):
-		var a: Vector2 = reg.rio[i - 1]; var b: Vector2 = reg.rio[i]
+	for i in range(1, linha.size()):
+		var a: Vector2 = linha[i - 1]; var b: Vector2 = linha[i]
 		var ab := b - a; var u := clampf((p - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
 		var d := p.distance_to(a + ab * u)
-		if d < md: md = d; melhor = _acum[i - 1] + ab.length() * u
-	return melhor
+		if d < md: md = d; melhor = acum[i - 1] + ab.length() * u
+	return [melhor, md]
 
 func _novo_cardume(lago: bool) -> Dictionary:
 	var r := rng.randf()
 	var grande := r < 0.3; var n := 1 if (grande or r > 0.82) else rng.randi_range(4, 6)
-	var c := {"lago": lago, "s": _s_perto + rng.randf_range(-55.0, 55.0), "ang": rng.randf() * TAU,
+	var c := {"lago": lago, "rio": _rio_perto, "s": _s_perto[_rio_perto] + rng.randf_range(-55.0, 55.0), "ang": rng.randf() * TAU,
 		"raio": rng.randf_range(Regiao.ILHA.z + 6.0, Regiao.LAGO.z - 7.0), "lado": rng.randf_range(-0.6, 0.6),
 		"alvo_lado": rng.randf_range(-0.7, 0.7), "dir": 1.0 if rng.randf() < 0.5 else -1.0,
 		"vel": rng.randf_range(0.35, 0.6) if grande else rng.randf_range(1.6, 2.6), "grande": grande, "membros": [],
@@ -114,7 +119,10 @@ func _process(delta: float) -> void:
 	_t_proc -= delta
 	if _t_proc <= 0.0:
 		_t_proc = 1.0
-		_s_perto = _mais_perto_no_rio(p2)
+		var md := 1e9
+		for r in _rios.size():
+			var res := _mais_perto_no_rio(p2, r); _s_perto[r] = res[0]
+			if res[1] < md: md = res[1]; _rio_perto = r
 		for i in cardumes.size():                    # cardume longe da Rachel renasce perto dela
 			var c: Dictionary = cardumes[i]
 			var cp := _centro_cardume(c)
@@ -130,7 +138,7 @@ func _process(delta: float) -> void:
 
 func _centro_cardume(c: Dictionary) -> Vector2:
 	if c.lago: return Vector2(Regiao.LAGO.x, Regiao.LAGO.y) + Vector2(cos(c.ang), sin(c.ang)) * c.raio
-	return _no_rio(c.s)[0]
+	return _no_rio(c.s, c.rio)[0]
 
 func _peixes(delta: float, p2: Vector2) -> void:
 	var idx := 0
@@ -153,12 +161,13 @@ func _peixes(delta: float, p2: Vector2) -> void:
 			dir = Vector2(-q.y, q.x) * c.dir; y = reg.nivel_lago() - 0.08; meia = 0.0
 		else:
 			c.s += c.dir * vel * delta
-			if c.s < 5.0 or c.s > _total - 5.0: c.dir = -c.dir
-			var r := _no_rio(c.s)
+			var rio: Array = _rios[c.rio]
+			if c.s < 5.0 or c.s > float(rio[2]) - 5.0: c.dir = -c.dir
+			var r := _no_rio(c.s, c.rio)
 			var t: float = r[2]
-			meia = reg.largura_rio(t) * 0.5 - 1.3
+			meia = float(rio[3].call(t)) * 0.5 - 1.3
 			var nrm := Vector2(-r[1].y, r[1].x)
-			centro = r[0] + nrm * c.lado * meia; dir = r[1] * c.dir; y = reg.nivel_rio(t) - 0.08
+			centro = r[0] + nrm * c.lado * meia; dir = r[1] * c.dir; y = float(rio[4].call(t)) - 0.08
 		if centro.distance_to(p2) > 120.0: continue
 		var lado := Vector2(-dir.y, dir.x)
 		for mb in c.membros:

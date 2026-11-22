@@ -147,16 +147,28 @@ static func eh_montaria(id: String) -> bool: return ITENS[id].get("tipo_m", "") 
 
 func comprar(id: String) -> String:
 	var preco: int = ITENS[id].compra
-	if eh_montaria(id):
-		if id in montarias: return "Você já tem essa montaria."
-		if cobre < preco: return "Dinheiro insuficiente."
-		cobre -= preco; montarias.append(id)
-		if montaria_sel == "": montaria_sel = id
-		mudou.emit(); return ""
+	if eh_montaria(id) and tem_montaria(id): return "Você já tem essa montaria."
 	if cobre < preco: return "Dinheiro insuficiente."
 	if not cabe(id, 1): return "Suas bolsas estão cheias."
 	cobre -= preco; pegar(id, 1)
 	return ""
+
+# montaria: já aprendida ou ainda na bolsa (comprada e não usada)
+func tem_montaria(id: String) -> bool:
+	if id in montarias: return true
+	for b in bolsas:
+		if b == null: continue
+		for s in b.slots: if s != null and s[0] == id: return true
+	return false
+
+# usar o cavalo da bolsa (toque duplo): some da bolsa e vira montaria (vai para o menu do personagem)
+func aprender_montaria(b: int, i: int) -> String:
+	var s = slot(b, i)
+	if s == null or not eh_montaria(s[0]): return ""
+	bolsas[b].slots[i] = null
+	if not s[0] in montarias: montarias.append(s[0])
+	mudou.emit()
+	return s[0]
 
 # equipa a bolsa que está no espaço (b, i) num lugar de bolsa vazio
 func equipar_bolsa(b: int, i: int) -> String:

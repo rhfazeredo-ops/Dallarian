@@ -418,6 +418,15 @@ func _beira_agua() -> void:
 			var t := (float(i) + u) / (reg.rio.size() - 1)
 			var nrm := Vector2(-(b - a).normalized().y, (b - a).normalized().x)
 			for lado in [-1.0, 1.0]: pontos.append([p, nrm * lado, reg.largura_rio(t) * 0.5])
+	for i in reg.rio2.size() - 1:                         # rio do leste (das montanhas até o mar)
+		var a: Vector2 = reg.rio2[i]; var b: Vector2 = reg.rio2[i + 1]
+		var n := int(a.distance_to(b) / 1.5)
+		var t0: float = reg._rio2_comp[i]; var t1: float = reg._rio2_comp[i + 1]
+		for k in n:
+			var u := float(k) / n; var p := a.lerp(b, u)
+			if p.distance_to(Regiao.CIDADE_C) < Regiao.CIDADE_R + 30.0 and absf(p.y - Regiao.CIDADE_C.y) < 30.0: continue   # limpo na ponte
+			var nrm := Vector2(-(b - a).normalized().y, (b - a).normalized().x)
+			for lado in [-1.0, 1.0]: pontos.append([p, nrm * lado, reg.largura_rio2(lerpf(t0, t1, u)) * 0.5])
 	var lc := Vector2(Regiao.LAGO.x, Regiao.LAGO.y)
 	for k in 300:
 		var a := TAU * k / 300.0; var d := Vector2(cos(a), sin(a))

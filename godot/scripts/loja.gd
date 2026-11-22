@@ -120,7 +120,7 @@ func _celula(it: Array) -> Control:
 	nome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(nome)
 	var preco: int = it[2]
 	var pode: bool = m.bolsa.cobre >= preco
-	if Bolsa.eh_montaria(id) and id in m.bolsa.montarias: v.add_child(UI.rotulo("Já é sua", 22, Color(0.6, 0.9, 0.5)))
+	if Bolsa.eh_montaria(id) and m.bolsa.tem_montaria(id): v.add_child(UI.rotulo("Já é sua", 22, Color(0.6, 0.9, 0.5)))
 	else:
 		var d := UI.dinheiro(preco, 22, UI.TEXTO if pode else Color(1, 0.3, 0.3))   # só o número fica vermelho
 		v.add_child(d)
@@ -136,7 +136,7 @@ func _comprar(it: Array) -> void:
 	else: erro = m.bolsa.comprar(it[0])
 	if erro != "": m.hud.avisar(erro, Color(1, 0.35, 0.3)); return
 	m.hud.avisar("Comprou: %s" % Bolsa.ITENS[it[0]].nome, Color(1, 1, 1))
-	if Bolsa.eh_montaria(it[0]): m.hud.avisar("Nova montaria! Escolha no menu do personagem e use o botão da ferradura.", Color(0.6, 0.9, 0.5))
+	if Bolsa.eh_montaria(it[0]): m.hud.avisar("Está na sua bolsa: toque duas vezes nele para aprender a montaria.", Color(0.12, 1.0, 0.0))
 	var fc: Array = cfg.get("falas_compra", FALAS_COMPRA)
 	if it[3] < 0: m.interacao._fala_npc(cfg.get("nome", "Bram"), fc[randi() % fc.size()])
 
