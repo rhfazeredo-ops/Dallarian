@@ -85,7 +85,7 @@ func _bloco(c: Dictionary, k: Vector2i) -> MultiMeshInstance3D:
 		if h < m.reg.agua(x, z) - 0.05: continue
 		var s := rng.randf_range(c.tam.x, c.tam.y)
 		var p: Vector3 = Vector3(x, h, z) + nrm * (c.alt + rng.randf() * c.alt)
-		itens.append([_transf(p, nrm, s, s * rng.randf_range(0.45, 1.0), rng.randf() * TAU), pincel(rng, x, z, h, nrm.y), 0.0])
+		itens.append([_transf(p, nrm, s, s * rng.randf_range(0.45, 1.0), rng.randf() * TAU), pincel(rng, x, z, h, nrm.y), 0.0, c.raio])
 		if c.flores and rng.randf() < 0.006:
 			var cor: Color = m.cor_chao(x, z, h, nrm.y)
 			if cor.g > cor.r and m._dist_estrada(Vector2(x, z)) > 3.0 and Vector2(x, z).length() > 18.0:
@@ -93,7 +93,7 @@ func _bloco(c: Dictionary, k: Vector2i) -> MultiMeshInstance3D:
 				for j in rng.randi_range(3, 6):
 					var q := Vector3(x + rng.randf_range(-0.3, 0.3), 0, z + rng.randf_range(-0.3, 0.3))
 					q.y = m.altura_malha(q.x, q.z) + 0.13
-					itens.append([_transf(q, nrm, 0.09, 0.09, 0.0), fl * rng.randf_range(0.9, 1.1), 0.0])
+					itens.append([_transf(q, nrm, 0.09, 0.09, 0.0), fl * rng.randf_range(0.9, 1.1), 0.0, c.raio])
 	return _multimesh(itens) if not itens.is_empty() else null
 
 func _multimesh(itens: Array) -> MultiMeshInstance3D:
@@ -104,7 +104,7 @@ func _multimesh(itens: Array) -> MultiMeshInstance3D:
 	for i in itens.size():
 		var it: Array = itens[i]
 		mm.set_instance_transform(i, it[0]); mm.set_instance_color(i, it[1])
-		mm.set_instance_custom_data(i, Color(it[2], 0, 0, 0))
+		mm.set_instance_custom_data(i, Color(it[2], it[3] if it.size() > 3 else 0.0, 0, 0))   # r = água, g = alcance da camada
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi); return mi

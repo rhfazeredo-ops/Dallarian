@@ -30,8 +30,15 @@ void vertex() {
   agua = INSTANCE_CUSTOM.r;
   vec3 luz = luz_amb + luz_sol * max(dot(n, normalize(sol)), 0.0);
   cor = COLOR.rgb * mix(luz, vec3(1.0), agua) * (1.0 + relampago * 0.7);
-  // tamanho fixo (antes encolhiam perto da câmera: andando, as manchas cresciam e encolhiam como bolhas no chão)
-  wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+  // tamanho fixo perto (sem "bolhas"); na BORDA do alcance da camada a mancha some aos poucos (encolhe até zero),
+  // assim os blocos que entram e saem em volta da Rachel nunca aparecem de repente
+  float raio = INSTANCE_CUSTOM.g;
+  float k = 1.0;
+  if (raio > 0.0) {
+    vec2 dc = MODEL_MATRIX[3].xz - CAMERA_POSITION_WORLD.xz;
+    k = 1.0 - smoothstep(raio * 0.62, raio * 0.92, length(dc));
+  }
+  wpos = (MODEL_MATRIX * vec4(VERTEX * vec3(k, 1.0, k), 1.0)).xyz;
   vec4 vp = VIEW_MATRIX * vec4(wpos, 1.0);
   POSITION = PROJECTION_MATRIX * vp;
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);

@@ -116,3 +116,4 @@
 - **Música de Altamar** ("The White City Gates"): toca ao atravessar os muros da cidade; saindo, volta a música do vale.
 - **Imagem mais estável**: o "tremido PS1" dos vértices agora vem desligado (opção no menu); texturas com mipmap
   (de longe não cintilam); manchas do chão com tamanho fixo (andando, não crescem e encolhem como bolhas).
+- Manchinhas do chão não "brotam" mais: na borda do alcance elas crescem e somem aos poucos enquanto a Rachel anda.
