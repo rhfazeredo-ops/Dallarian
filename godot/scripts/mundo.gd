@@ -2592,6 +2592,10 @@ func _modo_teste() -> void:
 				P.get_monitor(P.TIME_PHYSICS_PROCESS) * 1000.0, P.get_monitor(P.OBJECT_NODE_COUNT)]))
 	if args.has("mapa"): get_tree().create_timer(1.5).timeout.connect(func(): mapa.alternar())
 	if args.has("vista"): menu.aplicar_distancia(float(args.vista))
+	if args.has("limpo"):          # teste/arte: esconde toda a interface (só o mundo) e os braços
+		get_tree().create_timer(0.5).timeout.connect(func():
+			for c in get_children(): if c is CanvasLayer: c.visible = false
+			jogador.mao.visible = false)
 	if args.has("menu"): get_tree().create_timer(1.5).timeout.connect(func(): menu._abrir_config() if args.menu == "config" else menu._abrir_principal())
 	if args.has("monstro"):        # teste: um monstro parado na frente da câmera numa animação (--monstro=golem --manim=soco:0.6)
 		var pj := Vector2(-30, 62); var tp: String = args.monstro
@@ -2629,6 +2633,7 @@ func _modo_teste() -> void:
 			"porto_cidade": alvo = Vector2(Regiao.CIDADE.end.x + 22.0, cidade_pos.y + 30.0); olha = Vector2(Regiao.CIDADE.end.x + 120.0, cidade_pos.y - 10.0)
 			"portao_leste": alvo = Vector2(Regiao.CIDADE.end.x + 30.0, cidade_pos.y + 4.0); olha = Vector2(Regiao.CIDADE.end.x - 40.0, cidade_pos.y)
 			"alto": alvo = cidade_pos + Vector2(-260, 230); olha = cidade_pos
+			"arte": alvo = cidade_pos + Vector2(-420, 150); olha = cidade_pos + Vector2(0, -40)
 			"estabulo": alvo = estabulo_pos + Vector2(6.0, 34.0); olha = estabulo_pos + Vector2(-10.0, 0)
 			"cercado": alvo = estabulo_pos + Vector2(1.0, 21.0); olha = estabulo_pos + Vector2(1.0, 9.0)
 			"freira_vila", "freira_cidade":
@@ -2643,7 +2648,7 @@ func _modo_teste() -> void:
 			"rua_oeste": alvo = cidade_pos + Vector2(-205.0, 0.0); olha = cidade_pos
 		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position
 		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)
-		if String(args.ir) == "alto": jogador.global_position.y += 60.0; jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35
+		if String(args.ir) == "alto" or String(args.ir) == "arte": jogador.global_position.y += (60.0 if args.ir == "alto" else 48.0); jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35 if args.ir == "alto" else -0.2
 		if args.has("subir"): jogador.global_position.y += float(args.subir); jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.6"))
 	if args.has("dar_cavalos"):    # teste: dá as três montarias (e dinheiro)
 		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]: if not id in bolsa.montarias: bolsa.montarias.append(id)

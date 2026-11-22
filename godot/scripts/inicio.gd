@@ -35,6 +35,11 @@ func _ready() -> void:
 	if OS.has_feature("android") or args.has("--atualizar"):
 		await _procurar(embutida)
 	_usar_pacote(embutida)
+	if OS.get_cmdline_user_args().has("--parar_inicio"):                 # teste: print da tela de início e sai
+		_texto.text = "Baixando atualização (versão 97)..."; _barra.visible = true; _barra.value = 42
+		for k in 6: await RenderingServer.frame_post_draw
+		for x in OS.get_cmdline_user_args(): if x.begins_with("--shot="): get_viewport().get_texture().get_image().save_png(x.trim_prefix("--shot="))
+		get_tree().quit(); return
 	get_tree().change_scene_to_file(CENA)
 
 # só para testar no PC atrás de um proxy (--proxy=host:porta --ca=arquivo.crt); no celular não usa

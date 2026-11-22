@@ -2,6 +2,8 @@
 config_version=5
 
 [application]
+
+config/icon="res://assets/ui/icone.png"
 config/name="Dallarian"
 run/main_scene="res://cenas/inicio.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")

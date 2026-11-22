@@ -121,3 +121,5 @@
   jogo) e volta ao abrir. Sem internet, segue com o save do aparelho.
 - **Atualização automática do APK**: ao abrir, o jogo confere se há versão nova e baixa só o pacote do jogo (não
   precisa mais mandar APK novo). **Save na nuvem** por perfil anônimo do aparelho (sem cadastro).
+- **Tela de carregamento** com a arte de Altamar ao pôr do sol e **ícone do jogo** (escudo dourado com o castelo e a
+  espada) no APK e no site.
