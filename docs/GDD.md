@@ -128,6 +128,8 @@ Região de **2,4 × 2,4 km** (tamanho de uma zona grande de MMO) com limites nat
   sem parar; o chão treme perto dele. Soco e PANCADA com as duas mãos no chão (dano em área de 9 m, mais forte
   perto). Barra verde do golpe em cima da cabeça (enche até o instante do golpe) e barra de vida grande no alto da tela.
   Drops: Coração de barro do Grumo (sempre), dinheiro, chance de espada de ferro e bolsa de 16.
+- **Na bússola:** o Grumo é a única criatura que aparece nela, em vermelho, quando a Rachel está a até 160 m (pulsa mais
+  rápido quanto mais perto; fora da vista fica preso na ponta da bússola).
 - **Renascer:** monstros normais voltam 5 min depois de morrer, no mesmo lugar (esperam a Rachel se afastar 45 m);
   o Grumo volta 1 hora depois, no ponto da volta mais longe da Rachel.
 

@@ -1841,6 +1841,10 @@ func _modo_teste() -> void:
 		var gp := golem.global_position
 		golem.vida = 0.0; golem._mudar("morto"); golem.remove_from_group("lobos"); monstro_morreu(golem)
 		print("GOLEM morreu em ", gp)
+	if args.has("perto_golem") and golem:
+		var gp := Vector2(golem.global_position.x, golem.global_position.z) + Vector2(70, 40)
+		jogador.global_position = Vector3(gp.x, altura(gp.x, gp.y) + 0.3, gp.y); _ultima = jogador.global_position
+		var dg := Vector2(golem.global_position.x, golem.global_position.z) - gp; jogador.rotation.y = atan2(-dg.x, -dg.y) + 0.3
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

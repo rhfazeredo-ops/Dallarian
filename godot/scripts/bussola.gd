@@ -85,8 +85,40 @@ func _draw() -> void:
 		var x := cx + rel * px_por_grau
 		var fade := 1.0 - pow(abs(rel) / (CAMPO * 0.5), 2.0)
 		_icone(l[2], Vector2(x, meio - 1), conhecido, fade * 0.9)
+	# chefe: a única criatura que aparece na bússola, em vermelho, quando a Rachel está a até 160 m dele
+	var ch = m.get("golem")
+	if ch and is_instance_valid(ch) and ch.estado != "morto":
+		var dc: Vector2 = Vector2(ch.global_position.x, ch.global_position.z) - p
+		if dc.length() < 160.0 and dc.length() > 4.0:
+			var relc := wrapf(rad_to_deg(atan2(dc.x, -dc.y)) - rumo, -180.0, 180.0)
+			relc = clampf(relc, -CAMPO * 0.5 + 6.0, CAMPO * 0.5 - 6.0)          # fora da vista: fica preso na ponta
+			_icone_chefe(Vector2(cx + relc * px_por_grau, meio - 2), dc.length())
 	# marcador do centro: um tracinho
 	draw_line(Vector2(cx, meio + 12), Vector2(cx, meio + 20), Color(1, 0.86, 0.55, 0.85), 2.0)
+
+# ícone do chefe: arte em assets/ui/icones/chefe.png (pintada de vermelho); sem a arte, uma caveira vermelha.
+# Pulsa mais rápido quanto mais perto.
+func _icone_chefe(c: Vector2, dist: float) -> void:
+	var pulso := 0.85 + 0.15 * sin(Time.get_ticks_msec() * 0.001 * lerpf(9.0, 3.0, clampf(dist / 160.0, 0.0, 1.0)))
+	var t := 40.0 * pulso
+	if not _icones.has("chefe"):
+		var cam := "res://assets/ui/icones/chefe.png"
+		_icones["chefe"] = load(cam) if ResourceLoader.exists(cam) else null
+	var tx: Texture2D = _icones["chefe"]
+	var vermelho := Color(1.0, 0.18, 0.12)
+	if tx:
+		var r := Rect2(c - Vector2(t, t) * 0.5, Vector2(t, t))
+		draw_texture_rect(tx, Rect2(r.position + Vector2(2, 2), r.size), false, Color(0, 0, 0, 0.7))
+		draw_texture_rect(tx, r, false, vermelho.lightened(0.15))
+		return
+	var k := t / 40.0
+	draw_circle(c + Vector2(1.5, 1.5), 15.0 * k, Color(0, 0, 0, 0.7))
+	draw_circle(c + Vector2(0, -2) * k, 14.0 * k, vermelho)                       # crânio
+	draw_rect(Rect2(c + Vector2(-8, 6) * k, Vector2(16, 8) * k), vermelho)        # queixo
+	draw_circle(c + Vector2(-5.5, -2) * k, 4.2 * k, Color(0.12, 0.02, 0.02))      # olhos
+	draw_circle(c + Vector2(5.5, -2) * k, 4.2 * k, Color(0.12, 0.02, 0.02))
+	draw_colored_polygon(PackedVector2Array([c + Vector2(0, 2) * k, c + Vector2(-2, 6) * k, c + Vector2(2, 6) * k]), Color(0.12, 0.02, 0.02))
+	for dx in [-5.0, 0.0, 5.0]: draw_line(c + Vector2(dx, 8) * k, c + Vector2(dx, 14) * k, Color(0.12, 0.02, 0.02), 1.5 * k)
 
 # ícones simples desenhados em linhas (conhecido: cheio e claro; desconhecido: só contorno, apagado)
 func _icone(tipo: String, c: Vector2, aceso: bool, fade: float) -> void:
