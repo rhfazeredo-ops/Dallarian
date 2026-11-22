@@ -2651,6 +2651,8 @@ func _modo_teste() -> void:
 		get_tree().create_timer(3.2).timeout.connect(func(): toque.call(false, controles._pos_trava()))
 		get_tree().create_timer(3.6).timeout.connect(func(): toque.call(true, controles._centro_fixo()); arrasta.call(controles._centro_fixo() + Vector2(90, 0)))
 		get_tree().create_timer(5.0).timeout.connect(func(): print("AUTO: ", controles.auto, " dir ", controles.dir, " pos ", jogador.global_position.round()))
+	if args.has("musica"):
+		get_tree().create_timer(5.0).timeout.connect(func(): print("MUSICA cidade=%s vale=%.0f dB (pausada=%s) cidade=%.0f dB" % [_na_cidade, _mus_vale.volume_db, _mus_vale.stream_paused, _mus_cidade.volume_db if _mus_cidade else -99.0]))
 	if args.has("morrer"): get_tree().create_timer(2.0).timeout.connect(func(): hud.vida = 1.0; ferir_heroina(50.0, jogador.global_position + Vector3(0, 0, -2), 1))
 	if args.has("loja_freira"):
 		get_tree().create_timer(3.0).timeout.connect(func(): bolsa.cobre = 500; print("NPC: ", interacao._tipo_npc); interacao._abrir_loja())
