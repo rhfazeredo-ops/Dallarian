@@ -1,5 +1,6 @@
 name: Gerar APK
-# A cada envio ao main: exporta a versão Godot para Android e publica em Releases (tag "apk").
+# A cada envio ao main: exporta a versão Godot para Android e publica em Releases (tag "apk"): o APK, o pacote do
+# jogo (dallarian.pck) e o versao.json — o APK instalado confere o versao.json ao abrir e baixa o pacote novo.
 on:
   push:
     branches: [main]
@@ -38,12 +39,17 @@ jobs:
           EOT
           sed -i 's/^ *//' ~/.config/godot/editor_settings-4.5.tres
       - run: |
+          # número da versão (aumenta a cada execução): vai dentro do APK e no versao.json da Release
+          echo "{\"n\": ${GITHUB_RUN_NUMBER}}" > godot/versao.json
           cd godot && godot --headless --import || true
           mkdir -p ../dist && godot --headless --export-debug "Android" ../dist/dallarian.apk
-          ls -la ../dist
+          # pacote do jogo (sem o "motor"): o APK já instalado baixa só ele e atualiza sozinho ao abrir
+          godot --headless --export-pack "Android" ../dist/dallarian.pck
+          echo "{\"n\": ${GITHUB_RUN_NUMBER}, \"tamanho\": $(stat -c %s ../dist/dallarian.pck)}" > ../dist/versao.json
+          cat ../dist/versao.json; ls -la ../dist
       - name: Publicar em Releases
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           gh release delete apk --yes --cleanup-tag || true
-          gh release create apk dist/dallarian.apk --prerelease --title "Dallarian — APK de teste" \
+          gh release create apk dist/dallarian.apk dist/dallarian.pck dist/versao.json --prerelease --title "Dallarian — APK de teste" \
             --notes "Gerado a partir do commit ${GITHUB_SHA::7}."

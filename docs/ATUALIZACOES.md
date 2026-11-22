@@ -119,3 +119,5 @@
 - Manchinhas do chão não "brotam" mais: na borda do alcance elas crescem e somem aos poucos enquanto a Rachel anda.
 - **Save na nuvem (Supabase)** com login anônimo: o progresso vai para o banco (no máximo a cada 30 s e ao sair do
   jogo) e volta ao abrir. Sem internet, segue com o save do aparelho.
+- **Atualização automática do APK**: ao abrir, o jogo confere se há versão nova e baixa só o pacote do jogo (não
+  precisa mais mandar APK novo). **Save na nuvem** por perfil anônimo do aparelho (sem cadastro).
