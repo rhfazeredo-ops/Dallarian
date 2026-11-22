@@ -97,3 +97,4 @@
 - Floresta e juncos um pouco mais leves no celular; o ferreiro não é mais procurado a cada quadro.
 - **Rig dos cavalos**: as patas andam (trote em diagonal, joelho dobrando), o pescoço balança no passo e o rabo
   mexe; parados, respiram e mexem a cabeça e o rabo devagar. Vale para os 4 cavalos, no cercado e montada.
+- Martelada do ferreiro com metade do volume.

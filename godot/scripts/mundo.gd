@@ -552,7 +552,7 @@ func _profissionais() -> void:
 		var som := AudioStreamPlayer3D.new(); som.position = Vector3(big.x, yb + 1.0, big.y)
 		# volume cheio até ~6 m da bigorna; depois cai aos poucos (ouve-se baixinho chegando na ferraria)
 		som.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
-		som.unit_size = 6.0; som.max_distance = 75.0; som.volume_db = -4.5; som.bus = "Efeitos"
+		som.unit_size = 6.0; som.max_distance = 75.0; som.volume_db = -10.5; som.bus = "Efeitos"   # metade do volume de antes (-4,5 dB → -10,5 dB)
 		som.attenuation_filter_cutoff_hz = 6000.0; som.attenuation_filter_db = -8.0   # de longe fica um pouco abafado
 		raiz.add_child(som)
 		var batidas := []
