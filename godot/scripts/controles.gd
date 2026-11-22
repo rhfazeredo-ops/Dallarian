@@ -7,6 +7,8 @@ class_name Controles
 var dir := Vector2.ZERO
 var _olhar := Vector2.ZERO
 var _pulo := false
+var _alvo := false
+var _tab_antes := false
 var _ataque := false
 var _seg := {}                 # botões de segurar apertados agora
 var ataque_mouse := false
@@ -26,6 +28,7 @@ func _ready() -> void:
 	_botao("BLOQUEAR", -575, -240, 180, "bloquear")
 	_botao("CORRER", -300, -540, 165, "correr")
 	_botao("PULAR", -520, -455, 150, "pular")
+	_botao("ALVO", -190, -720, 130, "alvo")
 	_base = load("res://assets/ui/joystick_base.png"); _pino = load("res://assets/ui/joystick_pino.png")
 	fps = Label.new(); fps.position = Vector2(24, 18); fps.add_theme_font_size_override("font_size", 30)
 	fps.add_theme_color_override("font_outline_color", Color.BLACK); fps.add_theme_constant_override("outline_size", 8)
@@ -37,7 +40,8 @@ func _botao(_txt: String, x: float, y: float, t: float, nome: String) -> void:
 	b.offset_left = x; b.offset_top = y; b.offset_right = x + t; b.offset_bottom = y + t
 	b.apertou.connect(func():
 		_seg[nome] = true
-		if nome == "pular": _pulo = true)
+		if nome == "pular": _pulo = true
+		if nome == "alvo": _alvo = true)
 	b.soltou.connect(func(): _seg[nome] = false)
 	add_child(b)
 
@@ -65,6 +69,9 @@ func _input(e: InputEvent) -> void:
 
 func _process(_d: float) -> void:
 	fps.text = "%d FPS" % Engine.get_frames_per_second()
+	var tab := Input.is_key_pressed(KEY_TAB)                 # Tab trava/solta a mira (PC)
+	if tab and not _tab_antes: _alvo = true
+	_tab_antes = tab
 	if _dedo != -1: return
 	var k := Vector2(Input.get_axis("ui_left", "ui_right"), Input.get_axis("ui_up", "ui_down"))
 	if Input.is_key_pressed(KEY_A): k.x -= 1
@@ -76,6 +83,8 @@ func _process(_d: float) -> void:
 
 func consumir_olhar() -> Vector2:
 	var v := _olhar; _olhar = Vector2.ZERO; return v
+func consumir_alvo() -> bool:
+	var v := _alvo; _alvo = false; return v
 func consumir_pulo() -> bool:
 	var v := _pulo; _pulo = false; return v
 func atacando() -> bool: return _seg.get("atacar", false) or ataque_mouse

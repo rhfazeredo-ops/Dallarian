@@ -160,6 +160,8 @@ func _physics_process(delta: float) -> void:
 	velocity = Vector3(v2.x, 0, v2.y)
 	if tipo == "golem" and estado == "vagar": global_position += velocity * delta     # o chefe passa por cima de tudo
 	else: move_and_slide()
+	if m.na_agua(global_position.x, global_position.z) and not m.na_agua(p.x, p.y):   # não entra na água
+		global_position.x = p.x; global_position.z = p.y
 	global_position.y = m.altura_malha(global_position.x, global_position.z)
 	var foco := olhar if olhar != Vector2.ZERO else p + v2
 	if (foco - p).length() > 0.05:

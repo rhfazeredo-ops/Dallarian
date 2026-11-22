@@ -136,7 +136,7 @@ func _lobos() -> void:
 	var montanha := []; var mata := []
 	for i in 12000:
 		var q := Vector2(rng.randf_range(Regiao.X0 + 60, Regiao.X1 - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
-		if q.length() < 120.0 or reg.folga_caminho(q.x, q.y) < 12.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if q.length() < 120.0 or reg.folga_caminho(q.x, q.y) < 12.0 or reg.agua(q.x, q.y) != 0.0 or reg.altura(q.x, q.y) < 1.0 or reg.dist_rio(q.x, q.y) < 20.0: continue
 		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
 		var longe_barraca := true
 		for b in barracas: if q.distance_to(b) < 60.0: longe_barraca = false
@@ -148,7 +148,7 @@ func _lobos() -> void:
 		if h0 - reg.base(q.y) > 5.0: montanha.append(q)
 		elif reg.floresta(q.x, q.y) > 0.6: mata.append(q)
 	var escolhidos := []
-	for lista in [[montanha, "branco", 22], [mata, "marrom", 36]]:
+	for lista in [[montanha, "branco", 34], [mata, "marrom", 54]]:
 		var cands: Array = lista[0]; var feitos := 0
 		cands.shuffle()
 		for q in cands:
@@ -177,7 +177,7 @@ func _lobos() -> void:
 		_matilha(q, "marrom", rng, true)
 
 func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator, pequena := false) -> void:
-	var n := 3 if pequena else rng.randi_range(4, 6)
+	var n := 3 if pequena else rng.randi_range(2, 3)             # no máximo 3 lobos por grupo
 	var g := {"casa": c, "membros": [], "alerta": false, "atacante": null, "tipo": tipo}
 	# nível: marrons (floresta) 2–3, brancos (montanha) 4–6; o líder um nível acima do maior
 	var nv_min := 2 if tipo == "marrom" else 4; var nv_max := 3 if tipo == "marrom" else 6
@@ -187,6 +187,7 @@ func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator, pequena := f
 		var lider := i == 0 and not pequena
 		var a := TAU * i / n + rng.randf() * 0.4; var r := 0.0 if i == 0 else rng.randf_range(3.0, 6.0)
 		var p := c + Vector2(cos(a), sin(a)) * r
+		p = ponto_seco(p, c)
 		raiz.add_child(lobo); lobo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 		lobo.vaga = TAU * i / n
 		lobo.nivel = nv_max + 1 if lider else rng.randi_range(nv_min, nv_max)
@@ -257,6 +258,22 @@ func _desmaiar() -> void:
 	tw.tween_callback(func(): _tela_dano.color = Color(0.7, 0, 0, 1); heroina_desmaiada = false)
 
 # lobo morto: XP (o líder dá um pouco mais) e deixa dentes e garras na bolsa
+# nenhum monstro pode ficar dentro d'água (rio, lago, canal, fosso, mar ou poças do pântano)
+func na_agua(x: float, z: float) -> bool:
+	var h := altura_malha(x, z)
+	if h < 0.35: return true                                          # mar e pântano (nível 0)
+	var nv := reg.agua(x, z)
+	if nv != 0.0 and h < nv + 0.15: return true
+	return false
+# um ponto em terra seca perto de "p" (procura em volta de "centro" se p estiver na água)
+func ponto_seco(p: Vector2, centro: Vector2) -> Vector2:
+	if not na_agua(p.x, p.y): return p
+	for k in 60:
+		var a := k * 2.4; var r := 3.0 + k * 1.2
+		var q := centro + Vector2(cos(a), sin(a)) * r
+		if not na_agua(q.x, q.y) and not na_agua(q.x + 2.0, q.y) and not na_agua(q.x - 2.0, q.y) and not na_agua(q.x, q.y + 2.0) and not na_agua(q.x, q.y - 2.0): return q
+	return p
+
 # ---------- monstros novos ----------
 # aranhas: uma só por lugar, na mata fechada, longe umas das outras (nível 3–5)
 func _aranhas() -> void:
@@ -265,7 +282,7 @@ func _aranhas() -> void:
 	for i in 14000:
 		if feitos.size() >= 42: break
 		var q := Vector2(rng.randf_range(Regiao.X0 + 60, Regiao.X1 - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
-		if q.length() < 170.0 or reg.floresta(q.x, q.y) < 0.6 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if q.length() < 170.0 or reg.altura(q.x, q.y) < 1.5 or reg.dist_rio(q.x, q.y) < 18.0 or reg.floresta(q.x, q.y) < 0.6 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if perto_de_lugar(q.x, q.y, 25.0) or reg.altura(q.x, q.y) - reg.base(q.y) > 6.0: continue
 		var ok := true
 		for f in feitos: if q.distance_to(f) < 90.0: ok = false
@@ -273,6 +290,7 @@ func _aranhas() -> void:
 		if not ok: continue
 		feitos.append(q)
 		var a := Aranha.new(); a.grupo = {"casa": q, "membros": [a], "alerta": false, "tipo": "aranha"}
+		q = ponto_seco(q, q); a.grupo.casa = q
 		raiz.add_child(a); a.position = Vector3(q.x, altura_malha(q.x, q.y), q.y)
 		a.montar(self, rng.randi_range(3, 5), rng.randi()); a.rotation.y = rng.randf() * TAU
 		matilhas.append(a.grupo)
@@ -310,6 +328,7 @@ func _lodosos() -> void:
 		for j in 3:
 			var mo := Monstro.new(); mo.grupo = g
 			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.0)
+			p = ponto_seco(p, q)
 			raiz.add_child(mo); mo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 			mo.montar(self, "lodoso_g" if j == 0 else "lodoso_j", rng.randi_range(3, 4) if j == 0 else rng.randi_range(2, 3), rng.randi())
 			mo.rotation.y = rng.randf() * TAU
@@ -397,13 +416,15 @@ func _agendar_volta(mo: Node) -> void:
 		f = func() -> Node3D:
 			var l := Lobo.new(); l.grupo = g; l.nivel = nv; l.vaga = vg
 			var a := randf() * TAU; var p := casa + Vector2(cos(a), sin(a)) * (0.0 if ld else randf_range(2.0, 5.0))
+			p = ponto_seco(p, casa)
 			raiz.add_child(l); l.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 			l.montar(self, tp, ld, randi()); return l
 	elif mo is Aranha:
 		var nv: int = mo.nivel
 		f = func() -> Node3D:
 			var a := Aranha.new(); a.grupo = g
-			raiz.add_child(a); a.position = Vector3(casa.x, altura_malha(casa.x, casa.y), casa.y)
+			var pa := ponto_seco(casa, casa)
+			raiz.add_child(a); a.position = Vector3(pa.x, altura_malha(pa.x, pa.y), pa.y)
 			a.montar(self, nv, randi()); return a
 	elif mo is Monstro and mo.tipo == "golem":
 		var rota: Array = mo.rota; var nm: String = mo.nome; var nv: int = mo.nivel
@@ -422,6 +443,7 @@ func _agendar_volta(mo: Node) -> void:
 		f = func() -> Node3D:
 			var lm := Monstro.new(); lm.grupo = g
 			var a := randf() * TAU; var p := casa + Vector2(cos(a), sin(a)) * randf_range(0.0, 2.5)
+			p = ponto_seco(p, casa)
 			raiz.add_child(lm); lm.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 			lm.montar(self, tp, nv, randi()); return lm
 	else: return
@@ -2253,6 +2275,18 @@ func _modo_teste() -> void:
 		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position
 		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)
 		if String(args.ir) == "alto": jogador.global_position.y += 60.0; jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35
+	if args.has("travar"):         # teste: perto de uma matilha, trava a mira e anda de lado
+		get_tree().create_timer(2.5).timeout.connect(func():
+			controles._alvo = true
+			get_tree().create_timer(0.6).timeout.connect(func(): controles.dir = Vector2(1, 0); controles.set_process(false)))
+	if args.has("checar_agua"):    # teste: quantos monstros estão na água (agora e depois de um tempo)
+		for t in [0.5, 20.0]:
+			get_tree().create_timer(t).timeout.connect(func():
+				var n := 0; var tot := 0
+				for mo in get_tree().get_nodes_in_group("lobos"):
+					tot += 1
+					if na_agua(mo.global_position.x, mo.global_position.z): n += 1; print("NA AGUA: ", mo.get_script().resource_path.get_file(), " ", mo.global_position)
+				print("MONSTROS NA AGUA: %d de %d" % [n, tot]))
 	if args.has("criancas"):
 		var c3 := Vector3(brincadeira_pos.x, 0, brincadeira_pos.y); var pj := c3 + Vector3(0, 0, float(args.get("dist", "9")))
 		jogador.global_position = Vector3(pj.x, altura(pj.x, pj.z) + 0.3, pj.z); jogador.rotation.y = 0.0

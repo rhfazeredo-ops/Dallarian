@@ -16,6 +16,7 @@ var m                              # o mundo
 var grupo: Dictionary              # compartilhado pela matilha: casa, membros, alerta, atacante
 var vaga := 0.0                    # ângulo do lugar dele na roda em volta da Rachel
 var vida := 3.0
+var vida_max := 3.0
 var estado := "vagar"              # vagar, parado, cacar, atacar, esquivar, ferido, morto
 var visual: Node3D
 var mod: Node3D
@@ -50,6 +51,7 @@ func montar(mundo, t: String, e_lider: bool, semente: int) -> void:
 	var comp := rng.randf_range(1.75, 1.95) if not lider else 2.45      # do focinho à ponta da cauda (m)
 	_comp = comp
 	vida = (30.0 + 12.0 * nivel) * (1.15 if lider else 1.0)          # vida pelo nível (perto do Classic)
+	vida_max = vida
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
 	visual = Node3D.new(); add_child(visual)
 	mod = load(ARQ[tipo]).instantiate(); visual.add_child(mod)
@@ -215,6 +217,8 @@ func _physics_process(delta: float) -> void:
 	if estado != "atacar" and estado != "esquivar": v2 += sep * 2.0
 	velocity = Vector3(v2.x, 0, v2.y)
 	move_and_slide()
+	if m.na_agua(global_position.x, global_position.z) and not m.na_agua(p.x, p.y):   # não entra na água
+		global_position.x = p.x; global_position.z = p.y
 	global_position.y = m.altura_malha(global_position.x, global_position.z)
 	# para onde olha: para onde anda (ou para a Rachel, cercando)
 	var foco := olhar if olhar != Vector2.ZERO and v2.length() < 3.0 else p + v2

@@ -100,7 +100,7 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - **Pássaros** grandes voando alto (26–40 m), sozinhos, em dupla ou em trio em V; batem as asas e planam.
 
 ## 7.1.2 Inimigos: lobos
-- Matilhas de 4 a 6 lobos (18 matilhas) + **14 grupinhos de 3 lobos marrons de nível 1–2** nas matas perto da vila (~130 lobos); correm 5,2 m/s (a Rachel corre 7,2): **líder preto** (maior, 6 de vida, morde mais forte), **brancos só
+- Grupos de **no máximo 3 lobos** (2–3, com líder preto) + **14 grupinhos de 3 lobos marrons de nível 1–2** nas matas perto da vila (~130 lobos); correm 5,2 m/s (a Rachel corre 7,2): **líder preto** (maior, 6 de vida, morde mais forte), **brancos só
   nas montanhas/morros** e **marrons só nas florestas**; longe da vila, das estradas e dos acampamentos.
 - Passeiam e farejam perto da toca; viram a Rachel a 20 m e a matilha toda caça. Cercam em roda (5,5 m, com espaço
   entre eles), só **um ataca de cada vez** e a matilha respira 1–2 s entre ataques. Desistem se ela se afastar.
@@ -170,6 +170,11 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - **Lobos:** vida 30 + 12×nível (líder +15%); mordida (2 + 1,5×nível) a (4 + 2×nível).
 - Números de combate sobem dos bichos (branco; crítico amarelo) e o dano levado aparece em vermelho no meio.
 - Inventário: arma e escudo equipados na barra de baixo; dica com os status e EQUIPAR (troca com o equipado).
+
+- **Travar a mira** (Tab no PC / botão de alvo no celular): a câmera segue o inimigo mais perto na frente, com um marcador
+  vermelho e a vida dele em cima; andar para o lado faz a Rachel dar a volta nele. Apertar de novo (ou o alvo morrer /
+  ficar a mais de 40 m) solta. Um X discreto no meio da tela mostra onde a espada bate.
+- **Nenhum monstro na água:** nascem e renascem só em terra seca e não entram em rio, lago, canal, fosso ou mar.
 
 ## 7.2 Interface
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados

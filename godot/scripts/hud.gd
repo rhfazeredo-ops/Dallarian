@@ -77,6 +77,7 @@ func _draw() -> void:
 	_desenhar_avisos(tela)
 	_desenhar_relogio(tela)
 	_desenhar_numeros()
+	_desenhar_mira(tela)
 	_desenhar_chefe(tela)
 	_desenhar_aviso_golpe()
 	draw_texture_rect(tex_plaqueta, Rect2(p0, Vector2(pw, ph)), false)
@@ -180,6 +181,41 @@ func _desenhar_aviso_golpe() -> void:
 	var pos := Vector2(p.x - tw * 0.5, r.position.y - 10)
 	draw_string_outline(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24, 8, Color(0, 0, 0, 0.9))
 	draw_string(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24, cor if f < 1.0 else Color(1, 0.9, 0.6))
+
+# mira no meio da tela (um X apagadinho) e, com a mira travada, um marcador vermelho em cima do inimigo
+func _desenhar_mira(tela: Vector2) -> void:
+	var cena = get_tree().current_scene
+	if cena == null or cena.get("jogador") == null: return
+	var j = cena.jogador
+	var travada: bool = j.alvo != null
+	var c := tela * 0.5
+	var cor := Color(1.0, 0.35, 0.3, 0.75) if travada else Color(1, 1, 1, 0.35)
+	var t := 14.0
+	for s in [Vector2(1, 1), Vector2(1, -1)]:
+		draw_line(c - s * t, c - s * 4.0, Color(0, 0, 0, cor.a * 0.6), 4.0)
+		draw_line(c + s * 4.0, c + s * t, Color(0, 0, 0, cor.a * 0.6), 4.0)
+		draw_line(c - s * t, c - s * 4.0, cor, 2.0)
+		draw_line(c + s * 4.0, c + s * t, cor, 2.0)
+	if not travada: return
+	var a: Node3D = j.alvo
+	if not is_instance_valid(a): return
+	var alt := 1.25
+	if a is Monstro: alt = a.k * 1.15
+	elif a is Aranha: alt = 1.3
+	var topo := a.global_position + Vector3(0, alt, 0)
+	if j.cam.is_position_behind(topo): return
+	var p: Vector2 = j.cam.unproject_position(topo) * escala_3d
+	var pul := 1.0 + 0.12 * sin(Time.get_ticks_msec() * 0.008)
+	var tri := PackedVector2Array([p + Vector2(0, 4) * pul, p + Vector2(-14, -18) * pul, p + Vector2(14, -18) * pul])
+	var borda := PackedVector2Array(); for q in tri: borda.append(p + (q - p) * 1.3)
+	draw_colored_polygon(borda, Color(0, 0, 0, 0.8))
+	draw_colored_polygon(tri, Color(1.0, 0.25, 0.2))
+	# vida do alvo embaixo do marcador
+	var vm = a.get("vida_max"); var vv = a.get("vida")
+	if vv != null and vm != null and float(vm) > 0.0:
+		var r := Rect2(p + Vector2(-50, -40), Vector2(100, 9))
+		draw_rect(r.grow(2), Color(0, 0, 0, 0.8)); draw_rect(r, Color(0.25, 0.05, 0.04))
+		draw_rect(Rect2(r.position, Vector2(100.0 * clampf(float(vv) / float(vm), 0.0, 1.0), 9)), Color(0.85, 0.15, 0.1))
 
 # relógio clean embaixo da bússola: sol ou lua + hora (de 5 em 5 minutos)
 func _desenhar_relogio(tela: Vector2) -> void:

@@ -82,6 +82,7 @@ var _giro := 0.0                 # câmera: vira um pouco junto com o golpe (gra
 var _queda := 0.0; var _no_chao := true
 var _pulo_pedido := 0.0; var _coyote := 0.0
 var bloqueando := false
+var alvo: Node3D = null            # mira travada (Tab / botão ALVO): a câmera segue esse inimigo
 var bloqueios_desde_erguer := 0    # o 1º ataque depois de levantar o escudo é bloqueado inteiro
 var congelar := -1.0             # teste: para a ação nesse ponto (0..1)
 var pose_fixa := false           # teste: mãos paradas numa pose (mostrar_pose)
@@ -256,9 +257,42 @@ func _unhandled_input(e: InputEvent) -> void:
 		if e.button_index == MOUSE_BUTTON_LEFT and controles: controles.ataque_mouse = e.pressed
 		if e.button_index == MOUSE_BUTTON_RIGHT and controles: controles.bloqueio_mouse = e.pressed
 	elif e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		_girar(e.relative * SENS_MOUSE)
+		if alvo == null: _girar(e.relative * SENS_MOUSE)
 	elif e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+# ---------- travar a mira ----------
+func _vivo(n: Node) -> bool:
+	return n != null and is_instance_valid(n) and n.is_inside_tree() and n.get("estado") != "morto" and n.is_in_group("lobos")
+
+func _trocar_alvo() -> void:
+	if alvo != null: alvo = null; return
+	var fr := -global_transform.basis.z
+	var melhor: Node3D = null; var nota := 1e9
+	for n in get_tree().get_nodes_in_group("lobos"):
+		if not _vivo(n): continue
+		var d: Vector3 = n.global_position - global_position; d.y = 0.0
+		var dist := d.length()
+		if dist > 30.0: continue
+		var frente := fr.dot(d.normalized())
+		var p := dist * (1.0 + (1.0 - frente) * 1.5)              # prefere quem está na frente e perto
+		if p < nota: nota = p; melhor = n
+	alvo = melhor
+
+func _seguir_alvo(delta: float) -> void:
+	if alvo == null: return
+	if not _vivo(alvo) or alvo.global_position.distance_to(global_position) > 40.0:
+		alvo = null; return
+	var altura_alvo: float = 0.8
+	if alvo.get("k") != null and alvo is Monstro: altura_alvo = alvo.k * 0.6
+	var d: Vector3 = alvo.global_position + Vector3(0, altura_alvo, 0) - pescoco.global_position
+	var yaw := atan2(-d.x, -d.z)
+	var f := 1.0 - exp(-10.0 * delta)
+	var antes := rotation.y
+	rotation.y = lerp_angle(rotation.y, yaw, f)
+	var pitch := atan2(d.y, Vector2(d.x, d.z).length())
+	pescoco.rotation.x = lerpf(pescoco.rotation.x, clampf(pitch, deg_to_rad(-60), deg_to_rad(45)), f)
+	_balanco += Vector2(-(wrapf(rotation.y - antes, -PI, PI)), 0.0) * 0.6
 
 func _girar(d: Vector2) -> void:
 	rotation.y -= d.x
@@ -367,9 +401,12 @@ func _physics_process(delta: float) -> void:
 	var dir := Vector2.ZERO; var correr := false; var bloquear := false; var atacar := false
 	if controles:
 		dir = controles.dir
-		_girar(controles.consumir_olhar() * SENS_TOQUE)
+		var olhar_d: Vector2 = controles.consumir_olhar() * SENS_TOQUE
+		if controles.consumir_alvo(): _trocar_alvo()
+		if alvo == null: _girar(olhar_d)
 		if controles.consumir_pulo(): _pulo_pedido = 0.2     # guarda o pedido um pouquinho
 		correr = controles.correndo(); bloquear = controles.bloqueando(); atacar = controles.atacando()
+	_seguir_alvo(delta)
 	if bloquear and not bloqueando: bloqueios_desde_erguer = 0        # levantou o escudo agora
 	bloqueando = bloquear
 	correr = correr and dir.y < -0.3 and not bloquear
