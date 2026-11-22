@@ -942,9 +942,29 @@ func _postes() -> void:
 		for o in lista: if q.distance_to(o[0]) < 6.0: bom = false
 		if bom: lista.append(pp)
 	for pp in lista: _poste_em(pp[0], pp[1])
+	_postes_estrada_real()
+
+# Estrada Real iluminada: poste a cada 18 m, um lado e depois o outro (a luz de cada lanterna alcança ~9 m, então
+# a estrada fica clara a noite toda); começa depois dos postes da vila e para antes da ponte (lá já tem os da cidade).
+# Longe da Rachel os postes não são desenhados (alcance 130 m).
+func _postes_estrada_real() -> void:
+	if reg.estrada_real < 0: return
+	var linha: PackedVector2Array = reg.estradas[reg.estrada_real]
+	var lado := 1.0; var sp := 80.0; var n := 0
+	while true:
+		var pr := _ponto_na_linha(linha, sp)
+		var pt: Vector2 = pr[0]; var tg: Vector2 = pr[1]
+		if pt.x > Regiao.FOSSO_X - 40.0: break
+		var nrm := Vector2(-tg.y, tg.x) * lado
+		for tent in 4:
+			var q: Vector2 = pt + nrm * (3.6 + tent * 0.6)
+			if reg.folga_caminho(q.x, q.y) > 0.4 and reg.agua(q.x, q.y) == 0.0 and reg.dist_rios(q.x, q.y) > 8.0 and not perto_de_casa(q.x, q.y, 0.5):
+				_poste_em(q, pt, 130.0); n += 1; break
+		sp += 18.0; lado = -lado
+	if args.has("perf"): print("ESTRADA REAL: %d postes" % n)
 
 # um poste com lanterna em q, virado para "olha"
-func _poste_em(q: Vector2, olha: Vector2) -> void:
+func _poste_em(q: Vector2, olha: Vector2, alcance := 0.0) -> void:
 		var d: Vector2 = (olha - q).normalized()
 		_depois.append(func():
 			var y := altura_malha(q.x, q.y)
@@ -953,10 +973,13 @@ func _poste_em(q: Vector2, olha: Vector2) -> void:
 			mod.scale = Vector3(k, k, k); mod.position = Vector3(q.x, y + 0.489 * k - 0.05, q.y)
 			mod.rotation.y = atan2(-d.x, -d.y)             # lanterna (-Z do modelo) para a rua
 			raiz.add_child(mod)
+			if alcance > 0.0:
+				for mi in mod.find_children("*", "MeshInstance3D", true, false): (mi as MeshInstance3D).visibility_range_end = alcance
 			_colisor_cilindro(Vector3(q.x, y, q.y), 0.16, 2.6)
 			var lp := mod.global_transform * Vector3(0.065, 0.243, -0.181)
 			luzes.append(lp + Vector3(0, -0.2, 0))
 			var ch := _splats([[lp, Color(1.0, 0.82, 0.4), 0.22], [lp + Vector3(0, 0.04, 0), Color(1.0, 0.95, 0.7), 0.12]], Vector2(1, 1), false, 0.0, 0.0, true)
+			if alcance > 0.0 and ch is GeometryInstance3D: (ch as GeometryInstance3D).visibility_range_end = alcance
 			ch.visible = false; _brilhos.append(ch))
 
 # barracas de acampamento: longe da vila, longe umas das outras e longe das estradas, em lugares isolados.
@@ -2356,6 +2379,7 @@ func _modo_teste() -> void:
 				b.pos = jogador.global_position + Vector3(-sin(jogador.rotation.y) * 45.0 + cos(a) * 8.0, 0, -cos(jogador.rotation.y) * 45.0 + sin(a) * 8.0); b.pos.y = 0.0)
 	if args.has("loja") or args.has("inv"):      # teste: --loja=N (itens e abre a loja) / --inv=1 (abre as bolsas)
 		if args.has("arma"): bolsa.pegar(String(args.arma)); hud.definir_nivel(3, 0.0)
+		if args.has("item"): bolsa.pegar(String(args.item), 3)           # --item=pocao_m: fica no 1º espaço
 		if args.has("novos"): bolsa.pegar("escama_lodoso", 7); bolsa.pegar("presa_aranha", 3)
 		bolsa.pegar("dentes_garras", int(args.get("itens", args.get("loja", "27")))); bolsa.cobre = int(args.get("dinheiro", "1234"))
 		if args.has("bolsas"):

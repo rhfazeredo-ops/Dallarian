@@ -204,7 +204,7 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 
 ## 7.1.8 Estrada Real
 - Estrada direta da saída leste da vila até a Ponte dos Guardiões, no portão oeste de Altamar (~1,7 km), com ponte
-  no rio do vale e curva suave ao lado do morro.
+  no rio do vale e curva suave ao lado do morro. Iluminada: poste com lanterna a cada 18 m, alternando os lados.
 
 ## 7.2 Interface
 - **Bússola** no topo (girando com a câmera, N/NE/L/SE/S/SO/O/NO e graus). Locais aparecem como ícones: apagados

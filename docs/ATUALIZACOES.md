@@ -103,3 +103,4 @@
 - **Freiras**: Irmã Celina (igreja da vila) e Irmã Odília (catedral de Altamar), com LOJA e CONVERSAR; vendem
   poções de vida pequena (10%), média (20%) e grande (30%).
 - **Estrada Real**: ligação direta da vila até a ponte de Altamar (a volta antiga pelo norte saiu).
+- Estrada Real iluminada: 85 postes com lanterna (a cada 18 m, alternando os lados) acendem à noite.

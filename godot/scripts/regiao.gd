@@ -78,6 +78,7 @@ var campos := [
 # morros (x, z, raio, altura)
 var morros := [Vector4(220, -260, 70, 16), Vector4(-60, -390, 60, 10), Vector4(330, 250, 80, 12), Vector4(-380, 330, 70, 9)]
 
+var estrada_real := -1                       # índice da Estrada Real (vila → Altamar) em "estradas"
 var d_estrada := PackedFloat32Array()
 var d_trilha := PackedFloat32Array()
 var d_rio := PackedFloat32Array()
@@ -105,6 +106,7 @@ func _init() -> void:
 	estradas.append(PackedVector2Array([Vector2(60, 10), Vector2(300, -60), Vector2(560, -170), Vector2(840, -310),
 		Vector2(1080, -405), Vector2(1290, -500), Vector2(1470, -580), porta + Vector2(-60, 0), porta,
 		CIDADE_C + Vector2(CIDADE_R + 40.0, 0)]))
+	estrada_real = estradas.size() - 1
 	d_estrada.resize(NX * NZ); d_estrada.fill(1e6)
 	d_rio.resize(NX * NZ); d_rio.fill(1e6); t_rio.resize(NX * NZ); t_rio.fill(0.0)
 	for e in estradas: _rasterizar(e, d_estrada, null, 24.0)
