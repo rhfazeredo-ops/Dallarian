@@ -157,3 +157,4 @@
   volta dobrada pelo ar; o corpo sobe e desce e inclina no ritmo, a cabeça fica quase parada e a cauda vai esticada.
 - **Lodosos antigos removidos** (junto com os acampamentos deles na beira da água) e os dois modelos apagados.
   Voltam com os modelos novos de peixe-sapo (Jovem, Pescador, Xamã da Lama e o chefe Grão-Lodoso).
+- Lança de osso de peixe também apagada (por enquanto).

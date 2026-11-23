@@ -80,6 +80,7 @@ func montar(mundo, t: String, nv: int, semente: int) -> void:
 
 # lança de osso de peixe na mão direita, apontada para a frente (o eixo do arquivo é +Z, ponta em +Z, 0,94 m)
 func _segurar_lanca() -> void:
+	if not ResourceLoader.exists("res://assets/modelos/lanca_osso.glb"): return   # modelo tirado (23/11) até voltar
 	var mao := esq.find_bone("R_Hand")
 	if mao < 0: return
 	var rh := esq.get_bone_global_rest(mao)
