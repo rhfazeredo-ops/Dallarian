@@ -3205,6 +3205,7 @@ func _modo_teste() -> void:
 					"camara": [Vector2(1536, -1056), Regiao.GRUTA_CAMARA],
 					"chefe": [Regiao.GRUTA_CAMARA + Vector2(-2, 9), Regiao.GRUTA_CAMARA],
 					"meio": [Vector2(1540, -925), Vector2(1537, -950)],
+					"arte": [Regiao.GRUTA_ENTRADA + Vector2(-9, 22), Regiao.GRUTA_ENTRADA + Vector2(3, -36)],
 					"fora": [Regiao.GRUTA_ENTRADA + Vector2(-30, 40), Regiao.GRUTA_ENTRADA + Vector2(0, -40)],
 					"cima": [Regiao.GRUTA_ENTRADA + Vector2(60, 30), Vector2(1520, -1000)],
 					"perto": [Vector2(1538, -943), Vector2(1534, -960)]}

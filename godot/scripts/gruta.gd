@@ -199,56 +199,99 @@ func _process(delta: float) -> void:
 		get_tree().create_timer(queda).timeout.connect(func(): if is_instance_valid(som): som.play())
 		get_tree().create_timer(queda + 1.2).timeout.connect(func(): if is_instance_valid(som): som.queue_free())
 
-# ---------- boca da gruta: pedras empilhadas em arco em volta da abertura, pedras pelas laterais e cascalho ----------
+# ---------- boca da gruta (como a arte de referência do dono): arco de rochas grandes com musgo em cima,
+# trepadeiras penduradas, caminho de terra clara entrando com grama dos lados, pedras com musgo e florzinhas
+# pela beira do caminho, e uma luz quente lá no fundo ----------
 func _boca() -> void:
 	var r := RandomNumberGenerator.new(); r.seed = 7171
 	var bz := Regiao.GRUTA_COBERTA_Z
-	# meia largura da abertura na linha da boca
 	var cx := Regiao.GRUTA_ENTRADA.x; var meia := 0.0
 	for k in 40:
 		var xx := cx - 10.0 + k * 0.5
 		if reg.gruta_d(xx, bz) < 0.0: meia = maxf(meia, absf(xx - cx))
 	meia = maxf(meia, 3.0)
 	var piso := reg.gruta_piso(cx, bz); var teto := reg.gruta_teto(cx, bz)
-	var pedras := []
-	# arco de pedras grandes em volta da abertura (encostadas na encosta)
-	for i in 15:
-		var a := lerpf(-0.15, PI + 0.15, float(i) / 14.0) + r.randf_range(-0.05, 0.05)
-		var p := Vector3(cx + cos(a) * (meia + 0.9), piso + sin(a) * (teto - piso + 0.4) - 0.3, bz - r.randf_range(0.3, 0.7))   # meio enterradas no paredão
-		pedras.append([p, r.randf_range(1.3, 2.1)])
-	# pedras empilhadas no pé do paredão, dos dois lados da boca (do chão para cima)
+	var alto := teto - piso
+	var pedras := []                  # [posição, tamanho, musgo]
+	# arco: duas camadas de rochas grandes em volta da abertura (a de dentro esconde a borda reta)
+	for camada in 2:
+		var n := 11 if camada == 0 else 9
+		for i in n:
+			var a := lerpf(-0.1, PI + 0.1, float(i) / (n - 1)) + r.randf_range(-0.06, 0.06)
+			var rx := meia + (1.6 if camada == 0 else 4.4); var ry := alto + (1.0 if camada == 0 else 3.6)
+			var p := Vector3(cx + cos(a) * rx, piso + sin(a) * ry - 0.6, bz + (0.9 if camada == 0 else 0.2) + r.randf_range(-0.3, 0.3))
+			pedras.append([p, r.randf_range(2.6, 3.6) if camada == 0 else r.randf_range(3.4, 4.8), 0.8 if sin(a) > 0.5 else 0.45])
+	# o paredão inteiro em volta da boca vira rocha: grade de rochas grandes do chão até o alto da encosta
+	var xx := cx - meia - 11.0
+	while xx < cx + meia + 11.0:
+		var topo := maxf(reg.altura(xx, bz - 3.0, false), teto + 1.0) - 0.5
+		var yy := piso - 0.5
+		while yy < topo:
+			var dentro_boca := absf(xx - cx) < meia + 0.8 and yy < piso + alto + 0.3
+			if not dentro_boca:
+				var musg := 0.9 if r.randf() < 0.45 else 0.3
+				pedras.append([Vector3(xx + r.randf_range(-0.6, 0.6), yy + r.randf_range(-0.5, 0.5), bz + r.randf_range(-0.4, 0.8)), r.randf_range(4.6, 6.4), musg])
+			yy += 2.6
+		xx += 2.8
+	# rochas no pé do arco e pela beira do caminho (menores para longe da boca)
 	for lado in [-1.0, 1.0]:
-		for i in 7:
-			var x: float = cx + float(lado) * (meia + r.randf_range(0.8, 4.0))
-			var z := bz + r.randf_range(-0.4, 2.5)
-			var y := reg.altura(x, z) - 0.3 + (r.randf_range(0.0, 1.6) if i > 3 else 0.0)
-			pedras.append([Vector3(x, y, z), r.randf_range(1.0, 2.0)])
-	# montes de pedras empilhadas dos dois lados da entrada, e algumas soltas pelo caminho
-	for lado in [-1.0, 1.0]:
-		for i in 9:
-			var z := bz + r.randf_range(0.5, 16.0)
-			var x: float = cx + float(lado) * (meia + r.randf_range(1.5, 4.5))
-			var tam := r.randf_range(0.8, 2.0) * (1.0 - (z - bz) / 22.0)
-			pedras.append([Vector3(x, reg.altura(x, z) - 0.2, z), tam])
-			if tam > 1.2: pedras.append([Vector3(x + r.randf_range(-0.5, 0.5), reg.altura(x, z) + tam * 0.6, z + r.randf_range(-0.5, 0.5)), tam * 0.6])
+		for i in 10:
+			var z := bz + 2.0 + r.randf_range(0.0, 24.0)
+			var x: float = cx + float(lado) * (3.4 + r.randf_range(0.0, 3.5) + (z - bz) * 0.08)
+			var tam := r.randf_range(0.7, 2.2) * (1.0 - (z - bz) / 40.0)
+			pedras.append([Vector3(x, reg.altura(x, z) - tam * 0.25, z), tam, 0.6])
 	var itens := []
 	for pd in pedras:
 		var tam: float = pd[1]
-		var b := Basis(Vector3(r.randf(), r.randf(), r.randf()).normalized(), r.randf() * TAU).scaled(Vector3(tam, tam * r.randf_range(0.6, 0.9), tam * r.randf_range(0.8, 1.1)))
-		itens.append([Transform3D(b, pd[0]), Color(0.6, 0.6, 0.62) * r.randf_range(0.7, 1.0)])
-	_mm(_pedregulho(), itens, m.mat("", 1.0, Color(0.95, 0.95, 1.0)))
-	# cascalho: pedrinhas no chão da entrada, mais na boca e sumindo para dentro e para fora
+		var b := Basis(Vector3(r.randf(), r.randf(), r.randf()).normalized(), r.randf() * TAU).scaled(Vector3(tam, tam * r.randf_range(0.7, 0.95), tam * r.randf_range(0.8, 1.1)))
+		itens.append([Transform3D(b, pd[0]), Color(0.66, 0.64, 0.6) * r.randf_range(0.8, 1.05), pd[2]])
+	var mm_mat: ShaderMaterial = m.mat("", 1.0, Color(1, 1, 1))
+	_mm_musgo(itens, mm_mat)
+	# trepadeiras caindo do alto do arco
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in 16:
+		var a := lerpf(0.35, PI - 0.35, r.randf())
+		var top := Vector3(cx + cos(a) * (meia + 1.0), piso + sin(a) * (alto + 0.6), bz + 1.6 + r.randf_range(0.0, 0.6))
+		var comp := r.randf_range(1.2, 3.6); var lg := r.randf_range(0.12, 0.22)
+		var cor := Color(0.28, 0.48, 0.2) * r.randf_range(0.8, 1.15)
+		var seg := 4
+		for k in seg:
+			var y0 := top.y - comp * k / seg; var y1 := top.y - comp * (k + 1) / seg
+			var dx0 := sin(k * 1.3 + i) * 0.08; var dx1 := sin((k + 1) * 1.3 + i) * 0.08
+			var q := [Vector3(top.x - lg + dx0, y0, top.z), Vector3(top.x + lg + dx0, y0, top.z), Vector3(top.x + lg * 0.8 + dx1, y1, top.z), Vector3(top.x - lg * 0.8 + dx1, y1, top.z)]
+			for tri in [[0, 1, 2], [0, 2, 3]]:
+				for t in tri: st.set_color(cor * (1.0 - 0.15 * k / seg)); st.set_normal(Vector3(0, 0, 1)); st.add_vertex(q[t])
+	var trep := MeshInstance3D.new(); trep.mesh = st.commit(); trep.material_override = mm_mat; add_child(trep)
+	# florzinhas e tufos na beira do caminho
+	var flores := []
+	for i in 260:
+		var lado := -1.0 if r.randf() < 0.5 else 1.0
+		var z := bz + 1.0 + r.randf_range(0.0, 26.0)
+		var x: float = cx + lado * r.randf_range(2.4, 7.0)
+		if reg.caminho_gruta(x, z) > 0.3: continue
+		var cor: Color = [Color(1.0, 0.85, 0.2), Color(1.0, 0.55, 0.65), Color(0.95, 0.95, 1.0), Color(0.7, 0.55, 1.0)][r.randi() % 4]
+		flores.append([Transform3D(Basis(Vector3.UP, r.randf() * TAU).scaled(Vector3.ONE * r.randf_range(0.7, 1.3)), Vector3(x, reg.altura(x, z) - 0.02, z)), cor])
+	_mm(_flor(), flores, m.mat("", 1.0, Color.WHITE))
+	# pedrinhas no caminho
 	var casc := []
-	for i in 900:
-		var x := cx + r.randf_range(-meia - 2.0, meia + 2.0); var z := r.randf_range(-934.0, -893.0)
-		var f := reg.cascalho_gruta(x, z)
-		if r.randf() > f: continue
-		var y := reg.altura(x, z)
-		var s := r.randf_range(0.8, 2.2)
-		casc.append([Transform3D(Basis(Vector3.UP, r.randf() * TAU).scaled(Vector3.ONE * s), Vector3(x, y, z)), Color(0.75, 0.72, 0.68) * r.randf_range(0.65, 1.05)])
+	for i in 400:
+		var x := cx + r.randf_range(-3.0, 3.0); var z := r.randf_range(-930.0, -872.0)
+		if r.randf() > reg.caminho_gruta(x, z) * 0.6: continue
+		casc.append([Transform3D(Basis(Vector3.UP, r.randf() * TAU).scaled(Vector3.ONE * r.randf_range(0.8, 1.8)), Vector3(x, reg.altura(x, z), z)), Color(0.8, 0.74, 0.64) * r.randf_range(0.7, 1.05)])
 	if m.praia and not m.praia._malhas.is_empty(): _mm(m.praia._malhas[2], casc, m.mat("", 1.0, Color.WHITE))
+	# luz quente lá no fundo do túnel (como na arte)
+	var fundo := Vector2(1538.0, -945.0)
+	m._fogueira_gruta(fundo)
 
-func _pedregulho() -> ArrayMesh:          # pedra arredondada irregular de ~1 m
+func _mm_musgo(itens: Array, mat: Material) -> void:      # rochas: cada uma com musgo verde no topo (custom = quanto)
+	var por_musgo := {}
+	for it in itens:
+		var k := int(round(float(it[2]) * 4.0))
+		if not por_musgo.has(k): por_musgo[k] = []
+		por_musgo[k].append([it[0], it[1]])
+	for k in por_musgo.keys(): _mm(_pedregulho(k / 4.0), por_musgo[k], mat)
+
+func _pedregulho(musgo := 0.0) -> ArrayMesh:          # pedra arredondada irregular de ~1 m (musgo: topo verde)
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var r := RandomNumberGenerator.new(); r.seed = 5
 	var anel := 6; var lados := 8; var pts := []
@@ -257,12 +300,23 @@ func _pedregulho() -> ArrayMesh:          # pedra arredondada irregular de ~1 m
 		var fila := []
 		for i in lados:
 			var lon := TAU * i / lados
-			var k := 0.5 * r.randf_range(0.82, 1.12)
+			var k := 0.5 * r.randf_range(0.8, 1.15)
 			fila.append(Vector3(cos(lat) * cos(lon), sin(lat) * 0.8, cos(lat) * sin(lon)) * k + Vector3(0, 0.3, 0))
 		pts.append(fila)
 	for j in anel:
 		for i in lados:
 			var a: Vector3 = pts[j][i]; var b: Vector3 = pts[j][(i + 1) % lados]; var c: Vector3 = pts[j + 1][(i + 1) % lados]; var d: Vector3 = pts[j + 1][i]
-			var cor := Color(1, 1, 1) * (0.8 + 0.2 * float(j) / anel)
+			var cor := Color(1, 1, 1) * (0.78 + 0.22 * float(j) / anel)
+			if musgo > 0.0 and j >= anel - 2 and (i + j) % 3 != 0: cor = cor.lerp(Color(0.45, 0.68, 0.3), musgo)   # musgo no topo
 			_tri(st, a, c, b, cor); _tri(st, a, d, c, cor)
+	return st.commit()
+
+func _flor() -> ArrayMesh:                # florzinha: cabinho verde e 2 pétalas cruzadas (cor da instância)
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var g := Color(0.35, 0.6, 0.25)
+	_tri(st, Vector3(-0.01, 0, 0), Vector3(0.01, 0, 0), Vector3(0, 0.2, 0), g)
+	for a in [0.0, PI * 0.5]:
+		var d := Vector3(cos(a), 0, sin(a)) * 0.06
+		_tri(st, Vector3(0, 0.2, 0) - d, Vector3(0, 0.2, 0) + d, Vector3(0, 0.26, 0), Color.WHITE)
+		_tri(st, Vector3(0, 0.2, 0) - d, Vector3(0, 0.14, 0), Vector3(0, 0.2, 0) + d, Color.WHITE)
 	return st.commit()

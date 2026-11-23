@@ -408,12 +408,12 @@ func monte_gruta(x: float, z: float) -> float:
 	if d > 170.0: return 0.0
 	var forma := 1.0 - smoothstep(0.0, 170.0, d + ruido.get_noise_2d(x * 2.0, z * 2.0) * 35.0)
 	return 42.0 * forma * forma * (3.0 - 2.0 * forma) * smoothstep(-905.0, -945.0, z)
-# cascalho na boca da gruta: 1 na entrada, some para o vale e para dentro (vira a terra da gruta)
-func cascalho_gruta(x: float, z: float) -> float:
-	if absf(x - GRUTA_ENTRADA.x) > 14.0 or z > -892.0 or z < -935.0: return 0.0
-	var dg := gruta_d(x, z)
-	if dg > 1.5: return 0.0
-	return smoothstep(-934.0, -916.0, z) * (1.0 - smoothstep(-904.0, -893.0, z)) * (1.0 - smoothstep(0.0, 1.5, dg))
+# caminho de terra clara do vale até dentro da gruta: 1 no meio, some para os lados (grama) e para o fundo
+func caminho_gruta(x: float, z: float) -> float:
+	if absf(x - GRUTA_ENTRADA.x) > 8.0 or z > -866.0 or z < -935.0: return 0.0
+	var meia := 1.9 + ruido.get_noise_2d(z * 3.0, 7.0) * 0.6 + smoothstep(-905.0, -920.0, z) * 2.0   # alarga ao entrar
+	var cxz := GRUTA_ENTRADA.x + ruido.get_noise_2d(z * 1.5, 3.0) * 1.2 * smoothstep(-905.0, -880.0, z)  # curvinha lá fora
+	return (1.0 - smoothstep(meia - 0.6, meia + 0.4, absf(x - cxz))) * smoothstep(-934.0, -918.0, z) * (1.0 - smoothstep(-874.0, -866.0, z))
 func na_gruta(x: float, z: float, folga := 0.0) -> bool: return gruta_d(x, z) < folga
 func gruta_coberta(x: float, z: float) -> bool: return z < GRUTA_COBERTA_Z and gruta_d(x, z) < 0.0
 func gruta_piso(x: float, z: float) -> float: return GRUTA_Y + ruido.get_noise_2d(x * 6.0, z * 6.0) * 0.35
@@ -490,16 +490,16 @@ func cor(x: float, z: float, h: float, ny: float, gruta := true) -> Color:
 		var dg := gruta_d(x, z)
 		if dg < 9.0 and z < GRUTA_COBERTA_Z + 1.0: c = c.lerp(Color(0.33, 0.3, 0.26).lerp(Color(0.24, 0.28, 0.22), smoothstep(-0.3, 0.4, n)) * (0.9 + n * 0.12), 1.0 - smoothstep(4.0, 9.0, dg))
 	if gruta:
-		var cg := cascalho_gruta(x, z)
-		if cg > 0.0:                                                  # cascalho: pedrinhas cinza e bege salpicadas
+		var cg := caminho_gruta(x, z)
+		if cg > 0.0:                                                  # caminho de terra clara (bege), com salpicos
 			var sp := ruido.get_noise_2d(x * 40.0, z * 40.0)
-			c = c.lerp(Color(0.55, 0.53, 0.5).lerp(Color(0.68, 0.64, 0.56), smoothstep(-0.2, 0.3, sp)) * (0.85 + sp * 0.2), cg)
+			c = c.lerp(Color(0.74, 0.62, 0.44) * (0.9 + sp * 0.12), cg)
 	return c
 
 # dentro do chão de alguma construção (casa, ferraria, moinho...)?
 func em_construcao(x: float, z: float) -> bool:
 	if dentro_estabulo(x, z): return true                            # sem grama nem manchas no telheiro e no cercado
-	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 9.0 and (z < GRUTA_COBERTA_Z + 1.0 or cascalho_gruta(x, z) > 0.15): return true
+	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 9.0 and (z < GRUTA_COBERTA_Z + 1.0 or caminho_gruta(x, z) > 0.3): return true
 	for pl in planos:
 		var c: Vector2 = pl[0]
 		var dx := x - c.x; var dz := z - c.y

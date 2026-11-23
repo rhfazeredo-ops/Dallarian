@@ -241,3 +241,6 @@
 - **Entrada da Gruta dos Lodosos mais natural**: montanha bem maior por cima da gruta (sobe atrás da boca), chão
   na frente com grama de novo, sem tochas nem lixo na frente, pedras arredondadas em volta da abertura e
   empilhadas nas laterais, e **cascalho** no chão da entrada (some para o vale e, para dentro, vira a terra da gruta).
+- **Entrada da gruta no estilo da arte de referência**: encosta coberta de rochas grandes com musgo em volta da
+  boca, trepadeiras penduradas no arco, caminho de terra clara do vale até dentro (com grama dos lados), pedras
+  com musgo e florzinhas na beira do caminho e luz quente de fogueira lá no fundo do túnel.
