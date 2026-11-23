@@ -132,3 +132,6 @@
 - **Desempenho (60 FPS)**: o mundo em volta da Rachel (chão, grama, terreno e floresta) agora é montado em segundo
   plano, nos outros núcleos do celular — antes cada pedaço travava o jogo por 10 a 90 ms enquanto ela andava.
   Jogo travado em 60 FPS (sem oscilar) e nitidez automática: se o celular não aguentar, baixa um nível sozinho.
+- **Mais monstros**: lobos brancos 34 → 50 grupos, lobos marrons 68 → 122 grupos (de 2 a 3), aranhas 42 → 100
+  (sozinhas, agora também em mata menos fechada), Lodosos 22 → 34 grupos (agora também no rio do leste);
+  as terras do leste perto de Altamar ganharam monstros. Nenhum nasce na água nem dentro da cidade.

@@ -146,7 +146,7 @@ var menu: Menu
 func _lobos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
-	for i in 12000:
+	for i in 24000:
 		var q := Vector2(rng.randf_range(Regiao.X0 + 60, Regiao.X1 - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
 		if q.length() < 120.0 or reg.folga_caminho(q.x, q.y) < 12.0 or reg.agua(q.x, q.y) != 0.0 or reg.altura(q.x, q.y) < 1.0 or reg.dist_rio(q.x, q.y) < 20.0: continue
 		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
@@ -157,16 +157,17 @@ func _lobos() -> void:
 		for o in [Vector2(5, 0), Vector2(-5, 0), Vector2(0, 5), Vector2(0, -5)]:
 			desn = maxf(desn, absf(reg.altura(q.x + o.x, q.y + o.y) - h0))
 		if desn > 2.2: continue
+		if reg.dist_rio2(q.x, q.y) < 20.0 or reg.na_cidade(q.x, q.y, 40.0): continue
 		if h0 - reg.base(q.y) > 5.0: montanha.append(q)
-		elif reg.floresta(q.x, q.y) > 0.6: mata.append(q)
+		elif reg.floresta(q.x, q.y) > 0.5: mata.append(q)
 	var escolhidos := []
-	for lista in [[montanha, "branco", 34], [mata, "marrom", 54]]:
+	for lista in [[montanha, "branco", 50], [mata, "marrom", 100]]:
 		var cands: Array = lista[0]; var feitos := 0
 		cands.shuffle()
 		for q in cands:
 			if feitos >= lista[2]: break
 			var ok := true
-			for e in escolhidos: if q.distance_to(e) < 80.0: ok = false
+			for e in escolhidos: if q.distance_to(e) < 60.0: ok = false
 			if not ok: continue
 			escolhidos.append(q); feitos += 1
 			_matilha(q, lista[1], rng)
@@ -181,7 +182,7 @@ func _lobos() -> void:
 	perto.shuffle()
 	var feitos2 := 0
 	for q in perto:
-		if feitos2 >= 14: break
+		if feitos2 >= 22: break
 		var ok := true
 		for e in escolhidos: if q.distance_to(e) < 55.0: ok = false
 		if not ok: continue
@@ -312,14 +313,14 @@ func ponto_seco(p: Vector2, centro: Vector2) -> Vector2:
 func _aranhas() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 707
 	var feitos: Array[Vector2] = []
-	for i in 14000:
-		if feitos.size() >= 42: break
+	for i in 30000:
+		if feitos.size() >= 100: break
 		var q := Vector2(rng.randf_range(Regiao.X0 + 60, Regiao.X1 - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
-		if q.length() < 170.0 or reg.altura(q.x, q.y) < 1.5 or reg.dist_rio(q.x, q.y) < 18.0 or reg.floresta(q.x, q.y) < 0.6 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
-		if perto_de_lugar(q.x, q.y, 25.0) or reg.altura(q.x, q.y) - reg.base(q.y) > 6.0: continue
+		if q.length() < 170.0 or reg.altura(q.x, q.y) < 1.5 or reg.dist_rios(q.x, q.y) < 18.0 or reg.floresta(q.x, q.y) < 0.5 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if perto_de_lugar(q.x, q.y, 25.0) or reg.altura(q.x, q.y) - reg.base(q.y) > 6.0 or reg.na_cidade(q.x, q.y, 40.0): continue
 		var ok := true
-		for f in feitos: if q.distance_to(f) < 90.0: ok = false
-		for g in matilhas: if q.distance_to(g.casa) < 40.0: ok = false
+		for f in feitos: if q.distance_to(f) < 55.0: ok = false
+		for g in matilhas: if q.distance_to(g.casa) < 35.0: ok = false
 		if not ok: continue
 		feitos.append(q)
 		var a := Aranha.new(); a.grupo = {"casa": q, "membros": [a], "alerta": false, "tipo": "aranha"}
@@ -347,14 +348,21 @@ func _lodosos() -> void:
 		var x := Regiao.Ws(380.0)
 		while x < Regiao.X1 and reg.altura(x, z) > 1.0: x += 1.0
 		cands.append(Vector2(x - 5.0, z))
+	var r2 := reg.rio2                                       # rio do leste também
+	for i in r2.size() - 1:
+		for u in [0.3, 0.8]:
+			var a2: Vector2 = r2[i]; var b2: Vector2 = r2[i + 1]; var pt2 := a2.lerp(b2, u)
+			var nrm2 := Vector2(-(b2 - a2).normalized().y, (b2 - a2).normalized().x) * (1.0 if rng.randf() < 0.5 else -1.0)
+			var q2 := pt2 + nrm2 * (reg.largura_rio2(lerpf(reg._rio2_comp[i], reg._rio2_comp[i + 1], u)) * 0.5 + 5.0)
+			if not reg.na_cidade(q2.x, q2.y, 70.0): cands.append(q2)
 	cands.shuffle()
 	var feitos: Array[Vector2] = []
 	for q in cands:
-		if feitos.size() >= 22: break
+		if feitos.size() >= 34: break
 		if q.length() < 160.0 or reg.dist_estrada(q.x, q.y) < 12.0 or perto_de_lugar(q.x, q.y, 18.0) or perto_de_casa(q.x, q.y, 10.0): continue
 		if reg.agua(q.x, q.y) != 0.0 and altura(q.x, q.y) < reg.agua(q.x, q.y): continue
 		var ok := true
-		for f in feitos: if q.distance_to(f) < 70.0: ok = false
+		for f in feitos: if q.distance_to(f) < 55.0: ok = false
 		if not ok: continue
 		feitos.append(q)
 		var g := {"casa": q, "membros": [], "alerta": false, "tipo": "lodoso"}
@@ -2714,6 +2722,12 @@ func _modo_teste() -> void:
 			quadros.sort(); var n := quadros.size()
 			print("PICOS quadros=%d  mediana=%.1fms  p95=%.1fms  pior=%.1fms  >25ms=%d" % [n, quadros[n / 2], quadros[int(n * 0.95)], quadros[n - 1], quadros.filter(func(q): return q > 25.0).size()])
 			for k in _picos: print("PICOS %-10s %3d pedaços  média %.1fms  pior %.1fms" % [k, _picos[k][0], _picos[k][1] / maxf(_picos[k][0], 1), _picos[k][2]]))
+	if args.has("contar"):
+		var cont := {}
+		for g in matilhas:
+			var t: String = String(g.get("tipo", "?")) + ("_pequeno" if g.get("pequena", false) else "")
+			cont[t] = cont.get(t, 0) + 1
+		print("GRUPOS ", cont, " total=", matilhas.size())
 	if args.has("morrer"): get_tree().create_timer(2.0).timeout.connect(func(): hud.vida = 1.0; ferir_heroina(50.0, jogador.global_position + Vector3(0, 0, -2), 1))
 	if args.has("loja_freira"):
 		get_tree().create_timer(3.0).timeout.connect(func(): bolsa.cobre = 500; print("NPC: ", interacao._tipo_npc); interacao._abrir_loja())
