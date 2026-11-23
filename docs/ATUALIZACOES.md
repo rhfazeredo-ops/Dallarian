@@ -260,3 +260,5 @@
 - **Habilidade do Glorgo: Cusparada Ácida** — ele para, enche o papo (barra "CUSPARADA ÁCIDA!" de 2 s em cima
   dele) e cospe uma bola de gosma verde na Rachel (de 4 a 22 m, a cada ~10 s). Com o **escudo erguido e de
   frente** bloqueia tudo; senão leva o impacto e o **ácido queima por 6 s** (número verde a cada 1,5 s).
+- **Malho de Tronco** (maça de uma mão, item level 6, 6–10 de dano, comum): à venda no Bram (120 cobres). Na mão
+  usa a espada de ferro até chegar o modelo 3D.
