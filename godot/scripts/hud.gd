@@ -168,7 +168,7 @@ func _desenhar_aviso_golpe() -> void:
 	if cam.is_position_behind(topo): return
 	var tt: Vector3 = chefe._tempos()
 	var f := clampf(chefe._t / tt.y, 0.0, 1.0)
-	var pancada: bool = chefe._golpe == "pancada"
+	var pancada: bool = chefe._golpe == "pancada" or chefe._golpe == "cuspe"      # habilidades: barra grande
 	var p := cam.unproject_position(topo) * escala_3d
 	var w := 300.0 if pancada else 220.0; var h := 24.0 if pancada else 18.0
 	var r := Rect2(p.x - w * 0.5, p.y - h, w, h)
@@ -178,7 +178,7 @@ func _desenhar_aviso_golpe() -> void:
 	draw_rect(r, Color(0.15, 0.05, 0.03, 0.9))
 	draw_rect(Rect2(r.position, Vector2(w * f, h)), cor)
 	draw_rect(r.grow(4), UI.DOURADO, false, 2.0)
-	var t := "PANCADA NO CHÃO!" if pancada else ("Estocada" if chefe._golpe == "estocada" else "Soco")
+	var t := "CUSPARADA ÁCIDA!" if chefe._golpe == "cuspe" else ("PANCADA NO CHÃO!" if pancada else ("Estocada" if chefe._golpe == "estocada" else "Soco"))
 	var tw := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24).x
 	var pos := Vector2(p.x - tw * 0.5, r.position.y - 10)
 	draw_string_outline(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24, 8, Color(0, 0, 0, 0.9))

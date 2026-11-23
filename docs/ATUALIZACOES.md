@@ -257,3 +257,6 @@
 - Frente da gruta toda com grama (o caminho de terra agora só existe lá dentro).
 - **Vegetação em volta da entrada da gruta**: pinheiros nas encostas dos lados, árvores no vale, arbustos,
   moitas floridas e samambaias no pé das rochas — com a passagem até a boca livre.
+- **Habilidade do Glorgo: Cusparada Ácida** — ele para, enche o papo (barra "CUSPARADA ÁCIDA!" de 2 s em cima
+  dele) e cospe uma bola de gosma verde na Rachel (de 4 a 22 m, a cada ~10 s). Com o **escudo erguido e de
+  frente** bloqueia tudo; senão leva o impacto e o **ácido queima por 6 s** (número verde a cada 1,5 s).

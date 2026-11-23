@@ -107,6 +107,44 @@ func _pos_arma() -> void:
 	var mao: Vector3 = _esq_no_mod * esq.get_bone_global_pose(_mao).origin
 	_arma.transform = Transform3D(Basis(Vector3(0, 0, 1), -_incl), mao)     # +incl = ponta para a frente
 
+# ---------- Cusparada Ácida (Glorgo): bola de gosma verde que voa até onde a Rachel está ----------
+var _cuspe_recarga := 1.5          # a primeira vem logo que ele vê a Rachel
+func _cuspir() -> void:
+	var boca := global_position + Vector3(0, k * 0.85, 0) + (-global_transform.basis.z) * k * 0.35
+	var alvo: Vector3 = m.jogador.global_position + Vector3(0, 1.1, 0) + m.jogador.velocity * 0.25
+	var bola := MeshInstance3D.new(); var esf := SphereMesh.new(); esf.radius = 0.32; esf.height = 0.6; esf.radial_segments = 8; esf.rings = 5
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; mt.albedo_color = Color(0.45, 1.0, 0.2)
+	esf.material = mt; bola.mesh = esf; bola.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	m.raiz.add_child(bola); bola.global_position = boca
+	var gotas := CPUParticles3D.new(); gotas.amount = 14; gotas.lifetime = 0.5; gotas.local_coords = false
+	var q := SphereMesh.new(); q.radius = 0.07; q.height = 0.14; q.radial_segments = 4; q.rings = 2; q.material = mt; gotas.mesh = q
+	gotas.gravity = Vector3(0, -9.8, 0); gotas.initial_velocity_min = 0.3; gotas.initial_velocity_max = 1.0; bola.add_child(gotas)
+	var dano_bate := _dano() * 0.45; var dano_acido := _dano() * 0.35; var nv := nivel; var origem := global_position
+	var tv := boca.distance_to(alvo) / 17.0; alvo.y += 2.0 * tv * tv       # compensa a queda (gravidade 4 m/s²)
+	var vel := [(alvo - boca).normalized() * 17.0]      # em caixa: a função de dentro altera
+	var vida := [1.6]
+	var tick := func(dt: float) -> bool:              # devolve false quando acabou
+		vida[0] -= dt
+		vel[0].y -= 4.0 * dt
+		bola.global_position += vel[0] * dt
+		var pj: Vector3 = m.jogador.global_position + Vector3(0, 1.0, 0)
+		if bola.global_position.distance_to(pj) < 1.4:
+			m.gosma_acida(dano_bate, dano_acido, origem, nv)
+			_respingo(bola.global_position); return false
+		if vida[0] <= 0.0 or bola.global_position.y < m.altura_malha(bola.global_position.x, bola.global_position.z):
+			if m.args.has("cuspe"): print("CUSPE errou em ", bola.global_position, " rachel ", pj)
+			_respingo(bola.global_position); return false
+		return true
+	var no: Node = load("res://scripts/tick.gd").new(); no.set("f", tick); bola.add_child(no)
+
+func _respingo(pos: Vector3) -> void:
+	var sp := CPUParticles3D.new(); sp.one_shot = true; sp.amount = 18; sp.lifetime = 0.6; sp.explosiveness = 1.0; sp.local_coords = false
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; mt.albedo_color = Color(0.45, 1.0, 0.2)
+	var q := SphereMesh.new(); q.radius = 0.09; q.height = 0.18; q.radial_segments = 4; q.rings = 2; q.material = mt; sp.mesh = q
+	sp.direction = Vector3.UP; sp.spread = 80.0; sp.initial_velocity_min = 2.0; sp.initial_velocity_max = 4.5; sp.gravity = Vector3(0, -9.8, 0)
+	m.raiz.add_child(sp); sp.global_position = pos; sp.emitting = true
+	get_tree().create_timer(1.0).timeout.connect(sp.queue_free)
+
 # ---------- voz dos Lodosos (gritos gravados pelo dono, cortados em vários; em 3D) ----------
 static var _vozes := {}
 var _voz: AudioStreamPlayer3D
@@ -140,6 +178,7 @@ func _mudar(e: String) -> void:
 func _physics_process(delta: float) -> void:
 	if m == null or m.jogador == null: return
 	_t += delta; _recarga -= delta; _flash = maxf(0.0, _flash - delta * 4.0)
+	if grupo.get("alerta", false): _cuspe_recarga -= delta
 	if anim_fixa != "": _animar(delta, _vel_teste()); return
 	var pj: Vector3 = m.jogador.global_position
 	var p := Vector2(global_position.x, global_position.z); var ppj := Vector2(pj.x, pj.z)
@@ -170,6 +209,8 @@ func _physics_process(delta: float) -> void:
 				olhar = ppj
 				if dist > cfg.alcance * 0.8: dir = (ppj - p).normalized(); vel = cfg.correr * (0.6 if dist < 5.0 else 1.0)
 				if dist < cfg.alcance and _recarga <= 0.0: _atacar(dist)
+				elif tipo == "lodoso_c" and _cuspe_recarga <= 0.0 and dist > 4.0 and dist < 22.0 and _recarga <= 0.0:
+					_golpe = "cuspe"; _acertou = false; _mudar("atacar"); _gritar(true)      # Cusparada Ácida
 		"atacar":
 			olhar = ppj
 			_tocar_golpe(ppj, dist)
@@ -223,6 +264,7 @@ func _tempos() -> Vector3:
 	match _golpe:
 		"soco": return Vector3(0.55, 0.75, 1.3)
 		"pancada": return Vector3(1.1, 1.35, 2.2)      # levanta os braços 1,1 s antes: dá tempo de sair
+		"cuspe": return Vector3(2.0, 2.15, 2.8)        # Cusparada Ácida: 2 s carregando (dá tempo de erguer o escudo)
 		_: return Vector3(0.35, 0.5, 0.95)
 
 func _tocar_golpe(ppj: Vector2, dist: float) -> void:
@@ -231,7 +273,9 @@ func _tocar_golpe(ppj: Vector2, dist: float) -> void:
 		_acertou = true
 		var p := Vector2(global_position.x, global_position.z)
 		var fr := Vector2(-sin(rotation.y), -cos(rotation.y))
-		if _golpe == "pancada":
+		if _golpe == "cuspe":
+			_cuspir()
+		elif _golpe == "pancada":
 			m.pancada_no_chao(global_position + Vector3(fr.x, 0, fr.y) * k * 0.4, 9.0)
 			if dist < 9.0:
 				var dano := _dano() * (2.2 - dist / 9.0)
@@ -241,6 +285,7 @@ func _tocar_golpe(ppj: Vector2, dist: float) -> void:
 			if ok: m.ferir_heroina(_dano(), global_position, nivel)
 	if _t >= tt.z:
 		_recarga = rng.randf_range(2.0, 3.2) if tipo != "golem" else rng.randf_range(1.0, 1.8)
+		if _golpe == "cuspe": _cuspe_recarga = rng.randf_range(9.0, 13.0); _recarga = 1.0
 		_mudar("cacar")
 
 func _dano() -> float:
@@ -330,6 +375,11 @@ func _animar(delta: float, spd: float) -> void:
 					alvo["Spine01"] = _q(Vector3(0, 0, 1), (0.25 * prep - 0.7 * bate) * (1.0 - volta))
 					alvo["Head"] = _q(Vector3(0, 0, 1), 0.3 * prep - 0.2 * bate)
 					hip = (-0.06 * bate + 0.03 * prep) * (1.0 - volta)
+				"cuspe":          # enche o papo inclinando para trás e cospe jogando a cabeça para a frente
+					alvo["Spine01"] = _q(Vector3(0, 0, 1), (0.35 * prep - 0.55 * bate) * (1.0 - volta))
+					alvo["Head"] = _q(Vector3(0, 0, 1), (0.45 * prep - 0.6 * bate) * (1.0 - volta))
+					alvo["L_Upperarm"] = _zx(0.15, -0.9 * prep * (1.0 - volta) - 0.38); alvo["R_Upperarm"] = _zx(0.15, 0.9 * prep * (1.0 - volta) + 0.38)
+					hip = (0.04 * prep - 0.03 * bate) * (1.0 - volta)
 				_:                # estocada de lança: recolhe e espeta para a frente
 					alvo["R_Upperarm"] = _zx(lerpf(lerpf(0.55, 0.2, prep), 1.35, bate) * (1.0 - volta) + 0.55 * volta, 0.45 - 0.3 * bate)
 					alvo["R_Forearm"] = _q(Vector3(0, 0, 1), lerpf(lerpf(1.0, 1.9, prep), 0.15, bate) * (1.0 - volta) + 1.0 * volta)

@@ -287,6 +287,7 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 ## Monstros únicos
 - **Barrogar, o Colosso do Vale** (golem de barro, nível 8) — dá a volta no mapa.
 - **Glorgo, o Rei da Lama** (Grão-Lodoso, nível 10) — câmara final da Gruta dos Lodosos; renasce em 30 min.
+  Habilidade **Cusparada Ácida**: 2 s carregando, gosma verde; só o escudo erguido bloqueia; senão ácido por 6 s.
 
 ## Início do jogo
 - A Rachel nasce no portão oeste de Altamar, virada para a Ponte dos Guardiões (morrendo, volta na Estátua da

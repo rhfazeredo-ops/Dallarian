@@ -796,6 +796,18 @@ func pancada_no_chao(pos: Vector3, raio: float) -> void:
 	var d := jogador.global_position.distance_to(pos)
 	if d < raio * 3.0: jogador._tranco += Vector3(-4.0 * (1.0 - d / (raio * 3.0)), randf_range(-3, 3), 0.0); jogador.impacto(0.1)
 
+# Cusparada Ácida do Glorgo: com o escudo erguido e de frente bloqueia tudo; senão leva o impacto e fica com ácido
+# queimando (dano a cada 1,5 s por 6 s)
+func gosma_acida(dano: float, acido: float, de: Vector3, nivel_atacante := 1) -> void:
+	if heroina_desmaiada: return
+	if args.has("cuspe"): print("CUSPE acertou: bloqueando=", jogador.bloqueando, " vida ", hud.vida)
+	var fr := -jogador.global_transform.basis.z; var d := de - jogador.global_position; d.y = 0.0
+	if bolsa.equip.get("escudo", "") != "" and jogador.bloqueando and fr.dot(d.normalized()) > 0.3:
+		jogador.impacto(0.05); hud.numero_heroi("Bloqueado", Color(0.6, 1.0, 0.5)); return
+	ferir_heroina(dano, de, nivel_atacante)
+	envenenar(acido, 6.0)
+	hud.avisar("Ácido! Erga o escudo contra a Cusparada Ácida.", Color(0.5, 1.0, 0.3))
+
 # veneno: tira vida aos poucos (número verde)
 var _veneno_t := 0.0
 var _veneno_dano := 0.0
@@ -3154,6 +3166,10 @@ func _modo_teste() -> void:
 			var pm := String(mo.anim_fixa).split(":"); mo.anim_fixa = pm[0]
 			if pm.size() > 1: mo.u_fixo = float(pm[1])
 		if tp == "golem": golem = mo; mo.grupo.alerta = true
+		if tp == "lodoso_c": chefe_lodoso = mo; mo.nome = NOME_CHEFE_LODOSO
+		if args.has("bloquear"): jogador.bloqueando = true               # teste: Rachel com o escudo erguido
+		if tp == "lodoso_c" and args.has("cuspe"):
+			jogador.rotation.y = atan2(-(pj.x - jogador.global_position.x), -(pj.y - jogador.global_position.z))   # de frente para ele
 		if args.has("saque"):       # teste: --saque (contorno) / --saque=abrir (janelinha)
 			get_tree().create_timer(0.5).timeout.connect(func():
 				mo.anim_fixa = ""; mo.vida = 0.0; mo._mudar("morto"); mo.remove_from_group("lobos")
