@@ -2581,7 +2581,7 @@ func _modo_teste() -> void:
 			var k := 0
 			for lo in g.membros:
 				var q := c + Vector2((k - 1) * 3.2, 0)
-				lo.global_position = Vector3(q.x, altura_malha(q.x, q.y), q.y); lo.rotation.y = PI * 0.5
+				lo.global_position = Vector3(q.x, altura_malha(q.x, q.y), q.y); lo.rotation.y = float(args.get("giro_l", str(PI * 0.5)))
 				lo.anim_fixa = pa[0]; lo.u_fixo = float(pa[1]) if pa.size() > 1 else -1.0
 				if pa.size() > 2: lo._fase = float(pa[2]) + k * 2.1
 				if k > 2 or (args.has("lobo_um") and k != int(args.lobo_um)): lo.visible = false
@@ -2713,13 +2713,18 @@ func _modo_teste() -> void:
 		jogador.pescoco.rotation.x = float(args.get("inclina", "0"))
 		var mo: Node3D
 		if tp == "aranha": mo = Aranha.new()
+		elif tp.begins_with("lobo_"): mo = Lobo.new()          # --monstro=lobo_marrom --manim=correr:0.3
 		else: mo = Monstro.new()
 		mo.grupo = {"casa": pj, "membros": [mo], "alerta": false}
 		raiz.add_child(mo); mo.position = Vector3(pj.x, altura_malha(pj.x, pj.y), pj.y)
 		if tp == "aranha": mo.montar(self, 4, 1)
+		elif tp.begins_with("lobo_"): mo.montar(self, tp.substr(5), false, 1)
 		else: mo.montar(self, tp, 3, 1)
 		mo.rotation.y = deg_to_rad(float(args.get("giro_m", "90")))
 		mo.anim_fixa = String(args.get("manim", "andar"))
+		if mo is Lobo:
+			var pm := String(mo.anim_fixa).split(":"); mo.anim_fixa = pm[0]
+			if pm.size() > 1: mo.u_fixo = float(pm[1])
 		if tp == "golem": golem = mo; mo.grupo.alerta = true
 	if args.has("matar_golem") and golem:
 		var gp := golem.global_position

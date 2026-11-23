@@ -149,3 +149,9 @@
   versão (2,2 MB) — o terreno de longe passou de ~5,7 s para ~0,8 s no carregamento.
 - **Árvores frutíferas** espalhadas por região (vale, beira da mata, pomares perto das fazendas e da vila) com
   COLETAR, e arbustos de frutinha em todo o mapa (antes só em 1/3 dos pedaços).
+
+## 23/11
+- **Corrida do lobo refeita pela referência de 12 quadros**: galope de verdade — fase esticada (patas da frente lá
+  na frente, as de trás lá atrás) e fase recolhida (as quatro embaixo do corpo, bem dobradas, com o lobo no alto);
+  as duas da frente pisam quase juntas, depois as duas de trás empurram. Cada pata fica ~1/3 da passada no chão e
+  volta dobrada pelo ar; o corpo sobe e desce e inclina no ritmo, a cabeça fica quase parada e a cauda vai esticada.

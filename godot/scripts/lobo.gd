@@ -317,7 +317,9 @@ func golpe_da_heroina(pos: Vector3, frente: Vector3, mult: float) -> bool:
 
 # ---------- animação ----------
 func _vel_teste() -> float:
-	if anim_fixa == "correr": return VEL_CORRER
+	if anim_fixa == "correr":
+		if u_fixo >= 0.0: _fase = u_fixo * TAU          # teste: quadro fixo da passada
+		return VEL_CORRER
 	if anim_fixa == "andar": return VEL_ANDAR
 	if anim_fixa == "morto":
 		estado = "morto"; _t = u_fixo * 1.6 if u_fixo >= 0.0 else fmod(_t, 2.5)
@@ -328,6 +330,7 @@ func _vel_teste() -> float:
 		_t = u_fixo * dur if u_fixo >= 0.0 else fmod(_t, dur + 0.6)
 	return 0.0
 
+const GALOPE_L := [0.0, -0.08, -0.5, -0.58]   # frente-esq, frente-dir, trás-esq, trás-dir (fração da passada)
 func _animar(delta: float, spd: float) -> void:
 	var anda := clampf(spd / 2.0, 0.0, 1.0)
 	var corre := clampf((spd - 2.5) / 3.0, 0.0, 1.0)
@@ -337,15 +340,28 @@ func _animar(delta: float, spd: float) -> void:
 	var s := sin(f); var c := cos(f)
 	var tq := Vector4(s, -s, -s, s) * 0.38
 	var tj := Vector4(-maxf(0.0, c), -maxf(0.0, -c), maxf(0.0, -c), maxf(0.0, c)) * 0.55
-	var gq := Vector4(sin(f), sin(f + 0.45), sin(f + PI), sin(f + PI + 0.45)) * Vector4(0.75, 0.75, 0.7, 0.7)
-	var gj := Vector4(-maxf(0.0, cos(f)), -maxf(0.0, cos(f + 0.45)), maxf(0.0, cos(f + PI)), maxf(0.0, cos(f + PI + 0.45))) * 1.0
+	# galope (pela referência de 12 quadros): a pata fica ~1/3 da passada no chão indo reta de frente para trás e
+	# volta pelo ar dobrada; as duas da frente pisam quase juntas, depois as duas de trás (frente e trás opostas:
+	# esticado ↔ recolhido)
+	var gq := Vector4.ZERO; var gj := Vector4.ZERO
+	for i in 4:
+		var u := fposmod(f / TAU + GALOPE_L[i], 1.0)
+		var ang: float; var dobra: float
+		if u < 0.34: ang = lerpf(1.0, -1.0, u / 0.34); dobra = 0.08
+		else:
+			var v := (u - 0.34) / 0.66
+			ang = lerpf(-1.0, 1.0, smoothstep(0.0, 1.0, v)); dobra = sin(v * PI)
+		gq[i] = ang * (0.78 if i < 2 else 0.72)
+		gj[i] = (-1.25 if i < 2 else 1.05) * dobra                     # frente dobra para trás, trás para a frente
+	var ug := fposmod(f / TAU, 1.0)
+	var recolhe := 0.5 + 0.5 * cos(TAU * (ug - 0.45))                 # 1 recolhido (no alto), 0 esticado
 	var q := tq.lerp(gq, corre) * anda
 	var j := tj.lerp(gj, corre) * anda
 	var resp := sin(_t * 2.2 + _fase * 0.0)
-	var cab := Vector2(-sin(f) * 0.12 * corre + resp * 0.02, 0.0)
-	var cau := Vector2(-0.25 * corre - 0.1 * anda, sin(f * 0.5) * 0.25 * (1.0 - corre) + sin(_t * 1.3) * 0.15 * (1.0 - anda))
-	var vy := absf(sin(f)) * 0.07 * corre + absf(s) * 0.015 * anda * (1.0 - corre)
-	var pitch := sin(f + PI * 0.5) * 0.1 * corre
+	var cab := Vector2(lerpf(0.0, 0.05 - 0.09 * recolhe, corre) + resp * 0.02, 0.0)      # cabeça quase nivelada
+	var cau := Vector2(-0.25 * corre - 0.1 * anda + 0.12 * recolhe * corre, sin(f * 0.5) * 0.25 * (1.0 - corre) + sin(f) * 0.06 * corre + sin(_t * 1.3) * 0.15 * (1.0 - anda))
+	var vy := recolhe * 0.09 * corre + absf(s) * 0.015 * anda * (1.0 - corre)               # no alto quando recolhe
+	var pitch := sin(TAU * (ug - 0.5)) * 0.09 * corre        # nariz para baixo quando a frente apoia, para cima quando as de trás empurram
 	var roll := 0.0
 	match estado:
 		"parado":                    # fareja o chão
