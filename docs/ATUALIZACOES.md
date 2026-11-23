@@ -232,3 +232,4 @@
   casas; parede enxaimel nova (painel com a mão-francesa) nas casas da vila e da cidade. O telhado de ardósia azul
   continua o mesmo (não muda nunca).
 - Estábulo: terra batida só dentro do cercado e do telheiro; em volta (casa e Edric) é grama.
+- Grama de volta em volta da casa do cavalariço e do Edric (o aplainado do estábulo tirava a grama da área toda).

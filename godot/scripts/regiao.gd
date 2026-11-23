@@ -486,6 +486,7 @@ func em_construcao(x: float, z: float) -> bool:
 		var dx := x - c.x; var dz := z - c.y
 		if dx * dx + dz * dz > pl[5]: continue
 		var q := Vector2(dx, dz).rotated(-pl[2]); var meia: Vector2 = pl[1]
+		if pl.size() > 6 and not pl[6]: continue                      # aplainado que não tira a grama (estábulo)
 		if abs(q.x) < meia.x - 0.6 and abs(q.y) < meia.y - 0.6: return true
 	return false
 

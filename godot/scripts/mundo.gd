@@ -2209,6 +2209,7 @@ func _estabulo_e_taverna(c: Vector2, y: float) -> void:
 func _estabulo() -> void:
 	var e := estabulo_pos
 	var y := reg.aplanar(e + Vector2(-8.0, 3.0), Vector2(26.0, 14.0), 0.0, 6.0)
+	reg.planos[-1].append(false)               # grama em volta da casa e do cercado (só o cercado/telheiro ficam de terra)
 	lugares.append([e + Vector2(-8.0, 3.0), 28.0])
 	var madeira := mat("madeira"); var tel := mat("telha", 1.4)
 	# casinha do cavalariço (à esquerda do telheiro, porta para a estrada)
