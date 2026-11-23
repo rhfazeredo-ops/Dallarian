@@ -466,7 +466,7 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 		elif dzp < 8.0: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)
 		elif dzp < 11.0: c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1)
 	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
-	var pe := maxf(patio_estabulo(x, z), patio_casa(x, z))
+	var pe := maxf(patio_estabulo(x, z), patio_casa(x, z) * 0.35)        # na casa: só um gasto leve na grama
 	if pe > 0.0: c = c.lerp(Color(0.5, 0.38, 0.25) * (0.9 + n * 0.14), pe)          # terra batida do estábulo
 	var p := zona_pantano(z)
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
@@ -503,6 +503,6 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	if campo == 1: return 0.0
 	if campo == 0: return 1.0
 	var g := 1.0 - smoothstep(0.2, 0.75, floresta(x, z)) * 0.85         # na mata fechada quase não tem grama
-	return g * (1.0 - 0.75 * patio_casa(x, z))                           # terra batida da casa do estábulo: um pouco
+	return g * (1.0 - 0.25 * patio_casa(x, z))                           # em volta do estábulo: grama quase normal
 
 func dentro(x: float, z: float) -> bool: return x > X0 and x < X1 and abs(z) < LIM
