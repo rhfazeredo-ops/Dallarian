@@ -301,10 +301,14 @@ func na_cidade(x: float, z: float, folga := 0.0) -> bool: return _dist_cidade(x,
 const FOSSO_X := CIDADE_C.x - CIDADE_R - 42.0
 const ESTABULO := Vector2(FOSSO_X - 58.0, CIDADE_C.y - 42.0)
 const PATIO_NIVEL := Rect2(FOSSO_X - 112.0, CIDADE_C.y - 78.0, 96.0, 106.0)     # aplainado no nível da estrada
-# pátio de terra batida do estábulo (cavalos e gente o tempo todo: sem grama)
-static func patio_estabulo(x: float, z: float) -> float:          # 1 dentro, 0 fora (borda suave)
-	var d := Vector2((x - ESTABULO.x + 8.0) / 36.0, (z - ESTABULO.y - 2.0) / 25.0).length()
-	return 1.0 - smoothstep(0.85, 1.0, d)
+# terra batida do estábulo: um quadrado certinho pegando o telheiro e o cercado (sem grama nenhuma)...
+const ESTABULO_TERRA := Rect2(ESTABULO.x - 13.5, ESTABULO.y - 12.5, 27.0, 29.0)
+static func patio_estabulo(x: float, z: float) -> float:          # 1 dentro do quadrado
+	return 1.0 if ESTABULO_TERRA.has_point(Vector2(x, z)) else 0.0
+# ...e uma mancha irregular embaixo da casa do cavalariço e do Edric (com um pouco de grama)
+func patio_casa(x: float, z: float) -> float:
+	var d := Vector2(x, z).distance_to(ESTABULO + Vector2(-22.0, -1.0)) / 11.0 + ruido.get_noise_2d(x * 9.0, z * 9.0) * 0.3
+	return 1.0 - smoothstep(0.7, 1.0, d)
 static func _dist_ret(x: float, z: float, r: Rect2) -> float:
 	var dx := maxf(maxf(r.position.x - x, x - r.end.x), 0.0); var dz := maxf(maxf(r.position.y - z, z - r.end.y), 0.0)
 	return Vector2(dx, dz).length()
@@ -458,7 +462,7 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 		elif dzp < 8.0: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)
 		elif dzp < 11.0: c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1)
 	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
-	var pe := patio_estabulo(x, z)
+	var pe := maxf(patio_estabulo(x, z), patio_casa(x, z))
 	if pe > 0.0: c = c.lerp(Color(0.5, 0.38, 0.25) * (0.9 + n * 0.14), pe)          # terra batida do estábulo
 	var p := zona_pantano(z)
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
@@ -471,7 +475,7 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 
 # dentro do chão de alguma construção (casa, ferraria, moinho...)?
 func em_construcao(x: float, z: float) -> bool:
-	if patio_estabulo(x, z) > 0.3: return true                       # sem grama nem manchas no pátio do estábulo
+	if patio_estabulo(x, z) > 0.5: return true                       # sem grama nem manchas dentro do estábulo
 	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 9.0: return true
 	for pl in planos:
 		var c: Vector2 = pl[0]
@@ -494,6 +498,7 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	var campo := campo_em(x, z)
 	if campo == 1: return 0.0
 	if campo == 0: return 1.0
-	return 1.0 - smoothstep(0.2, 0.75, floresta(x, z)) * 0.85          # na mata fechada quase não tem grama
+	var g := 1.0 - smoothstep(0.2, 0.75, floresta(x, z)) * 0.85         # na mata fechada quase não tem grama
+	return g * (1.0 - 0.75 * patio_casa(x, z))                           # terra batida da casa do estábulo: um pouco
 
 func dentro(x: float, z: float) -> bool: return x > X0 and x < X1 and abs(z) < LIM

@@ -223,3 +223,6 @@
 - **Pátio de terra batida** em volta do estábulo inteiro (casa, telheiro, cercado e a frente), sem grama.
 - **Ruas de Altamar com a pedra da Estrada Real**: chegada da ponte até o portão, as quatro ruas principais (da
   praça até os portões; a do norte até o castelo) e a praça inteira.
+- **Estábulo**: terra batida num quadrado certinho pegando o telheiro e o cercado (sem grama dentro); embaixo da
+  casa do cavalariço e do Edric, uma mancha irregular de terra com um pouco de grama.
+- **Som da chuva mais baixo** (-7 dB).

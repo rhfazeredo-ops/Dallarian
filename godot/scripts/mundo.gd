@@ -1317,7 +1317,7 @@ func _tempo_chuva(delta: float) -> void:
 	_mat_gotas.albedo_color.a = 0.45 * clampf((chuva - 0.1) / 0.9, 0.1, 1.0)     # chuva fraca no começo/fim
 	if chuva > 0.01:
 		if not _som_chuva.playing: _som_chuva.play()
-		_som_chuva.volume_db = linear_to_db(chuva) - 4.0
+		_som_chuva.volume_db = linear_to_db(chuva) - 11.0                 # mais baixa (antes -4 dB)
 	elif _som_chuva.playing: _som_chuva.stop()
 
 # ---------- vento ----------
@@ -2232,8 +2232,7 @@ func _estabulo() -> void:
 	_peca(st, mat("palha"), Vector3.ZERO)
 	_colisor_caixa(Vector3(e.x, y, e.y - 10.8), Vector3(18.0, 3.0, 0.4), 0.0)
 	# chão de terra batida debaixo do telheiro e no cercado (antes era o terreno liso)
-	_chao_textura(Rect2(e.x - 10.5, e.y - 11.6, 21.0, 12.0), mat("terra", 0.5))
-	_chao_textura(Rect2(e.x - 12.5, e.y + 0.4, 25.0, 15.2), mat("terra", 0.5))
+	_chao_textura(Regiao.ESTABULO_TERRA, mat("terra", 0.5))       # o quadrado inteiro do estábulo
 	# cercado na frente do telheiro (aberto do lado da casa, para entrar)
 	var cerca := _st()
 	var cx0 := e.x - 12.0; var cx1 := e.x + 12.0; var cz0 := e.y + 1.0; var cz1 := e.y + 15.0
