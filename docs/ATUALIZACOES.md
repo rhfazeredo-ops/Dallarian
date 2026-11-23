@@ -254,3 +254,4 @@
 - **Todas as montanhas e encostas com a rocha da entrada**: o terreno ganhou um material próprio — nas partes
   íngremes usa a textura de rocha clara com musgo tirada do modelo da entrada (projetada de lado), com neve por
   cima no alto; nas partes planas continua a grama.
+- Frente da gruta toda com grama (o caminho de terra agora só existe lá dentro).

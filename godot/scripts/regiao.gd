@@ -410,7 +410,7 @@ func monte_gruta(x: float, z: float) -> float:
 	return 42.0 * forma * forma * (3.0 - 2.0 * forma) * smoothstep(-905.0, -945.0, z)
 # caminho de terra clara do vale até dentro da gruta: 1 no meio, some para os lados (grama) e para o fundo
 func caminho_gruta(x: float, z: float) -> float:
-	if absf(x - GRUTA_ENTRADA.x) > 8.0 or z > -866.0 or z < -935.0: return 0.0
+	if absf(x - GRUTA_ENTRADA.x) > 8.0 or z > GRUTA_COBERTA_Z - 1.0 or z < -935.0: return 0.0   # só dentro: lá fora é grama
 	var meia := 1.9 + ruido.get_noise_2d(z * 3.0, 7.0) * 0.6 + smoothstep(-905.0, -920.0, z) * 2.0   # alarga ao entrar
 	var cxz := GRUTA_ENTRADA.x + ruido.get_noise_2d(z * 1.5, 3.0) * 1.2 * smoothstep(-905.0, -880.0, z)  # curvinha lá fora
 	return (1.0 - smoothstep(meia - 0.6, meia + 0.4, absf(x - cxz))) * smoothstep(-934.0, -918.0, z) * (1.0 - smoothstep(-874.0, -866.0, z))
