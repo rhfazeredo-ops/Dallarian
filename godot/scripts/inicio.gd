@@ -44,6 +44,14 @@ func _ready() -> void:
 	var args2 := OS.get_cmdline_user_args()
 	if args2.is_empty() or args2.has("--selecao") or args2.has("--criacao"):
 		var sel = load("res://scripts/selecao.gd").new(); add_child(sel)
+		# música da seleção/criação de heróis (só nessas telas; para ao entrar no mundo)
+		var musica: AudioStreamPlayer = null
+		for arq in ["res://assets/som/musica_menu.ogg", "res://assets/som/musica_menu.mp3"]:
+			if ResourceLoader.exists(arq):
+				var st = load(arq)
+				if "loop" in st: st.loop = true
+				musica = AudioStreamPlayer.new(); musica.stream = st; musica.volume_db = -6.0; add_child(musica); musica.play()
+				break
 		if args2.has("--criacao"): sel._abrir_criacao()
 		if args2.has("--selecao") or args2.has("--criacao"):
 			for k in 8: await RenderingServer.frame_post_draw
@@ -51,6 +59,8 @@ func _ready() -> void:
 			get_tree().quit(); return
 		await sel.iniciar
 		_texto.text = "Entrando no Vale de Aldren..."; sel.queue_free()
+		if musica:                                       # some em 1,5 s
+			var tw := create_tween(); tw.tween_property(musica, "volume_db", -40.0, 1.5); await tw.finished; musica.stop()
 		await RenderingServer.frame_post_draw; await RenderingServer.frame_post_draw
 	get_tree().change_scene_to_file(CENA)
 
