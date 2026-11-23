@@ -138,3 +138,6 @@
 - **Movimento mais fluido**: interpolação de física ligada (a posição da Rachel e da câmera é suavizada entre os
   passos da física — some o "soluço" quando o FPS oscila), aceleração e freada suaves a pé e com "peso" a cavalo,
   e a animação do cavalo no mesmo ritmo da física.
+- **Galope do cavalo refeito pelo vídeo de referência** (quadro a quadro): 2 passadas por segundo, patas de trás
+  apoiam primeiro e depois as da frente, fase esticada e fase recolhida com o cavalo "voando", corpo e cabeça
+  balançando junto.

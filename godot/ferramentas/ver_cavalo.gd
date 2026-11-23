@@ -24,7 +24,7 @@ func _initialize() -> void:
 	var folha := Image.create(420 * nq, 360, false, Image.FORMAT_RGBA8)
 	await process_frame
 	for q in nq:
-		an._process(float(a.get("passo_t", "0.1")))
+		an._physics_process(float(a.get("passo_t", "0.1")))
 		for k in 3: await RenderingServer.frame_post_draw
 		folha.blit_rect(vp.get_texture().get_image(), Rect2i(0, 0, 420, 360), Vector2i(q * 420, 0))
 	folha.save_png(a.saida); quit()
