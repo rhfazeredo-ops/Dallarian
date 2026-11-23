@@ -20,10 +20,20 @@ static func pegar(nome: String) -> ImageTexture:
 		"madeira": im = _madeira()
 		"casca": im = _casca()
 		"pinho": im = _pinho()
-		"telha": im = _telha()
+		"telha": im = _telha_ardosia()
 		_: im = _aco()
 	im.generate_mipmaps()                      # para o filtro com mipmap: de longe a textura não cintila
 	var t := ImageTexture.create_from_image(im); _cache[nome] = t; return t
+
+# telhado de ardósia azul pintado (arte do dono, 128 px); sem o arquivo, volta para as telhas feitas por código
+static func _telha_ardosia() -> Image:
+	var arq := "res://assets/texturas/telhado_ardosia.png"
+	if ResourceLoader.exists(arq):
+		var im: Image = (load(arq) as Texture2D).get_image()
+		if im.is_compressed(): im.decompress()
+		im.convert(Image.FORMAT_RGBA8)
+		return im
+	return _telha()
 
 # telhas em fileiras, em tons claros de cinza (a cor do material pinta: azul, roxo...)
 static func _telha() -> Image:

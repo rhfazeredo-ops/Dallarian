@@ -196,3 +196,9 @@
   caveira de peixe na entrada das salas, musgo úmido no pé das paredes, gotas pingando do teto com o som do pingo,
   som ambiente de caverna e mais eco nos sons lá dentro. Penumbra um pouco mais clara e boca da gruta com paredão
   de pedra irregular. Corrigido o terreno da montanha que aparecia como "moitas" dentro dos túneis.
+- **Telhados de ardósia azul** (textura pintada pelo dono) em todas as casas de Altamar, torres, taverna e
+  estábulo; a torre dos magos fica com o tom roxo por cima.
+- **Drops do Grão-Lodoso**: escama, barbatana, olho e Pérola da Lama (40% cada), e dois itens só dele (15%):
+  **Coroa de Dentes do Grão-Lodoso** e **Tridente Partido do Grão-Lodoso**. Arma única (rara, azul):
+  **Presa da Maré** — espada de uma mão, 11–18 de dano, nível 6; por enquanto cai do chefe (10%) e depois vira
+  a recompensa da missão do soldado de Altamar. Na mão usa a espada de ferro até chegar o modelo.

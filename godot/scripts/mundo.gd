@@ -847,7 +847,10 @@ func monstro_morreu(mo: Node) -> void:
 		drops = [["escama_lodoso", 0.5, 1, 2 if mo.tipo == "lodoso_g" else 1], ["barbatana_lodoso", 0.35, 1, 1],
 			["olho_lodoso", 0.2, 1, 1]]
 		if mo.tipo == "lodoso_x": drops.append(["perola_lama", 0.12, 1, 1])
-		if mo.tipo == "lodoso_c": drops = [["escama_lodoso", 1.0, 2, 3], ["olho_lodoso", 0.6, 1, 2], ["perola_lama", 0.5, 1, 1]]
+		# Grão-Lodoso: os itens dos Lodosos (40%), os dois só dele (15%) e a espada Presa da Maré (10%; depois vira
+		# recompensa da missão do soldado de Altamar)
+		if mo.tipo == "lodoso_c": drops = [["escama_lodoso", 0.4, 2, 3], ["barbatana_lodoso", 0.4, 1, 2], ["olho_lodoso", 0.4, 1, 2],
+			["perola_lama", 0.4, 1, 1], ["coroa_grao_lodoso", 0.15, 1, 1], ["tridente_partido", 0.15, 1, 1], ["presa_da_mare", 0.1, 1, 1]]
 	saque.registrar(mo, Saque.sortear(drops))
 
 func lobo_morreu(l: Lobo) -> void:
@@ -1792,7 +1795,7 @@ func _cidade() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 1234
 	var pedra := mat("pedra", 1.0, Color(1.15, 1.12, 1.05))
 	var pedra_esc := mat("pedra", 1.0, Color(0.85, 0.85, 0.9))
-	var azul := mat("telha", 1.0, Color(0.32, 0.46, 0.9))            # telhado azul (o tom multiplica a textura de madeira)
+	var azul := mat("telha", 1.4)            # telhado de ardósia azul (textura pintada pelo dono)
 	var dirv := func(a: float) -> Vector2: return Vector2(cos(a), sin(a))
 	var portoes := [PI, PI * 0.5, 0.0]
 	var meia_porta := 8.0 / RR
@@ -1897,7 +1900,7 @@ func _cidade() -> void:
 	var tm: Vector2 = c + dirv.call(PI * 0.78) * 168.0
 	st = _st(); cilindro(st, Vector3(tm.x, y - 1.0, tm.y), 7.0, 6.0, 42.0, 10, true); cilindro(st, Vector3(tm.x, y + 40.0, tm.y), 8.0, 8.0, 1.5, 10, true)
 	_peca(st, mat("pedra", 1.0, Color(0.95, 0.9, 1.05)), Vector3.ZERO)
-	st = _st(); cilindro(st, Vector3(tm.x, y + 41.5, tm.y), 8.5, 0.0, 16.0, 10); _peca(st, mat("telha", 1.0, Color(0.55, 0.32, 0.72)), Vector3.ZERO)
+	st = _st(); cilindro(st, Vector3(tm.x, y + 41.5, tm.y), 8.5, 0.0, 16.0, 10); _peca(st, mat("telha", 1.4, Color(0.95, 0.6, 1.0)), Vector3.ZERO)
 	_colisor_cilindro(Vector3(tm.x, y - 1.0, tm.y), 7.0, 42.0)
 	_particulas_magia(Vector3(tm.x, y + 58.0, tm.y))
 	# ---- praça central com chafariz de três andares
@@ -1947,10 +1950,10 @@ func _cidade() -> void:
 	# ---- casas por bairro, em pares de anéis com uma rua entre eles (portas viradas para essa rua)
 	var parede_clara := mat("parede", 1.0, Color(1.1, 1.08, 1.02))
 	var estilos := {
-		"comercio": [[parede_clara, mat("parede"), pedra], [azul, azul, mat("telha", 1.0, Color(0.38, 0.52, 0.95))]],
-		"portao": [[parede_clara, pedra], [azul, mat("telha", 1.0, Color(0.38, 0.52, 0.95))]],
+		"comercio": [[parede_clara, mat("parede"), pedra], [azul, azul, mat("telha", 1.4, Color(0.9, 0.95, 1.0))]],
+		"portao": [[parede_clara, pedra], [azul, mat("telha", 1.4, Color(0.9, 0.95, 1.0))]],
 		"velho": [[mat("parede", 1.0, Color(0.95, 0.85, 0.75)), mat("pedra", 1.0, Color(0.9, 0.8, 0.7))], [mat("madeira", 1.0, Color(0.6, 0.3, 0.2)), mat("madeira", 1.0, Color(0.5, 0.25, 0.18))]],
-		"magos": [[mat("parede", 1.0, Color(1.0, 0.95, 1.05)), mat("pedra", 1.0, Color(0.95, 0.9, 1.05))], [mat("telha", 1.0, Color(0.55, 0.32, 0.72)), mat("telha", 1.0, Color(0.48, 0.28, 0.64))]],
+		"magos": [[mat("parede", 1.0, Color(1.0, 0.95, 1.05)), mat("pedra", 1.0, Color(0.95, 0.9, 1.05))], [mat("telha", 1.4, Color(0.95, 0.6, 1.0)), mat("telha", 1.4, Color(0.85, 0.55, 0.95))]],
 		"porto": [[mat("madeira", 1.0, Color(0.8, 0.7, 0.6)), pedra_esc], [mat("madeira", 1.0, Color(0.4, 0.42, 0.5))]],
 		"catedral": [[pedra, parede_clara], [azul]],
 	}
@@ -2073,7 +2076,7 @@ func _estabulo_e_taverna(c: Vector2, y: float) -> void:
 	# taverna grande com placa (dentro da cidade, logo depois do portão oeste)
 	var t := taverna_pos
 	var ang_t := PI                                                        # porta virada para a rua principal (norte)
-	_casa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, mat("parede"), mat("telha", 1.0, Color(0.32, 0.46, 0.9)), true)
+	_casa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, mat("parede"), mat("telha", 1.4), true)
 	_placa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, "taverna")
 	cidade_lojas.append(["taverna", t + Vector2(0, -7.0)])
 	var b := _st()
@@ -2087,10 +2090,10 @@ func _estabulo() -> void:
 	var e := estabulo_pos
 	var y := reg.aplanar(e + Vector2(-8.0, 3.0), Vector2(26.0, 14.0), 0.0, 6.0)
 	lugares.append([e + Vector2(-8.0, 3.0), 28.0])
-	var madeira := mat("madeira"); var tel := mat("telha", 1.0, Color(0.55, 0.3, 0.2))
+	var madeira := mat("madeira"); var tel := mat("telha", 1.4)
 	# casinha do cavalariço (à esquerda do telheiro, porta para a estrada)
 	var hc := e + Vector2(-25.0, -5.0)
-	_casa(Vector3(hc.x, y, hc.y), 0.0, 9.0, 7.0, 3.6, mat("parede"), mat("telha", 1.0, Color(0.6, 0.32, 0.2)), true)
+	_casa(Vector3(hc.x, y, hc.y), 0.0, 9.0, 7.0, 3.6, mat("parede"), mat("telha", 1.4), true)
 	var lenha := _st()                                                  # lenha empilhada e um banco do lado da casa
 	for k in 3: _caixa(lenha, Vector3(hc.x - 5.6, y + 0.25 + k * 0.4, hc.y - 1.0 + (k % 2) * 0.2), Vector3(0.9, 0.38, 2.6))
 	_caixa(lenha, Vector3(hc.x + 2.2, y + 0.45, hc.y + 4.4), Vector3(1.8, 0.12, 0.5))
@@ -2885,6 +2888,7 @@ func _modo_teste() -> void:
 			bolsa.pegar("escama_lodoso", 7); bolsa.pegar("presa_aranha", 3)
 			bolsa.pegar("barbatana_lodoso", 2); bolsa.pegar("olho_lodoso", 1); bolsa.pegar("perola_lama", 1)
 			bolsa.pegar("pelo_lobo", 4); bolsa.pegar("veneno_aranha", 2)
+			bolsa.pegar("coroa_grao_lodoso", 1); bolsa.pegar("tridente_partido", 1); bolsa.pegar("presa_da_mare", 1)
 		bolsa.pegar("dentes_garras", int(args.get("itens", args.get("loja", "27")))); bolsa.cobre = int(args.get("dinheiro", "1234"))
 		if args.has("bolsas"):
 			bolsa.pegar("bolsa_16"); bolsa.pegar("bolsa_30")

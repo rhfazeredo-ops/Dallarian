@@ -215,7 +215,16 @@ func trocar_equip(lugar: String, id: String) -> void:
 		var k := 1.0 / 1.367
 		mod.transform = Transform3D(r.scaled(Vector3(k, k, k)), -(r * cabo) * k)
 		no.add_child(mod)
-	elif lugar == "arma" and modelo == "ferro":
+	elif lugar == "arma" and modelo == "presa" and ResourceLoader.exists("res://assets/modelos/presa_da_mare.glb"):
+		# Presa da Maré (Tripo, quando chegar): mesmo encaixe da espada de ferro, lâmina em +Y, 1 m
+		var mod: Node3D = m.modelo_ps1("res://assets/modelos/presa_da_mare.glb")
+		var bb := AABB()
+		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
+		var k := 1.05 / maxf(bb.size.y, 0.01)
+		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
+		mod.position = Vector3(0, -(bb.position.y + bb.size.y * 0.2) * k, 0)
+		no.add_child(mod)
+	elif lugar == "arma" and (modelo == "ferro" or modelo == "presa"):        # (presa: a de ferro até chegar o modelo)
 		# espada de ferro (a primeira do Tripo): 0,51 m no arquivo → 1 m; cabo na origem, lâmina em +Y
 		var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada.glb")
 		var k := 1.0 / 0.51
