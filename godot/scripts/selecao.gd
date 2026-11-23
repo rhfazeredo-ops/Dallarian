@@ -26,15 +26,17 @@ func _montar_lista(escolher := 0) -> void:
 		cv.add_child(UI.rotulo("Altamar", 20, Color(0.75, 0.75, 0.75)))
 		var i := _cartoes.size() - 1
 		c.gui_input.connect(func(e): if (e is InputEventMouseButton and e.pressed) or (e is InputEventScreenTouch and e.pressed): _escolher(i))
-	_escolher(clampi(escolher, 0, _lista.size() - 1))
+	if not _lista.is_empty(): _escolher(clampi(escolher, 0, _lista.size() - 1))
 
-func _abrir_criacao() -> void:
-	var cr = load("res://scripts/criacao.gd").new(); add_child(cr)
+func _abrir_criacao(primeira := false) -> void:
+	var cr = load("res://scripts/criacao.gd").new(); cr.pode_voltar = not primeira; add_child(cr)
 	cr.voltar.connect(func(): cr.queue_free())
 	cr.pronto.connect(func(h: Dictionary):
-		cr.queue_free(); _montar_lista(Herois.lista().size() - 1))
+		cr.queue_free(); _montar_lista(Herois.lista().size() - 1)
+		if primeira: Herois.ativo = h; iniciar.emit())                  # primeira vez: já entra no jogo
 
 func _ready() -> void:
+	call_deferred("_primeira_vez")
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# fundo: arte do salão do castelo (enquanto não chega, a arte de Altamar escurecida)
 	var fundo := ColorRect.new(); fundo.color = Color(0.06, 0.05, 0.07); fundo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(fundo)
@@ -47,7 +49,7 @@ func _ready() -> void:
 			var sombra := ColorRect.new(); sombra.color = Color(0.05, 0.03, 0.08, 0.55); sombra.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(sombra)
 	# a heroína em 3D no meio
 	var cont := SubViewportContainer.new(); cont.stretch = true; cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cont.anchor_left = 0.3; cont.anchor_right = 0.7; cont.anchor_top = 0.14; cont.anchor_bottom = 0.86; add_child(cont)
+	cont.anchor_left = 0.26; cont.anchor_right = 0.74; cont.anchor_top = 0.08; cont.anchor_bottom = 0.98; add_child(cont)
 	var vp := SubViewport.new(); vp.transparent_bg = true; vp.own_world_3d = true; cont.add_child(vp)
 	_modelo = load("res://assets/modelos/dallarian.glb").instantiate(); vp.add_child(_modelo)
 	_modelo.rotation_degrees.y = -90
@@ -74,7 +76,7 @@ func _ready() -> void:
 	b.anchor_left = 1; b.anchor_right = 1; b.anchor_top = 1; b.anchor_bottom = 1
 	b.offset_left = -470; b.offset_right = -30; b.offset_top = -220; b.offset_bottom = -30; add_child(b)
 	b.add_child(UI.botao("CRIAR NOVO HERÓI", _abrir_criacao, true, 26, 440.0))
-	var ini := UI.botao("INICIAR JOGO", func(): Herois.ativo = _lista[_sel]; iniciar.emit(), true, 34, 440.0); ini.custom_minimum_size.y = 84; b.add_child(ini)
+	var ini := UI.botao("INICIAR JOGO", func(): (_abrir_criacao(true) if _lista.is_empty() else (func(): Herois.ativo = _lista[_sel]; iniciar.emit()).call()), true, 34, 440.0); ini.custom_minimum_size.y = 84; b.add_child(ini)
 	_aviso = UI.rotulo("", 24, Color(1.0, 0.85, 0.4)); _aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_aviso.anchor_left = 0.28; _aviso.anchor_right = 0.66; _aviso.anchor_top = 0.04; _aviso.anchor_bottom = 0.1; add_child(_aviso)
 
@@ -88,3 +90,7 @@ func _escolher(i: int) -> void:
 
 func _process(delta: float) -> void:
 	if _modelo: _modelo.rotation.y = -PI * 0.5 + sin(Time.get_ticks_msec() / 1000.0 * 0.6) * 0.35     # vira devagar de um lado para o outro
+
+# sem nenhum herói salvo (jogo novo): abre direto a criação, que é obrigatória
+func _primeira_vez() -> void:
+	if Herois.lista().is_empty(): _abrir_criacao(true)

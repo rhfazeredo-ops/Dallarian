@@ -287,3 +287,7 @@
   fundo pintado opcional: `assets/ui/criacao_fundo.png`.
 - **Seleção de heróis com o fundo do salão do castelo de Altamar** (arte enviada): a heroína em pé no tapete
   vermelho, na frente do estrado.
+- **Jogo novo**: sem nenhum save, o jogo abre direto na **criação de herói** ("Crie seu herói para começar", sem
+  VOLTAR); escolhendo o nome e aceitando, já entra no mundo com esse herói. A Rachel só aparece na lista para
+  quem já tem o save dela.
+- Herói **maior na tela** na criação (câmera mais perto) e na seleção.

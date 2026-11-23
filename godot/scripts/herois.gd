@@ -7,7 +7,7 @@ const RACHEL := {"id": "rachel", "nome": "Rachel", "raca": "Humana", "classe": "
 static var ativo: Dictionary = RACHEL
 
 static func lista() -> Array:
-	var l: Array = [RACHEL]
+	var l: Array = [RACHEL] if FileAccess.file_exists("user://progresso.json") else []   # a Rachel só se já tem save
 	if FileAccess.file_exists(ARQ):
 		var d = JSON.parse_string(FileAccess.get_file_as_string(ARQ))
 		if d is Array:

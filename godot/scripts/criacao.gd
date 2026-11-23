@@ -23,6 +23,7 @@ var _modelo: Node3D
 var _lore_tit: Label
 var _lore: Label
 var _botoes := []                   # [botão, raça, sexo]
+var pode_voltar := true
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -67,7 +68,10 @@ func _ready() -> void:
 	b2.anchor_left = 1; b2.anchor_right = 1; b2.anchor_top = 1; b2.anchor_bottom = 1
 	b2.offset_left = -330; b2.offset_right = -20; b2.offset_top = -170; b2.offset_bottom = -20; add_child(b2)
 	var ac := UI.botao("ACEITAR", _aceitar, true, 32, 310.0); ac.custom_minimum_size.y = 74; b2.add_child(ac)
-	b2.add_child(UI.botao("VOLTAR", func(): voltar.emit(), true, 24, 310.0))
+	if pode_voltar: b2.add_child(UI.botao("VOLTAR", func(): voltar.emit(), true, 24, 310.0))
+	else:                                              # primeira vez: criar o herói é obrigatório
+		var bv := UI.rotulo("Crie seu herói para começar", 30, Color(1.0, 0.85, 0.4)); bv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		bv.anchor_left = 0.25; bv.anchor_right = 0.75; bv.offset_top = 24; bv.offset_bottom = 70; add_child(bv)
 	_escolher(0, 1)
 
 # retrato: arte do dono (assets/ui/racas/N_m.png / N_f.png) se existir; senão o rosto do modelo (Rachel) ou um "?"
@@ -147,7 +151,7 @@ func _cena_campo() -> void:
 	_modelo = load("res://assets/modelos/dallarian.glb").instantiate(); vp.add_child(_modelo)
 	_nitido(_modelo)
 	var k := 1.65 / 0.98; _modelo.scale = Vector3.ONE * k; _modelo.position = Vector3(0, 0.49 * k, 0)
-	var cam := Camera3D.new(); cam.fov = 40.0; cam.position = Vector3(0.0, 1.3, 4.8); vp.add_child(cam); cam.look_at(Vector3(0.0, 0.95, 0)); cam.current = true
+	var cam := Camera3D.new(); cam.fov = 40.0; cam.position = Vector3(0.0, 1.25, 3.3); vp.add_child(cam); cam.look_at(Vector3(0.0, 0.92, 0)); cam.current = true   # perto: herói grande
 
 func _escolher(r: int, sx: int) -> void:
 	if not RACAS[r][2][sx]: return
