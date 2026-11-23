@@ -84,6 +84,7 @@ func montar(mundo) -> void:
 			var p: Vector2 = c + dirp * (r - 1.5) + dirp.orthogonal() * lado * 2.6
 			if reg.gruta_d(p.x, p.y) > -0.5: continue
 			_totem(p)
+	_boca()
 	# musgo úmido nas pedras da entrada e gotas pingando do teto
 	for i in 12:
 		var p: Vector2 = meio[rng.randi() % meio.size()]
@@ -197,3 +198,71 @@ func _process(delta: float) -> void:
 		som.position = Vector3(teto.x, reg.gruta_piso(teto.x, teto.z) + 0.1, teto.z); add_child(som)
 		get_tree().create_timer(queda).timeout.connect(func(): if is_instance_valid(som): som.play())
 		get_tree().create_timer(queda + 1.2).timeout.connect(func(): if is_instance_valid(som): som.queue_free())
+
+# ---------- boca da gruta: pedras empilhadas em arco em volta da abertura, pedras pelas laterais e cascalho ----------
+func _boca() -> void:
+	var r := RandomNumberGenerator.new(); r.seed = 7171
+	var bz := Regiao.GRUTA_COBERTA_Z
+	# meia largura da abertura na linha da boca
+	var cx := Regiao.GRUTA_ENTRADA.x; var meia := 0.0
+	for k in 40:
+		var xx := cx - 10.0 + k * 0.5
+		if reg.gruta_d(xx, bz) < 0.0: meia = maxf(meia, absf(xx - cx))
+	meia = maxf(meia, 3.0)
+	var piso := reg.gruta_piso(cx, bz); var teto := reg.gruta_teto(cx, bz)
+	var pedras := []
+	# arco de pedras grandes em volta da abertura (encostadas na encosta)
+	for i in 15:
+		var a := lerpf(-0.15, PI + 0.15, float(i) / 14.0) + r.randf_range(-0.05, 0.05)
+		var p := Vector3(cx + cos(a) * (meia + 0.9), piso + sin(a) * (teto - piso + 0.4) - 0.3, bz - r.randf_range(0.3, 0.7))   # meio enterradas no paredão
+		pedras.append([p, r.randf_range(1.3, 2.1)])
+	# pedras empilhadas no pé do paredão, dos dois lados da boca (do chão para cima)
+	for lado in [-1.0, 1.0]:
+		for i in 7:
+			var x: float = cx + float(lado) * (meia + r.randf_range(0.8, 4.0))
+			var z := bz + r.randf_range(-0.4, 2.5)
+			var y := reg.altura(x, z) - 0.3 + (r.randf_range(0.0, 1.6) if i > 3 else 0.0)
+			pedras.append([Vector3(x, y, z), r.randf_range(1.0, 2.0)])
+	# montes de pedras empilhadas dos dois lados da entrada, e algumas soltas pelo caminho
+	for lado in [-1.0, 1.0]:
+		for i in 9:
+			var z := bz + r.randf_range(0.5, 16.0)
+			var x: float = cx + float(lado) * (meia + r.randf_range(1.5, 4.5))
+			var tam := r.randf_range(0.8, 2.0) * (1.0 - (z - bz) / 22.0)
+			pedras.append([Vector3(x, reg.altura(x, z) - 0.2, z), tam])
+			if tam > 1.2: pedras.append([Vector3(x + r.randf_range(-0.5, 0.5), reg.altura(x, z) + tam * 0.6, z + r.randf_range(-0.5, 0.5)), tam * 0.6])
+	var itens := []
+	for pd in pedras:
+		var tam: float = pd[1]
+		var b := Basis(Vector3(r.randf(), r.randf(), r.randf()).normalized(), r.randf() * TAU).scaled(Vector3(tam, tam * r.randf_range(0.6, 0.9), tam * r.randf_range(0.8, 1.1)))
+		itens.append([Transform3D(b, pd[0]), Color(0.6, 0.6, 0.62) * r.randf_range(0.7, 1.0)])
+	_mm(_pedregulho(), itens, m.mat("", 1.0, Color(0.95, 0.95, 1.0)))
+	# cascalho: pedrinhas no chão da entrada, mais na boca e sumindo para dentro e para fora
+	var casc := []
+	for i in 900:
+		var x := cx + r.randf_range(-meia - 2.0, meia + 2.0); var z := r.randf_range(-934.0, -893.0)
+		var f := reg.cascalho_gruta(x, z)
+		if r.randf() > f: continue
+		var y := reg.altura(x, z)
+		var s := r.randf_range(0.8, 2.2)
+		casc.append([Transform3D(Basis(Vector3.UP, r.randf() * TAU).scaled(Vector3.ONE * s), Vector3(x, y, z)), Color(0.75, 0.72, 0.68) * r.randf_range(0.65, 1.05)])
+	if m.praia and not m.praia._malhas.is_empty(): _mm(m.praia._malhas[2], casc, m.mat("", 1.0, Color.WHITE))
+
+func _pedregulho() -> ArrayMesh:          # pedra arredondada irregular de ~1 m
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var r := RandomNumberGenerator.new(); r.seed = 5
+	var anel := 6; var lados := 8; var pts := []
+	for j in anel + 1:
+		var v := float(j) / anel; var lat := lerpf(-PI * 0.5, PI * 0.5, v)
+		var fila := []
+		for i in lados:
+			var lon := TAU * i / lados
+			var k := 0.5 * r.randf_range(0.82, 1.12)
+			fila.append(Vector3(cos(lat) * cos(lon), sin(lat) * 0.8, cos(lat) * sin(lon)) * k + Vector3(0, 0.3, 0))
+		pts.append(fila)
+	for j in anel:
+		for i in lados:
+			var a: Vector3 = pts[j][i]; var b: Vector3 = pts[j][(i + 1) % lados]; var c: Vector3 = pts[j + 1][(i + 1) % lados]; var d: Vector3 = pts[j + 1][i]
+			var cor := Color(1, 1, 1) * (0.8 + 0.2 * float(j) / anel)
+			_tri(st, a, c, b, cor); _tri(st, a, d, c, cor)
+	return st.commit()

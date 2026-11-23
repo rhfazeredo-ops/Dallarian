@@ -238,3 +238,6 @@
   **abertura na encosta** (paredão de pedra com a boca da caverna), sem a trincheira com muros de antes.
 - Gruta: a boca recuou para dentro da encosta (onde a montanha já é mais alta que o teto) — de fora só aparece a
   abertura de entrada; antes sobrava um bloco de pedra para fora no chão do vale.
+- **Entrada da Gruta dos Lodosos mais natural**: montanha bem maior por cima da gruta (sobe atrás da boca), chão
+  na frente com grama de novo, sem tochas nem lixo na frente, pedras arredondadas em volta da abertura e
+  empilhadas nas laterais, e **cascalho** no chão da entrada (some para o vale e, para dentro, vira a terra da gruta).

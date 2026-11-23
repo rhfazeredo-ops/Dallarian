@@ -688,7 +688,7 @@ func _gruta_enfeites() -> void:
 		while k < comp - 2.0:
 			var p: Vector2 = a.lerp(b, k / comp)
 			var q := p + n * lado * (float(t[2]) * 0.5 - 0.9)
-			if reg.gruta_d(q.x, q.y) < -0.3: _tocha_gruta(q)
+			if reg.gruta_d(q.x, q.y) < -0.3 and q.y < Regiao.GRUTA_COBERTA_Z - 6.0: _tocha_gruta(q)     # só lá dentro
 			k += 13.0; lado = -lado
 	var salas: Array = Regiao.GRUTA_SALAS
 	# sala 1: acampamento
@@ -709,8 +709,7 @@ func _gruta_enfeites() -> void:
 	_peca_lodoso("rede", c4 + Vector2(0.0, -12.5), 0.0); _peca_lodoso("varal", c4 + Vector2(-4.0, 11.0), PI)
 	for f in [Vector2(-5.0, 2.0), Vector2(5.0, 2.0), Vector2(0.0, -5.0)]: _fogueira_gruta(c4 + f)
 	# boca da gruta: duas tochas e um monte de tralhas
-	var e := Regiao.GRUTA_ENTRADA
-	_tocha_gruta(e + Vector2(-4.2, -6.0)); _tocha_gruta(e + Vector2(4.2, -6.0)); _peca_lodoso("lixo", e + Vector2(-6.0, 2.0), 0.9)
+	# (a boca não tem tocha nem lixo: só pedras e cascalho — gruta.gd)
 
 func _tocha_gruta(p: Vector2) -> void:
 	var y := reg.gruta_piso(p.x, p.y)
