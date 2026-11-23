@@ -262,3 +262,5 @@
   frente** bloqueia tudo; senão leva o impacto e o **ácido queima por 6 s** (número verde a cada 1,5 s).
 - **Malho de Tronco** (maça de uma mão, item level 6, 6–10 de dano, comum): à venda no Bram (120 cobres). Na mão
   usa a espada de ferro até chegar o modelo 3D.
+- **Escudo de ferro** (item level 7, 90 de armadura, 11 de bloqueio, bloqueia 70% erguido, requer nível 2): à venda
+  no Bram (130 cobres). Ícone a partir da arte enviada; na mão usa o escudo de madeira até chegar o modelo.

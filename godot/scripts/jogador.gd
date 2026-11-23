@@ -243,6 +243,15 @@ func trocar_equip(lugar: String, id: String) -> void:
 		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
 		mod.position = Vector3(-0.131, -0.075, 0) * k
 		no.add_child(mod)
+	elif lugar == "escudo" and modelo == "ferro" and ResourceLoader.exists("res://assets/modelos/escudo_ferro.glb"):
+		# escudo de ferro (Tripo, quando chegar): mesmo encaixe do de madeira — frente em +X no arquivo, 0,6 m
+		var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_ferro.glb")
+		var bb := AABB()
+		for mi in esc.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
+		var ke := 0.62 / maxf(maxf(bb.size.y, bb.size.z), 0.01)
+		esc.scale = Vector3(ke, ke, ke); esc.rotation_degrees = Vector3(0, 0, 90)
+		esc.position = Vector3(0, -bb.position.x * ke - 0.07, 0) - Vector3(bb.get_center().y, 0, bb.get_center().z).rotated(Vector3.FORWARD, 0) * 0.0
+		no.add_child(esc)
 	elif lugar == "escudo":
 		# escudo de madeira (Tripo): frente (com o umbo) em +X no arquivo, alça atrás; 0,97 m → 0,6 m
 		var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_madeira.glb")
