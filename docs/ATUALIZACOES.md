@@ -267,4 +267,4 @@
 - **Égide da Guardiã** (escudo incomum, item level 10, 134 de armadura, 16 de bloqueio, bloqueia 75% erguido,
   requer nível 5): cai de Barrogar, o Colosso do Vale (20%). Ícone e modelo a caminho.
 - **Marreta da Bigorna** (maça comum, item level 9, 9–15, requer nível 4): loja do Bram (220 cobres).
-- **Cutelo do Rochedo** (espada incomum, item level 12, 10–17, requer nível 7): cai de Barrogar (15%).
+- **Cutelo do Rochedo** (espada incomum, item level 12, 11–18, requer nível 7): cai de Barrogar (15%).

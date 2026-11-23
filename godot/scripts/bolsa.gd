@@ -37,7 +37,7 @@ const ITENS := {
 		"tipo": "arma", "subtipo": "Maça", "maos": "Uma mão", "dano_min": 9, "dano_max": 15, "velocidade": 2.8, "nivel": 4, "ilvl": 9,
 		"modelo": "marreta", "desc": "A marreta pesada que o Bram usava na bigorna, com o cabo enrolado em couro. Bate como um coice de cavalo."},
 	"cutelo_rochedo": {"nome": "Cutelo do Rochedo", "venda": 140, "compra": 0, "pilha": 1, "qual": "incomum",
-		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 10, "dano_max": 17, "velocidade": 2.4, "nivel": 7, "ilvl": 12,
+		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 11, "dano_max": 18, "velocidade": 2.4, "nivel": 7, "ilvl": 12,
 		"modelo": "cutelo", "desc": "Lâmina larga e curva de ferro cinzento como pedra, com guarda-mão cheio de cravos. Arrancado do corpo de barro de Barrogar."},
 	"presa_da_mare": {"nome": "Presa da Maré", "venda": 420, "compra": 0, "pilha": 1, "qual": "raro",
 		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 13, "dano_max": 22, "velocidade": 2.3, "nivel": 9, "ilvl": 14,
