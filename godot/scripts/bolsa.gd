@@ -105,7 +105,8 @@ const ITENS := {
 	"bolsa_50": {"nome": "Mochila do mercador", "venda": 7500, "compra": 30000, "pilha": 1, "qual": "raro", "espacos": 50,
 		"desc": "Cabe uma feira inteira aqui dentro."},
 }
-const ARQUIVO := "user://progresso.json"
+static var ARQUIVO: String:                    # save do herói escolhido na seleção
+	get: return Herois.arquivo()
 signal mudou
 var bolsas := []                  # [{id, slots: [null ou [id, qtd]]}, ou null] — 3 lugares
 var cobre := 0

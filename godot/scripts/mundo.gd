@@ -937,6 +937,8 @@ func _carregar_progresso() -> void:
 	var pedir := func(): _salvar_em = 1.0
 	hud.mudou.connect(pedir); bolsa.mudou.connect(pedir)
 	# save na nuvem (login anônimo no Supabase): entra, e se o da nuvem for mais novo, usa ele
+	hud.nome = String(Herois.ativo.get("nome", "Rachel"))
+	if Herois.ativo.get("id", "rachel") != "rachel": return          # nuvem: por enquanto só o save da Rachel
 	nuvem = Nuvem.new(); add_child(nuvem); nuvem.log_ativo = args.has("nuvem")
 	nuvem.save_baixado.connect(func(dn: Dictionary):
 		bolsa.aplicar(dn); bolsa.mudou.emit()

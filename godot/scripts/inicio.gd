@@ -42,9 +42,10 @@ func _ready() -> void:
 		get_tree().quit(); return
 	# seleção de heróis (só quando o jogo abre de verdade; os testes com argumentos vão direto para o mundo)
 	var args2 := OS.get_cmdline_user_args()
-	if args2.is_empty() or args2.has("--selecao"):
+	if args2.is_empty() or args2.has("--selecao") or args2.has("--criacao"):
 		var sel = load("res://scripts/selecao.gd").new(); add_child(sel)
-		if args2.has("--selecao"):
+		if args2.has("--criacao"): sel._abrir_criacao()
+		if args2.has("--selecao") or args2.has("--criacao"):
 			for k in 8: await RenderingServer.frame_post_draw
 			for x in args2: if x.begins_with("--shot="): get_viewport().get_texture().get_image().save_png(x.trim_prefix("--shot="))
 			get_tree().quit(); return

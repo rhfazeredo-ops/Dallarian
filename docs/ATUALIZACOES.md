@@ -275,3 +275,8 @@
   devagar), lista de heróis à direita (nome, nível do save, classe e onde está), **CRIAR NOVO HERÓI** (em breve) e
   **INICIAR JOGO** embaixo à direita. O fundo do salão do castelo de Altamar entra quando chegar a arte
   (`assets/ui/selecao_fundo.png`); até lá usa a arte de Altamar.
+- **Criação de herói** (inspirada na tela do WoW): raça, sexo e classe à esquerda (Humana, Feminino e Guerreira
+  liberadas; Anã, Elfa, Meio-elfa, Masculino, Paladina, Caçadora, Maga e Sacerdotisa trancadas "em breve"), a
+  heroína em 3D numa pedra no meio, textos da raça e da classe à direita, nome com ALEATÓRIO embaixo e
+  ACEITAR / VOLTAR. O herói criado entra na lista da seleção com o **seu próprio save** (a Rachel continua com o
+  save antigo e o da nuvem; os novos por enquanto só no aparelho) e o nome dele aparece no HUD.
