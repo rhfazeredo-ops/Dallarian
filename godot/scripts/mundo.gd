@@ -3239,6 +3239,7 @@ func _modo_teste() -> void:
 		if String(args.ir) == "alto" or String(args.ir) == "arte": jogador.global_position.y += (60.0 if args.ir == "alto" else 48.0); jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35 if args.ir == "alto" else -0.2
 		if args.has("subir"): jogador.global_position.y += float(args.subir); jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.6"))
 	if args.has("empunhar"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("arma", String(args.empunhar)))   # teste: --empunhar=presa_da_mare
+	if args.has("escudo"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("escudo", String(args.escudo)))
 	if args.has("dar_cavalos"):    # teste: dá as três montarias (e dinheiro)
 		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
 		bolsa.montaria_sel = String(args.get("cavalo", "cavalo_preto")) if String(args.get("cavalo", "")) != "" else bolsa.montarias[0]

@@ -232,9 +232,9 @@ func trocar_equip(lugar: String, id: String) -> void:
 		var bb := AABB()
 		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
 		var k := 0.8 / maxf(bb.size.y, 0.01)
-		mod.scale = Vector3(k, k, k)
+		mod.scale = Vector3(k, k, k); mod.rotation.y = PI * 0.5          # tronco atravessado, como a marreta
 		var cabo := Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.15, bb.get_center().z)
-		mod.position = -cabo * k
+		mod.position = -(Basis(Vector3.UP, PI * 0.5) * cabo) * k
 		no.add_child(mod)
 	elif lugar == "arma" and modelo in ["marreta", "cutelo"] and ResourceLoader.exists("res://assets/modelos/%s.glb" % modelo):
 		# armas do Tripo (quando chegarem): cabo na mão, ponta/cabeça para cima
