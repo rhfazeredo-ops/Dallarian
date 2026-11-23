@@ -372,7 +372,7 @@ func _planos(x: float, z: float, h: float) -> float:
 # tudo que usa a altura do terreno funcionam lá dentro); paredes e teto de pedra são montados em mundo.gd.
 const GRUTA_Y := 13.0                  # altura do chão (o vale na frente da montanha)
 const GRUTA_TETO := 6.5
-const GRUTA_COBERTA_Z := -898.0        # daqui para o norte tem teto (antes é a rampa aberta da entrada)
+const GRUTA_COBERTA_Z := -913.0        # daqui para o norte tem teto: a boca fica onde a encosta já é mais alta que o teto
 const GRUTA_BB := Rect2(1430.0, -1110.0, 180.0, 255.0)
 # túneis [de, até, largura] e salas [centro, raio]
 const GRUTA_TUNEIS := [

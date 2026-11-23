@@ -598,7 +598,7 @@ func _gruta_malhas(r: Regiao) -> Dictionary:
 	var alt_capa := func(px: float, pz: float) -> float:
 		var h0 := r.altura(px, pz, false)
 		var dg := r.gruta_d(px, pz)
-		if dg < 9.5: h0 = maxf(h0, r.gruta_teto(px, pz) + 2.5 * (1.0 - smoothstep(4.0, 9.5, dg)))
+		if dg < 9.5: h0 = maxf(h0, r.gruta_teto(px, pz) + 1.2 * (1.0 - smoothstep(4.0, 9.5, dg)))
 		return h0
 	x = bb.position.x
 	while x < bb.end.x:

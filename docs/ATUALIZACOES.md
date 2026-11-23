@@ -236,3 +236,5 @@
 - **Gruta dos Lodosos dentro da montanha**: por cima dos túneis a montanha volta na altura original (com as cores
   da encosta e colisão — dá para andar por cima), então de fora a gruta não aparece; a entrada virou uma
   **abertura na encosta** (paredão de pedra com a boca da caverna), sem a trincheira com muros de antes.
+- Gruta: a boca recuou para dentro da encosta (onde a montanha já é mais alta que o teto) — de fora só aparece a
+  abertura de entrada; antes sobrava um bloco de pedra para fora no chão do vale.
