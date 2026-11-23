@@ -244,3 +244,6 @@
 - **Entrada da gruta no estilo da arte de referência**: encosta coberta de rochas grandes com musgo em volta da
   boca, trepadeiras penduradas no arco, caminho de terra clara do vale até dentro (com grama dos lados), pedras
   com musgo e florzinhas na beira do caminho e luz quente de fogueira lá no fundo do túnel.
+- **Boca da gruta refeita pela arte de referência**: paredão de rocha inteiriço e facetado (com musgo nos degraus
+  e borda irregular que funde na montanha) em volta de uma **abertura grande em arco**, túnel arredondado de rocha
+  escurecendo para dentro, hera pendurada na borda, caminho de terra com flores e pedras.

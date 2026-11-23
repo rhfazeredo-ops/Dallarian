@@ -623,12 +623,17 @@ func _gruta_malhas(r: Regiao) -> Dictionary:
 	# ENCOSTA NA BOCA: na linha onde a capa termina, a parede de pedra desce da montanha até o teto da entrada (a
 	# abertura) e, dos lados da boca, até o chão
 	var bz := Regiao.GRUTA_COBERTA_Z
+	var meia_boca := 0.0
+	for k in 60:
+		var xk := Regiao.GRUTA_ENTRADA.x - 15.0 + k * 0.5
+		if r.gruta_d(xk, bz) < 0.0: meia_boca = maxf(meia_boca, absf(xk - Regiao.GRUTA_ENTRADA.x))
 	x = bb.position.x
 	while x < bb.end.x:
 		var x1 := x + 1.0
 		if r.gruta_d(x, bz) < 9.5 or r.gruta_d(x1, bz) < 9.5:
-			var base := func(px: float) -> float:
-				return r.gruta_teto(px, bz) - 0.4 if r.gruta_d(px, bz) < 0.3 else r.altura(px, bz) - 0.5
+			var base := func(px: float) -> float:          # a abertura é um arco redondo (alto no meio)
+				if r.gruta_d(px, bz) < 0.3: return r.gruta_piso(px, bz) + maxf(r.arco_boca(px, meia_boca), 0.0) - 0.3
+				return r.altura(px, bz) - 0.5
 			var quad := [Vector3(x, base.call(x), bz), Vector3(x1, base.call(x1), bz), Vector3(x1, alt_capa.call(x1, bz), bz), Vector3(x, alt_capa.call(x, bz), bz)]
 			for tri in [[0, 1, 2], [0, 2, 3]]:
 				for k in tri:

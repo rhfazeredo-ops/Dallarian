@@ -418,7 +418,8 @@ func na_gruta(x: float, z: float, folga := 0.0) -> bool: return gruta_d(x, z) < 
 func gruta_coberta(x: float, z: float) -> bool: return z < GRUTA_COBERTA_Z and gruta_d(x, z) < 0.0
 func gruta_piso(x: float, z: float) -> float: return GRUTA_Y + ruido.get_noise_2d(x * 6.0, z * 6.0) * 0.35
 func gruta_teto(x: float, z: float) -> float: return GRUTA_Y + GRUTA_TETO + ruido.get_noise_2d(x * 5.0 + 9.0, z * 5.0) * 1.3 \
-	+ (4.0 * (1.0 - smoothstep(6.0, 17.0, Vector2(x, z).distance_to(GRUTA_CAMARA))))   # câmara final mais alta
+	+ (4.0 * (1.0 - smoothstep(6.0, 17.0, Vector2(x, z).distance_to(GRUTA_CAMARA)))) \
+	+ 3.5 * (1.0 - smoothstep(0.0, 14.0, GRUTA_COBERTA_Z - z))    # câmara final mais alta; boca alta, em arco
 
 # ---------- água ----------
 # nível da água neste ponto (ou -1000 se não tem água): rio, lago, ou mar/pântano (nível 0)
@@ -526,3 +527,9 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	return g * (1.0 - 0.25 * patio_casa(x, z))                           # em volta do estábulo: grama quase normal
 
 func dentro(x: float, z: float) -> bool: return x > X0 and x < X1 and abs(z) < LIM
+
+# altura do arco da boca (a abertura é arredondada): 0 fora da largura da boca
+func arco_boca(x: float, meia: float) -> float:
+	var u := (x - GRUTA_ENTRADA.x) / maxf(meia, 0.1)
+	if absf(u) >= 1.0: return 0.0
+	return (GRUTA_TETO + 3.0) * sqrt(1.0 - u * u)

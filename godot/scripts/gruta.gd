@@ -211,48 +211,30 @@ func _boca() -> void:
 		if reg.gruta_d(xx, bz) < 0.0: meia = maxf(meia, absf(xx - cx))
 	meia = maxf(meia, 3.0)
 	var piso := reg.gruta_piso(cx, bz); var teto := reg.gruta_teto(cx, bz)
-	var alto := teto - piso
+	var alto := Regiao.GRUTA_TETO + 3.0                 # altura do arco da boca no meio
 	var pedras := []                  # [posição, tamanho, musgo]
-	# arco: duas camadas de rochas grandes em volta da abertura (a de dentro esconde a borda reta)
-	for camada in 2:
-		var n := 11 if camada == 0 else 9
-		for i in n:
-			var a := lerpf(-0.1, PI + 0.1, float(i) / (n - 1)) + r.randf_range(-0.06, 0.06)
-			var rx := meia + (1.6 if camada == 0 else 4.4); var ry := alto + (1.0 if camada == 0 else 3.6)
-			var p := Vector3(cx + cos(a) * rx, piso + sin(a) * ry - 0.6, bz + (0.9 if camada == 0 else 0.2) + r.randf_range(-0.3, 0.3))
-			pedras.append([p, r.randf_range(2.6, 3.6) if camada == 0 else r.randf_range(3.4, 4.8), 0.8 if sin(a) > 0.5 else 0.45])
-	# o paredão inteiro em volta da boca vira rocha: grade de rochas grandes do chão até o alto da encosta
-	var xx := cx - meia - 11.0
-	while xx < cx + meia + 11.0:
-		var topo := maxf(reg.altura(xx, bz - 3.0, false), teto + 1.0) - 0.5
-		var yy := piso - 0.5
-		while yy < topo:
-			var dentro_boca := absf(xx - cx) < meia + 0.8 and yy < piso + alto + 0.3
-			if not dentro_boca:
-				var musg := 0.9 if r.randf() < 0.45 else 0.3
-				pedras.append([Vector3(xx + r.randf_range(-0.6, 0.6), yy + r.randf_range(-0.5, 0.5), bz + r.randf_range(-0.4, 0.8)), r.randf_range(4.6, 6.4), musg])
-			yy += 2.6
-		xx += 2.8
-	# rochas no pé do arco e pela beira do caminho (menores para longe da boca)
+	_paredao_rocha(cx, bz, meia, piso, alto, teto)
+	# pedras pela beira do caminho (menores longe da boca)
 	for lado in [-1.0, 1.0]:
-		for i in 10:
-			var z := bz + 2.0 + r.randf_range(0.0, 24.0)
-			var x: float = cx + float(lado) * (3.4 + r.randf_range(0.0, 3.5) + (z - bz) * 0.08)
-			var tam := r.randf_range(0.7, 2.2) * (1.0 - (z - bz) / 40.0)
-			pedras.append([Vector3(x, reg.altura(x, z) - tam * 0.25, z), tam, 0.6])
+		for i in 9:
+			var z := bz + 2.5 + r.randf_range(0.0, 22.0)
+			var x: float = cx + float(lado) * (3.6 + r.randf_range(0.0, 3.0) + (z - bz) * 0.06)
+			var tam := r.randf_range(0.8, 2.4) * (1.0 - (z - bz) / 40.0)
+			pedras.append([Vector3(x, reg.altura(x, z) - tam * 0.2, z), tam, 0.5])
 	var itens := []
 	for pd in pedras:
 		var tam: float = pd[1]
-		var b := Basis(Vector3(r.randf(), r.randf(), r.randf()).normalized(), r.randf() * TAU).scaled(Vector3(tam, tam * r.randf_range(0.7, 0.95), tam * r.randf_range(0.8, 1.1)))
-		itens.append([Transform3D(b, pd[0]), Color(0.66, 0.64, 0.6) * r.randf_range(0.8, 1.05), pd[2]])
+		var b := Basis(Vector3.UP, r.randf() * TAU).rotated(Vector3(r.randf() - 0.5, 0, r.randf() - 0.5).normalized(), r.randf_range(0.0, 0.35))
+		b = b.scaled(Vector3(tam * r.randf_range(0.9, 1.2), tam * r.randf_range(0.7, 1.0), tam * r.randf_range(0.8, 1.1)))
+		itens.append([Transform3D(b, pd[0]), Color(0.78, 0.75, 0.7) * r.randf_range(0.85, 1.05), pd[2]])
 	var mm_mat: ShaderMaterial = m.mat("", 1.0, Color(1, 1, 1))
 	_mm_musgo(itens, mm_mat)
 	# trepadeiras caindo do alto do arco
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in 16:
-		var a := lerpf(0.35, PI - 0.35, r.randf())
-		var top := Vector3(cx + cos(a) * (meia + 1.0), piso + sin(a) * (alto + 0.6), bz + 1.6 + r.randf_range(0.0, 0.6))
-		var comp := r.randf_range(1.2, 3.6); var lg := r.randf_range(0.12, 0.22)
+	for i in 30:
+		var a := lerpf(0.25, PI - 0.25, r.randf())
+		var top := Vector3(cx + cos(a) * (meia + r.randf_range(0.2, 1.8)), piso + sin(a) * (alto + r.randf_range(0.2, 1.6)), bz + 3.2 + r.randf_range(0.0, 0.6))
+		var comp := r.randf_range(1.5, 5.5); var lg := r.randf_range(0.14, 0.26)
 		var cor := Color(0.28, 0.48, 0.2) * r.randf_range(0.8, 1.15)
 		var seg := 4
 		for k in seg:
@@ -291,24 +273,30 @@ func _mm_musgo(itens: Array, mat: Material) -> void:      # rochas: cada uma com
 		por_musgo[k].append([it[0], it[1]])
 	for k in por_musgo.keys(): _mm(_pedregulho(k / 4.0), por_musgo[k], mat)
 
-func _pedregulho(musgo := 0.0) -> ArrayMesh:          # pedra arredondada irregular de ~1 m (musgo: topo verde)
+func _pedregulho(musgo := 0.0) -> ArrayMesh:          # rocha angulosa de ~1 m (poucas faces grandes; musgo no topo)
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var r := RandomNumberGenerator.new(); r.seed = 5
-	var anel := 6; var lados := 8; var pts := []
+	var anel := 3; var lados := 6; var pts := []
 	for j in anel + 1:
 		var v := float(j) / anel; var lat := lerpf(-PI * 0.5, PI * 0.5, v)
 		var fila := []
 		for i in lados:
-			var lon := TAU * i / lados
-			var k := 0.5 * r.randf_range(0.8, 1.15)
-			fila.append(Vector3(cos(lat) * cos(lon), sin(lat) * 0.8, cos(lat) * sin(lon)) * k + Vector3(0, 0.3, 0))
+			var lon := TAU * i / lados + j * 0.4
+			var k := 0.5 * r.randf_range(0.75, 1.2)
+			var pt := Vector3(cos(lat) * cos(lon), sin(lat) * 0.75, cos(lat) * sin(lon)) * k
+			if j == anel: pt.y = 0.33 + r.randf_range(-0.04, 0.04); pt.x *= 0.55; pt.z *= 0.55   # topo achatado (degrau)
+			fila.append(pt + Vector3(0, 0.3, 0))
 		pts.append(fila)
 	for j in anel:
 		for i in lados:
 			var a: Vector3 = pts[j][i]; var b: Vector3 = pts[j][(i + 1) % lados]; var c: Vector3 = pts[j + 1][(i + 1) % lados]; var d: Vector3 = pts[j + 1][i]
-			var cor := Color(1, 1, 1) * (0.78 + 0.22 * float(j) / anel)
-			if musgo > 0.0 and j >= anel - 2 and (i + j) % 3 != 0: cor = cor.lerp(Color(0.45, 0.68, 0.3), musgo)   # musgo no topo
+			var cor := Color(1, 1, 1) * (0.72 + 0.28 * float(j) / anel) * (0.92 + 0.08 * float(i % 2))
+			if musgo > 0.0 and j == anel - 1 and i % 3 != 0: cor = cor.lerp(Color(0.42, 0.62, 0.28), musgo)
 			_tri(st, a, c, b, cor); _tri(st, a, d, c, cor)
+	var topo: Vector3 = Vector3(0, 0.33 + 0.3, 0)
+	for i in lados:                                       # tampa do topo (musgo/grama)
+		var a: Vector3 = pts[anel][i]; var b: Vector3 = pts[anel][(i + 1) % lados]
+		_tri(st, a, topo, b, (Color(1, 1, 1) * 0.98).lerp(Color(0.42, 0.62, 0.28), musgo))
 	return st.commit()
 
 func _flor() -> ArrayMesh:                # florzinha: cabinho verde e 2 pétalas cruzadas (cor da instância)
@@ -320,3 +308,61 @@ func _flor() -> ArrayMesh:                # florzinha: cabinho verde e 2 pétala
 		_tri(st, Vector3(0, 0.2, 0) - d, Vector3(0, 0.2, 0) + d, Vector3(0, 0.26, 0), Color.WHITE)
 		_tri(st, Vector3(0, 0.2, 0) - d, Vector3(0, 0.14, 0), Vector3(0, 0.2, 0) + d, Color.WHITE)
 	return st.commit()
+
+# PAREDÃO DE ROCHA da boca (como a arte): uma superfície de rocha só, facetada, em volta de um buraco em arco,
+# saltando para fora em volta da borda; do arco sai um túnel arredondado de rocha entrando na montanha.
+# Facetas viradas para cima ficam com musgo. Tem colisão.
+func _paredao_rocha(cx: float, bz: float, meia: float, piso: float, alto: float, _teto: float) -> void:
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var faces := PackedVector3Array()
+	var ra := meia + 1.8; var rb := alto + 1.6            # elipse do buraco (boca grande, como na arte)
+	var w := meia + 11.0; var passo := 2.0
+	var pos := func(u: float, v: float) -> Vector3:
+		var e := sqrt(pow(u / ra, 2.0) + pow(v / rb, 2.0))          # 1 na borda do buraco
+		var borda := exp(-pow(maxf(e - 1.0, 0.0) * 2.6, 2.0))            # a rocha salta perto da borda
+		var wl := meia + 8.0 + reg.ruido.get_noise_2d(v * 6.0, 11.0) * 3.0          # contorno irregular
+		var some := smoothstep(wl + 1.0, wl - 4.0, absf(u))                             # funde na montanha na borda
+		var d := (1.2 + reg.ruido.get_noise_2d(u * 6.0, v * 6.0) * 1.4 + reg.ruido.get_noise_2d(u * 15.0 + 40.0, v * 15.0) * 0.4) * some + borda * 2.6 - (1.0 - some) * 1.5
+		return Vector3(cx + u, piso + v, bz + d)
+	var nu := int(2.0 * w / passo)
+	for i in nu:
+		var u0 := -w + i * passo; var u1 := u0 + passo
+		var topo := maxf(reg.altura(cx + u0, bz - 3.0, false), reg.altura(cx + u1, bz - 3.0, false)) - piso
+		var nv := int((topo + 1.0) / passo) + 1
+		for j in nv:
+			var v0 := -1.0 + j * passo; var v1 := v0 + passo
+			var wl0 := meia + 8.0 + reg.ruido.get_noise_2d(v0 * 6.0, 11.0) * 3.0
+			if absf(u0) > wl0 + 1.5 and absf(u1) > wl0 + 1.5: continue
+			if v0 > topo - 1.0 - absf(reg.ruido.get_noise_2d(u0 * 5.0, 3.0)) * 4.0: continue     # topo irregular
+			var fora := true
+			for c in [Vector2(u0, v0), Vector2(u1, v0), Vector2(u0, v1), Vector2(u1, v1)]:
+				if pow(c.x / ra, 2.0) + pow(maxf(c.y, 0.0) / rb, 2.0) < 1.0: fora = false
+			if not fora: continue
+			var a: Vector3 = pos.call(u0, v0); var b: Vector3 = pos.call(u1, v0); var c2: Vector3 = pos.call(u1, v1); var d2: Vector3 = pos.call(u0, v1)
+			for tri in [[a, b, c2], [a, c2, d2]]:
+				_faceta(st, tri[0], tri[1], tri[2]); faces.append_array(PackedVector3Array(tri))
+	# túnel arredondado: anéis da elipse entrando na montanha (de onde o paredão salta até 10 m para dentro)
+	var segs := 14; var aneis := [3.4, 1.4, -1.5, -4.5, -8.0, -11.0]
+	for k in aneis.size() - 1:
+		for i in segs:
+			var a0 := PI * i / segs; var a1 := PI * (i + 1) / segs
+			var pts := []
+			for zz in [aneis[k], aneis[k + 1]]:
+				for aa in [a0, a1]:
+					var j := 1.0 + reg.ruido.get_noise_2d(aa * 20.0, float(zz) * 3.0) * 0.12
+					pts.append(Vector3(cx + cos(aa) * ra * j, piso + sin(aa) * rb * j, bz + float(zz)))
+			var esc := clampf(1.0 - (2.0 - float(aneis[k])) / 12.0, 0.25, 1.0)          # escurece para dentro
+			_faceta(st, pts[0], pts[2], pts[3], esc); _faceta(st, pts[0], pts[3], pts[1], esc)
+	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = m.mat("", 1.0, Color.WHITE); add_child(mi)
+	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var f := ConcavePolygonShape3D.new()
+	f.set_faces(faces); f.backface_collision = true; cs.shape = f; corpo.add_child(cs); add_child(corpo)
+
+func _faceta(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, luz := 1.0) -> void:      # triângulo de rocha com cor própria
+	var n := (b - a).cross(c - a).normalized()
+	if n.z < 0.0 and absf(n.y) < 0.6: n = -n
+	var m0 := (a + b + c) / 3.0
+	var cor := Color(0.62, 0.62, 0.64) * (0.86 + reg.ruido.get_noise_2d(m0.x * 3.0, m0.y * 3.0) * 0.16)   # rocha da montanha
+	if n.y > 0.6: cor = cor.lerp(Color(0.42, 0.6, 0.27), 0.8)                     # degrau virado para cima: musgo
+	elif reg.ruido.get_noise_2d(m0.x * 1.2 + 77.0, m0.y * 1.2) > 0.45: cor = cor.lerp(Color(0.48, 0.6, 0.36), 0.3)   # mancha de musgo
+	if luz < 1.0: cor = Color(0.5, 0.42, 0.34).lerp(cor, 0.3) * luz                  # dentro do túnel: rocha morna e escura
+	for p in [a, b, c]: st.set_color(cor); st.set_normal(n); st.add_vertex(p)
