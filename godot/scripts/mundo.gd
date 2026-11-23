@@ -568,7 +568,9 @@ func _gruta_malhas(r: Regiao) -> Dictionary:
 				6, 9: segs = [[e[0], e[2]]]
 				7, 8: segs = [[e[3], e[2]]]
 				10: segs = [[e[0], e[1]], [e[2], e[3]]]
-			for sg in segs: _gruta_parede(r, paredes, faces, sg[0], sg[1])
+			for sg in segs:
+				if (sg[0] as Vector2).y > Regiao.GRUTA_COBERTA_Z + 0.5 and (sg[1] as Vector2).y > Regiao.GRUTA_COBERTA_Z + 0.5: continue   # entrada aberta: sem muro
+				_gruta_parede(r, paredes, faces, sg[0], sg[1])
 	paredes.generate_normals()
 	# teto: quadrados de 2 m onde tem gruta coberta (passando um pouco da parede)
 	var teto := SurfaceTool.new(); teto.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -587,20 +589,55 @@ func _gruta_malhas(r: Regiao) -> Dictionary:
 						teto.set_color(cor * (0.8 + r.ruido.get_noise_2d(pts[k].x * 9.0, pts[k].z * 9.0) * 0.3)); teto.set_normal(Vector3.DOWN); teto.set_uv(Vector2(pts[k].x, pts[k].z) * 0.25); teto.add_vertex(pts[k])
 			z += t
 		x += t
-	# paredão por cima da boca da gruta (esconde o vão entre o teto e a encosta)
-	var bz := Regiao.GRUTA_COBERTA_Z + 0.5
-	for k in 8:
-		var x0 := Regiao.GRUTA_ENTRADA.x - 14.0 + k * 3.5; var x1 := x0 + 3.5
-		var y0a := r.gruta_teto(x0, bz) - 0.8; var y0b := r.gruta_teto(x1, bz) - 0.8
-		var y1a := maxf(r.altura(x0, bz - 4.0), y0a + 6.0) + 1.0 + r.ruido.get_noise_2d(x0 * 6.0, 3.0) * 2.0
-		var y1b := maxf(r.altura(x1, bz - 4.0), y0b + 6.0) + 1.0 + r.ruido.get_noise_2d(x1 * 6.0, 3.0) * 2.0
-		var quad := [Vector3(x0, y0a, bz), Vector3(x1, y0b, bz), Vector3(x1, y1b, bz - 3.0), Vector3(x0, y1a, bz - 3.0)]
-		for tri in [[0, 1, 2], [0, 2, 3]]:
-			for i in tri:
-				var mch := 0.7 + r.ruido.get_noise_2d(quad[i].x * 7.0 + quad[i].y * 3.0, quad[i].y * 7.0) * 0.35
-				paredes.set_color(Color(0.4, 0.38, 0.35) * mch); paredes.set_normal(Vector3(0, 0.3, 1).normalized())
-				paredes.set_uv(Vector2(quad[i].x, quad[i].y) * 0.25); paredes.add_vertex(quad[i])
-	return {"paredes": paredes.commit_to_arrays(), "teto": teto.commit_to_arrays(), "faces": faces}
+	# CAPA DA MONTANHA: por cima da parte coberta, a encosta volta na altura original (sem a gruta), com as cores do
+	# terreno — de fora a gruta fica escondida dentro da montanha; só a boca aparece. Tem colisão (dá para andar por
+	# cima). Fica sempre acima do teto.
+	var capa := SurfaceTool.new(); capa.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cf := PackedVector3Array()
+	var cs := 2.0
+	var alt_capa := func(px: float, pz: float) -> float:
+		var h0 := r.altura(px, pz, false)
+		var dg := r.gruta_d(px, pz)
+		if dg < 9.5: h0 = maxf(h0, r.gruta_teto(px, pz) + 2.5 * (1.0 - smoothstep(4.0, 9.5, dg)))
+		return h0
+	x = bb.position.x
+	while x < bb.end.x:
+		var z := bb.position.y
+		while z < minf(bb.end.y, Regiao.GRUTA_COBERTA_Z):
+			var usa := false
+			for o in [Vector2(0, 0), Vector2(cs, 0), Vector2(0, cs), Vector2(cs, cs)]:
+				if r.gruta_d(x + o.x, z + o.y) < 9.5: usa = true
+			if usa:
+				var q := [Vector2(x, z), Vector2(x + cs, z), Vector2(x + cs, minf(z + cs, Regiao.GRUTA_COBERTA_Z)), Vector2(x, minf(z + cs, Regiao.GRUTA_COBERTA_Z))]
+				var pts := []
+				for k in 4: pts.append(Vector3(q[k].x, alt_capa.call(q[k].x, q[k].y), q[k].y))
+				var nrm: Vector3 = (pts[3] - pts[0]).cross(pts[1] - pts[0]).normalized()
+				if nrm.y < 0.0: nrm = -nrm
+				for tri in [[0, 3, 2], [0, 2, 1]]:
+					for k in tri:
+						var pp: Vector3 = pts[k]
+						capa.set_color(r.cor(pp.x, pp.z, pp.y, nrm.y, false)); capa.set_normal(nrm); capa.set_uv(Vector2(pp.x, pp.z) * 0.25)
+						capa.add_vertex(pp); cf.append(pp)
+			z += cs
+		x += cs
+	# ENCOSTA NA BOCA: na linha onde a capa termina, a parede de pedra desce da montanha até o teto da entrada (a
+	# abertura) e, dos lados da boca, até o chão
+	var bz := Regiao.GRUTA_COBERTA_Z
+	x = bb.position.x
+	while x < bb.end.x:
+		var x1 := x + 1.0
+		if r.gruta_d(x, bz) < 9.5 or r.gruta_d(x1, bz) < 9.5:
+			var base := func(px: float) -> float:
+				return r.gruta_teto(px, bz) - 0.4 if r.gruta_d(px, bz) < 0.3 else r.altura(px, bz) - 0.5
+			var quad := [Vector3(x, base.call(x), bz), Vector3(x1, base.call(x1), bz), Vector3(x1, alt_capa.call(x1, bz), bz), Vector3(x, alt_capa.call(x, bz), bz)]
+			for tri in [[0, 1, 2], [0, 2, 3]]:
+				for k in tri:
+					var pp: Vector3 = quad[k]
+					var mch := 0.75 + r.ruido.get_noise_2d(pp.x * 7.0, pp.y * 7.0) * 0.3
+					capa.set_color(Color(0.46, 0.5, 0.6) * mch); capa.set_normal(Vector3(0, 0.2, 1).normalized())
+					capa.set_uv(Vector2(pp.x, pp.y) * 0.25); capa.add_vertex(pp); cf.append(pp)
+		x = x1
+	return {"paredes": paredes.commit_to_arrays(), "teto": teto.commit_to_arrays(), "faces": faces, "capa": capa.commit_to_arrays(), "capa_faces": cf}
 
 # um pedaço de parede de pedra de a até b (3 faixas na altura, a do meio estufada para dentro)
 func _gruta_parede(r: Regiao, st: SurfaceTool, faces: PackedVector3Array, a: Vector2, b: Vector2) -> void:
@@ -634,6 +671,10 @@ func _gruta_pronta() -> void:
 		var mi := MeshInstance3D.new(); mi.mesh = am; mi.material_override = pedra; raiz.add_child(mi)
 	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var forma := ConcavePolygonShape3D.new()
 	forma.set_faces(d.faces); forma.backface_collision = true; cs.shape = forma; corpo.add_child(cs); raiz.add_child(corpo)
+	var am_c := ArrayMesh.new(); am_c.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d.capa)     # a montanha por cima
+	var mi_c := MeshInstance3D.new(); mi_c.mesh = am_c; mi_c.material_override = mat("terreno"); raiz.add_child(mi_c)
+	var corpo_c := StaticBody3D.new(); var cs_c := CollisionShape3D.new(); var f_c := ConcavePolygonShape3D.new()
+	f_c.set_faces(d.capa_faces); cs_c.shape = f_c; corpo_c.add_child(cs_c); raiz.add_child(corpo_c)
 	_gruta_enfeites()
 	var amb := Gruta.new(); raiz.add_child(amb); amb.montar(self)
 	if args.has("carga"): print("GRUTA pronta: ", (d.faces as PackedVector3Array).size() / 3, " triângulos de parede")
@@ -3165,6 +3206,8 @@ func _modo_teste() -> void:
 					"camara": [Vector2(1536, -1056), Regiao.GRUTA_CAMARA],
 					"chefe": [Regiao.GRUTA_CAMARA + Vector2(-2, 9), Regiao.GRUTA_CAMARA],
 					"meio": [Vector2(1540, -925), Vector2(1537, -950)],
+					"fora": [Regiao.GRUTA_ENTRADA + Vector2(-30, 40), Regiao.GRUTA_ENTRADA + Vector2(0, -40)],
+					"cima": [Regiao.GRUTA_ENTRADA + Vector2(60, 30), Vector2(1520, -1000)],
 					"perto": [Vector2(1538, -943), Vector2(1534, -960)]}
 				alvo = pts[onde][0]; olha = pts[onde][1]
 			"ponto": alvo = Vector2(float(args.get("px", "0")), float(args.get("pz", "0"))); olha = alvo + Vector2(0, -10)   # --ir=ponto --px --pz

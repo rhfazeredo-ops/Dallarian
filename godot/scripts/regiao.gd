@@ -200,7 +200,7 @@ func nivel_rio(t: float) -> float:
 
 func nivel_lago() -> float: return base(LAGO.y) - 1.3
 
-func altura(x: float, z: float) -> float:
+func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a montanha sem a gruta
 	var b := base(z)
 	var dr := dist_rio(x, z); var tr := _amostra(t_rio, x, z)
 	var dl := Vector2(x - LAGO.x, z - LAGO.y).length()
@@ -284,7 +284,7 @@ func altura(x: float, z: float) -> float:
 	var ds := z - (Ws(520.0) + n_borda)
 	if ds > 0.0: h += _serra(ds, 35.0) * var_m
 	if not planos.is_empty(): h = _planos(x, z, h)
-	if GRUTA_BB.grow(14.0).has_point(Vector2(x, z)):           # Gruta dos Lodosos: cânion com o chão da gruta
+	if cavar and GRUTA_BB.grow(14.0).has_point(Vector2(x, z)):           # Gruta dos Lodosos: cânion com o chão da gruta
 		var dg := gruta_d(x, z)
 		# o chão continua reto até 3 m atrás da parede (a malha do terreno é mais grossa que a parede: se subisse
 		# logo na borda, a encosta atravessava para dentro da gruta)
@@ -372,7 +372,7 @@ func _planos(x: float, z: float, h: float) -> float:
 # tudo que usa a altura do terreno funcionam lá dentro); paredes e teto de pedra são montados em mundo.gd.
 const GRUTA_Y := 13.0                  # altura do chão (o vale na frente da montanha)
 const GRUTA_TETO := 6.5
-const GRUTA_COBERTA_Z := -915.0        # daqui para o norte tem teto (antes é a rampa aberta da entrada)
+const GRUTA_COBERTA_Z := -898.0        # daqui para o norte tem teto (antes é a rampa aberta da entrada)
 const GRUTA_BB := Rect2(1430.0, -1110.0, 180.0, 255.0)
 # túneis [de, até, largura] e salas [centro, raio]
 const GRUTA_TUNEIS := [
@@ -438,7 +438,7 @@ func floresta(x: float, z: float) -> float:
 	f -= 1.0 - smoothstep(30.0, 140.0, _dist_cidade(x, z))           # campos abertos em volta da cidade
 	return clampf(f, 0.0, 1.0)
 
-func cor(x: float, z: float, h: float, ny: float) -> Color:
+func cor(x: float, z: float, h: float, ny: float, gruta := true) -> Color:
 	var n := ruido.get_noise_2d(x * 0.7 + 100.0, z * 0.7)
 	var grama := Color(0.42, 0.58, 0.26)
 	var c := grama.lerp(Color(0.56, 0.62, 0.3), smoothstep(-0.2, 0.4, n))     # verde mais claro e amarelado
@@ -472,7 +472,7 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
 	if ny < 0.8: c = c.lerp(Color(0.46, 0.5, 0.6), smoothstep(0.8, 0.65, ny))  # pedra
 	if h > 40.0: c = c.lerp(Color(0.88, 0.91, 0.98), smoothstep(40.0, 50.0, h))  # neve
-	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)):                              # gruta: lama escura e pedra
+	if gruta and GRUTA_BB.grow(12.0).has_point(Vector2(x, z)):                    # gruta: lama escura e pedra
 		var dg := gruta_d(x, z)
 		if dg < 9.0: c = c.lerp(Color(0.33, 0.3, 0.26).lerp(Color(0.24, 0.28, 0.22), smoothstep(-0.3, 0.4, n)) * (0.9 + n * 0.12), 1.0 - smoothstep(4.0, 9.0, dg))
 	return c
