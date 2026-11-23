@@ -53,3 +53,6 @@ jobs:
           gh release delete apk --yes --cleanup-tag || true
           gh release create apk dist/dallarian.apk dist/dallarian.pck dist/versao.json --prerelease --title "Dallarian — APK de teste" \
             --notes "Gerado a partir do commit ${GITHUB_SHA::7}."
+          # o gh cria a Release como rascunho enquanto sobe os arquivos e às vezes não publica no fim: publica aqui
+          gh release edit apk --draft=false --prerelease
+          gh release view apk --json isDraft,assets --jq '{rascunho: .isDraft, arquivos: [.assets[].name]}'
