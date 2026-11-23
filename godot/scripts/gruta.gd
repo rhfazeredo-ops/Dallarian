@@ -226,8 +226,8 @@ func _boca() -> void:
 		var tam: float = pd[1]
 		var b := Basis(Vector3.UP, r.randf() * TAU).rotated(Vector3(r.randf() - 0.5, 0, r.randf() - 0.5).normalized(), r.randf_range(0.0, 0.35))
 		b = b.scaled(Vector3(tam * r.randf_range(0.9, 1.2), tam * r.randf_range(0.7, 1.0), tam * r.randf_range(0.8, 1.1)))
-		itens.append([Transform3D(b, pd[0]), Color(0.78, 0.75, 0.7) * r.randf_range(0.85, 1.05), pd[2]])
-	var mm_mat: ShaderMaterial = m.mat("", 1.0, Color(1, 1, 1))
+		itens.append([Transform3D(b, pd[0]), Color(0.46, 0.5, 0.6) * r.randf_range(0.9, 1.1), pd[2]])   # rocha da montanha
+	var mm_mat: ShaderMaterial = m.mat("terreno")
 	_mm_musgo(itens, mm_mat)
 	# trepadeiras caindo do alto do arco
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -291,12 +291,12 @@ func _pedregulho(musgo := 0.0) -> ArrayMesh:          # rocha angulosa de ~1 m (
 		for i in lados:
 			var a: Vector3 = pts[j][i]; var b: Vector3 = pts[j][(i + 1) % lados]; var c: Vector3 = pts[j + 1][(i + 1) % lados]; var d: Vector3 = pts[j + 1][i]
 			var cor := Color(1, 1, 1) * (0.72 + 0.28 * float(j) / anel) * (0.92 + 0.08 * float(i % 2))
-			if musgo > 0.0 and j == anel - 1 and i % 3 != 0: cor = cor.lerp(Color(0.42, 0.62, 0.28), musgo)
+			if musgo > 0.0 and j == anel - 1 and i % 3 != 0: cor = cor.lerp(Color(0.9, 1.15, 0.45), musgo)   # vezes a cor da rocha = verde da grama
 			_tri(st, a, c, b, cor); _tri(st, a, d, c, cor)
 	var topo: Vector3 = Vector3(0, 0.33 + 0.3, 0)
 	for i in lados:                                       # tampa do topo (musgo/grama)
 		var a: Vector3 = pts[anel][i]; var b: Vector3 = pts[anel][(i + 1) % lados]
-		_tri(st, a, topo, b, (Color(1, 1, 1) * 0.98).lerp(Color(0.42, 0.62, 0.28), musgo))
+		_tri(st, a, topo, b, (Color(1, 1, 1) * 0.98).lerp(Color(0.9, 1.15, 0.45), musgo))
 	return st.commit()
 
 func _flor() -> ArrayMesh:                # florzinha: cabinho verde e 2 pétalas cruzadas (cor da instância)
@@ -353,7 +353,7 @@ func _paredao_rocha(cx: float, bz: float, meia: float, piso: float, alto: float,
 					pts.append(Vector3(cx + cos(aa) * ra * j, piso + sin(aa) * rb * j, bz + float(zz)))
 			var esc := clampf(1.0 - (2.0 - float(aneis[k])) / 12.0, 0.25, 1.0)          # escurece para dentro
 			_faceta(st, pts[0], pts[2], pts[3], esc); _faceta(st, pts[0], pts[3], pts[1], esc)
-	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = m.mat("", 1.0, Color.WHITE); add_child(mi)
+	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = m.mat("terreno"); add_child(mi)   # mesma textura da montanha
 	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var f := ConcavePolygonShape3D.new()
 	f.set_faces(faces); f.backface_collision = true; cs.shape = f; corpo.add_child(cs); add_child(corpo)
 
@@ -361,8 +361,7 @@ func _faceta(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, luz := 1.0) ->
 	var n := (b - a).cross(c - a).normalized()
 	if n.z < 0.0 and absf(n.y) < 0.6: n = -n
 	var m0 := (a + b + c) / 3.0
-	var cor := Color(0.62, 0.62, 0.64) * (0.86 + reg.ruido.get_noise_2d(m0.x * 3.0, m0.y * 3.0) * 0.16)   # rocha da montanha
-	if n.y > 0.6: cor = cor.lerp(Color(0.42, 0.6, 0.27), 0.8)                     # degrau virado para cima: musgo
-	elif reg.ruido.get_noise_2d(m0.x * 1.2 + 77.0, m0.y * 1.2) > 0.45: cor = cor.lerp(Color(0.48, 0.6, 0.36), 0.3)   # mancha de musgo
+	# a mesma cor que o terreno teria aqui (rocha nas faces em pé, grama nos degraus, neve no alto)
+	var cor := reg.cor(m0.x, m0.z, m0.y, absf(n.y), false)
 	if luz < 1.0: cor = Color(0.5, 0.42, 0.34).lerp(cor, 0.3) * luz                  # dentro do túnel: rocha morna e escura
-	for p in [a, b, c]: st.set_color(cor); st.set_normal(n); st.add_vertex(p)
+	for p in [a, b, c]: st.set_color(cor); st.set_normal(n); st.set_uv(Vector2(p.x + p.z, p.y) * 0.25); st.add_vertex(p)

@@ -247,3 +247,5 @@
 - **Boca da gruta refeita pela arte de referência**: paredão de rocha inteiriço e facetado (com musgo nos degraus
   e borda irregular que funde na montanha) em volta de uma **abertura grande em arco**, túnel arredondado de rocha
   escurecendo para dentro, hera pendurada na borda, caminho de terra com flores e pedras.
+- Boca da gruta: o paredão de rocha e as pedras do caminho usam a **mesma textura e cor da montanha** (rocha
+  azul-acinzentada, grama nos degraus), em vez de cores próprias — fica tudo da mesma pedra.
