@@ -203,3 +203,4 @@
   **Presa da Maré** — espada de uma mão, 11–18 de dano, nível 6; por enquanto cai do chefe (10%) e depois vira
   a recompensa da missão do soldado de Altamar. Na mão usa a espada de ferro até chegar o modelo.
 - **Grão-Lodoso renasce 30 minutos** depois de morto.
+- Ícones novos: Coroa de Dentes do Grão-Lodoso, Tridente Partido e a espada Presa da Maré.
