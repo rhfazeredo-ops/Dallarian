@@ -243,9 +243,9 @@ func trocar_equip(lugar: String, id: String) -> void:
 		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
 		mod.position = Vector3(-0.131, -0.075, 0) * k
 		no.add_child(mod)
-	elif lugar == "escudo" and modelo == "ferro" and ResourceLoader.exists("res://assets/modelos/escudo_ferro.glb"):
-		# escudo de ferro (Tripo, quando chegar): mesmo encaixe do de madeira — frente em +X no arquivo, 0,6 m
-		var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_ferro.glb")
+	elif lugar == "escudo" and modelo in ["ferro", "egide"] and ResourceLoader.exists("res://assets/modelos/escudo_%s.glb" % modelo):
+		# escudos do Tripo (quando chegarem): mesmo encaixe do de madeira — frente em +X no arquivo, 0,6 m
+		var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_%s.glb" % modelo)
 		var bb := AABB()
 		for mi in esc.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
 		var ke := 0.62 / maxf(maxf(bb.size.y, bb.size.z), 0.01)

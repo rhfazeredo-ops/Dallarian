@@ -43,6 +43,9 @@ const ITENS := {
 	"escudo_ferro": {"nome": "Escudo de ferro", "venda": 32, "compra": 130, "pilha": 1, "qual": "comum",
 		"tipo": "escudo", "subtipo": "Escudo", "armadura": 90, "bloqueio": 11, "bloqueio_ativo": 0.7, "nivel": 2, "ilvl": 7,
 		"modelo": "ferro", "desc": "Tábuas de carvalho com aro de ferro rebitado e um umbo no meio. Aguenta uma boa pancada."},
+	"egide_guardia": {"nome": "Égide da Guardiã", "venda": 95, "compra": 0, "pilha": 1, "qual": "incomum",
+		"tipo": "escudo", "subtipo": "Escudo", "armadura": 134, "bloqueio": 16, "bloqueio_ativo": 0.75, "nivel": 5, "ilvl": 10,
+		"modelo": "egide", "desc": "Tábuas claras de freixo com aro de ferro batido e a cruz das Guardiãs no centro. Dizem que foi forjado aos pés da primeira estátua."},
 	"nucleo_golem": {"nome": "Coração de barro de Barrogar", "venda": 250, "compra": 0, "pilha": 5, "qual": "incomum",
 		"desc": "Ainda pulsa, morno. Dizem que guarda a força do vale."},
 	# montarias (compradas no estábulo de Altamar): não ocupam a bolsa, vão para o menu do personagem

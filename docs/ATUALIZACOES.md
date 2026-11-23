@@ -264,3 +264,5 @@
   usa a espada de ferro até chegar o modelo 3D.
 - **Escudo de ferro** (item level 7, 90 de armadura, 11 de bloqueio, bloqueia 70% erguido, requer nível 2): à venda
   no Bram (130 cobres). Ícone a partir da arte enviada; na mão usa o escudo de madeira até chegar o modelo.
+- **Égide da Guardiã** (escudo incomum, item level 10, 134 de armadura, 16 de bloqueio, bloqueia 75% erguido,
+  requer nível 5): cai de Barrogar, o Colosso do Vale (20%). Ícone e modelo a caminho.
