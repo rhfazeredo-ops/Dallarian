@@ -536,7 +536,7 @@ func _gruta_iniciar() -> void:
 	_gruta_monstros()
 
 func _gruta_malhas(r: Regiao) -> Dictionary:
-	var bb: Rect2 = Regiao.GRUTA_BB.grow(4.0); var s := 1.0
+	var bb: Rect2 = Regiao.GRUTA_BB.grow(8.0); var s := 1.0
 	var nx := int(bb.size.x / s) + 1; var nz := int(bb.size.y / s) + 1
 	var v := PackedFloat32Array(); v.resize(nx * nz)
 	for j in nz:
@@ -574,7 +574,7 @@ func _gruta_malhas(r: Regiao) -> Dictionary:
 		var z := bb.position.y
 		while z < bb.end.y:
 			var zc := z + t * 0.5
-			if zc < Regiao.GRUTA_COBERTA_Z and r.gruta_d(x + t * 0.5, zc) < 2.2:
+			if zc < Regiao.GRUTA_COBERTA_Z and r.gruta_d(x + t * 0.5, zc) < 4.5:
 				var q := [Vector2(x, z), Vector2(x + t, z), Vector2(x + t, z + t), Vector2(x, z + t)]
 				var pts := []
 				for k in 4: pts.append(Vector3(q[k].x, r.gruta_teto(q[k].x, q[k].y), q[k].y))
@@ -589,11 +589,13 @@ func _gruta_malhas(r: Regiao) -> Dictionary:
 	for k in 8:
 		var x0 := Regiao.GRUTA_ENTRADA.x - 14.0 + k * 3.5; var x1 := x0 + 3.5
 		var y0a := r.gruta_teto(x0, bz) - 0.8; var y0b := r.gruta_teto(x1, bz) - 0.8
-		var y1a := maxf(r.altura(x0, bz - 4.0), y0a + 6.0) + 1.0; var y1b := maxf(r.altura(x1, bz - 4.0), y0b + 6.0) + 1.0
+		var y1a := maxf(r.altura(x0, bz - 4.0), y0a + 6.0) + 1.0 + r.ruido.get_noise_2d(x0 * 6.0, 3.0) * 2.0
+		var y1b := maxf(r.altura(x1, bz - 4.0), y0b + 6.0) + 1.0 + r.ruido.get_noise_2d(x1 * 6.0, 3.0) * 2.0
 		var quad := [Vector3(x0, y0a, bz), Vector3(x1, y0b, bz), Vector3(x1, y1b, bz - 3.0), Vector3(x0, y1a, bz - 3.0)]
 		for tri in [[0, 1, 2], [0, 2, 3]]:
 			for i in tri:
-				paredes.set_color(Color(0.5, 0.48, 0.45)); paredes.set_normal(Vector3(0, 0.3, 1).normalized())
+				var mch := 0.7 + r.ruido.get_noise_2d(quad[i].x * 7.0 + quad[i].y * 3.0, quad[i].y * 7.0) * 0.35
+				paredes.set_color(Color(0.4, 0.38, 0.35) * mch); paredes.set_normal(Vector3(0, 0.3, 1).normalized())
 				paredes.set_uv(Vector2(quad[i].x, quad[i].y) * 0.25); paredes.add_vertex(quad[i])
 	return {"paredes": paredes.commit_to_arrays(), "teto": teto.commit_to_arrays(), "faces": faces}
 
@@ -615,7 +617,8 @@ func _gruta_parede(r: Regiao, st: SurfaceTool, faces: PackedVector3Array, a: Vec
 		for tri in [[p00, p10, p11], [p00, p11, p01]]:
 			for q: Vector3 in tri:
 				var mancha := 0.78 + r.ruido.get_noise_2d(q.x * 9.0 + q.y * 5.0, q.z * 9.0 - q.y * 4.0) * 0.32   # rocha manchada
-				st.set_color(cor * mancha * (0.8 if k == 0 else 1.0)); st.set_uv(Vector2(q.x + q.z, q.y) * 0.25); st.add_vertex(q)
+				var umido := (1.0 - smoothstep(r.gruta_piso(q.x, q.z), r.gruta_piso(q.x, q.z) + 2.2, q.y)) * (0.5 + 0.5 * r.ruido.get_noise_2d(q.x * 3.0, q.z * 3.0))
+				st.set_color((cor * mancha).lerp(Color(0.3, 0.4, 0.26) * mancha, clampf(umido, 0.0, 0.85))); st.set_uv(Vector2(q.x + q.z, q.y) * 0.25); st.add_vertex(q)
 				faces.append(q)
 
 func _gruta_pronta() -> void:
@@ -629,6 +632,7 @@ func _gruta_pronta() -> void:
 	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var forma := ConcavePolygonShape3D.new()
 	forma.set_faces(d.faces); forma.backface_collision = true; cs.shape = forma; corpo.add_child(cs); raiz.add_child(corpo)
 	_gruta_enfeites()
+	var amb := Gruta.new(); raiz.add_child(amb); amb.montar(self)
 	if args.has("carga"): print("GRUTA pronta: ", (d.faces as PackedVector3Array).size() / 3, " triângulos de parede")
 
 # tochas pelos túneis, acampamentos nas salas, tralhas e ossos de peixe pelo caminho
@@ -1245,7 +1249,7 @@ func _dia_noite(delta: float) -> void:
 	_vento(delta)
 	if hud: hud.hora = hora
 	c = c.lerp(c * Color(0.62, 0.66, 0.74), chuva)                  # chovendo: tudo mais escuro e azulado
-	c = c.lerp(Color(0.38, 0.37, 0.42), gruta_dentro)                # dentro da gruta: penumbra (tochas acesas)
+	c = c.lerp(Color(0.46, 0.44, 0.5), gruta_dentro)                # dentro da gruta: penumbra (tochas acesas)
 	RenderingServer.global_shader_parameter_set("luz_ambiente", Vector3(c.r, c.g, c.b))
 	RenderingServer.global_shader_parameter_set("noite", noite)
 	var acesa := maxf(smoothstep(0.25, 0.6, noite), gruta_dentro)
@@ -3031,7 +3035,9 @@ func _modo_teste() -> void:
 					"sala1": [Vector2(1540, -940), Regiao.GRUTA_SALAS[0][0]],
 					"sala2": [Vector2(1490, -1000), Regiao.GRUTA_SALAS[2][0]],
 					"camara": [Vector2(1536, -1056), Regiao.GRUTA_CAMARA],
-					"chefe": [Regiao.GRUTA_CAMARA + Vector2(-2, 9), Regiao.GRUTA_CAMARA]}
+					"chefe": [Regiao.GRUTA_CAMARA + Vector2(-2, 9), Regiao.GRUTA_CAMARA],
+					"meio": [Vector2(1540, -925), Vector2(1537, -950)],
+					"perto": [Vector2(1538, -943), Vector2(1534, -960)]}
 				alvo = pts[onde][0]; olha = pts[onde][1]
 			"rio_cidade": alvo = Vector2(1640.0, -760.0); olha = Vector2(1612.0, -700.0)
 		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position

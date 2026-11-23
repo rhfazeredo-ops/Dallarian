@@ -191,3 +191,8 @@
   (mais alta, com duas cabanas grandes e três fogueiras). Dentro fica na penumbra (só tochas e fogueiras
   iluminam) e não chove. 6 grupos de Lodosos nível 4–6 pelo caminho e o **Grão-Lodoso** (nível 8) sozinho na
   câmara — ele saiu da foz do rio (lá ficou um acampamento comum). Aparece na bússola como "Gruta dos Lodosos".
+- **Ambientação da Gruta dos Lodosos**: estalactites no teto e estalagmites junto das paredes, cogumelos que
+  brilham azul-esverdeado no escuro, poças d'água, ossadas de peixe, conchas e pedrinhas, totens com o cajado de
+  caveira de peixe na entrada das salas, musgo úmido no pé das paredes, gotas pingando do teto com o som do pingo,
+  som ambiente de caverna e mais eco nos sons lá dentro. Penumbra um pouco mais clara e boca da gruta com paredão
+  de pedra irregular. Corrigido o terreno da montanha que aparecia como "moitas" dentro dos túneis.

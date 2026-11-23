@@ -278,9 +278,11 @@ func altura(x: float, z: float) -> float:
 	var ds := z - (Ws(520.0) + n_borda)
 	if ds > 0.0: h += _serra(ds, 35.0) * var_m
 	if not planos.is_empty(): h = _planos(x, z, h)
-	if GRUTA_BB.grow(10.0).has_point(Vector2(x, z)):           # Gruta dos Lodosos: cânion com o chão da gruta
+	if GRUTA_BB.grow(14.0).has_point(Vector2(x, z)):           # Gruta dos Lodosos: cânion com o chão da gruta
 		var dg := gruta_d(x, z)
-		if dg < 5.0: h = lerpf(gruta_piso(x, z), h, smoothstep(-0.3, 5.0, dg))
+		# o chão continua reto até 3 m atrás da parede (a malha do terreno é mais grossa que a parede: se subisse
+		# logo na borda, a encosta atravessava para dentro da gruta)
+		if dg < 9.0: h = lerpf(gruta_piso(x, z), h, smoothstep(3.0, 9.0, dg))
 	return h
 
 # altura de uma serra a "d" metros da borda: sobe rápido no pé e para em "alto"
@@ -367,7 +369,7 @@ const GRUTA_ENTRADA := Vector2(1545, -880)
 const GRUTA_CAMARA := Vector2(1549, -1076)
 # distância até a borda da gruta (negativa dentro), com a parede irregular de pedra
 func gruta_d(x: float, z: float) -> float:
-	if not GRUTA_BB.grow(6.0).has_point(Vector2(x, z)): return 99.0
+	if not GRUTA_BB.grow(12.0).has_point(Vector2(x, z)): return 99.0
 	var p := Vector2(x, z); var d := 99.0
 	for t in GRUTA_TUNEIS:
 		var a: Vector2 = t[0]; var b: Vector2 = t[1]; var ab := b - a
@@ -406,7 +408,7 @@ func zona_pantano(z: float) -> float: return smoothstep(Ws(380.0), Ws(430.0), z)
 
 func floresta(x: float, z: float) -> float:
 	# 0 = aberto, 1 = mata fechada
-	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 6.0: return -1.0
+	if GRUTA_BB.grow(14.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 10.0: return -1.0
 	var f := ruido_grande.get_noise_2d(x * 1.6 + 300.0, z * 1.6) * 1.6 + 0.35
 	f += 0.25 * smoothstep(Ws(250.0), Ws(420.0), Vector2(x, z).length())   # mais mata longe da vila
 	f -= 1.0 - smoothstep(40.0, 110.0, Vector2(x, z).length())       # vila e arredores abertos
@@ -445,14 +447,14 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
 	if ny < 0.8: c = c.lerp(Color(0.46, 0.5, 0.6), smoothstep(0.8, 0.65, ny))  # pedra
 	if h > 40.0: c = c.lerp(Color(0.88, 0.91, 0.98), smoothstep(40.0, 50.0, h))  # neve
-	if GRUTA_BB.grow(10.0).has_point(Vector2(x, z)):                              # gruta: lama escura e pedra
+	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)):                              # gruta: lama escura e pedra
 		var dg := gruta_d(x, z)
-		if dg < 2.0: c = c.lerp(Color(0.33, 0.3, 0.26).lerp(Color(0.24, 0.28, 0.22), smoothstep(-0.3, 0.4, n)) * (0.9 + n * 0.12), 1.0 - smoothstep(0.0, 2.0, dg))
+		if dg < 9.0: c = c.lerp(Color(0.33, 0.3, 0.26).lerp(Color(0.24, 0.28, 0.22), smoothstep(-0.3, 0.4, n)) * (0.9 + n * 0.12), 1.0 - smoothstep(4.0, 9.0, dg))
 	return c
 
 # dentro do chão de alguma construção (casa, ferraria, moinho...)?
 func em_construcao(x: float, z: float) -> bool:
-	if GRUTA_BB.grow(8.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 3.0: return true
+	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 9.0: return true
 	for pl in planos:
 		var c: Vector2 = pl[0]
 		var dx := x - c.x; var dz := z - c.y
