@@ -100,6 +100,7 @@ func _ready() -> void:
 		["Altamar", cidade_pos, "castelo", 200.0],
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	fauna.montar(self)
+	praia.montar(self)
 	if args.has("carga"): print("CARGA fauna ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_montar_chuva()
 	_montar_vento()
@@ -141,12 +142,13 @@ func _moradores() -> void:
 	_aranhas()
 	if args.has("carga"): print("CARGA  _aranhas ", Time.get_ticks_msec() - _t_aranhas)
 	var _t_lodosos := Time.get_ticks_msec()
-	# _lodosos()   # tirados (23/11): os modelos antigos saíram; voltam com os modelos novos estilo peixe-sapo
+	_lodosos()
 	if args.has("carga"): print("CARGA  _lodosos ", Time.get_ticks_msec() - _t_lodosos)
 	var _t_golem := Time.get_ticks_msec()
 	_golem()
 	if args.has("carga"): print("CARGA  _golem ", Time.get_ticks_msec() - _t_golem)
 	fauna = Fauna.new(); raiz.add_child(fauna)
+	praia = Praia.new(); raiz.add_child(praia)
 	# já começam algumas conversas na vila
 	var vila := []
 	for mo in raiz.get_children():
@@ -170,6 +172,7 @@ func morte_marcada() -> bool: return morte_ate > _tempo_jogo()
 var _tela_dano: ColorRect
 var matilhas := []
 var fauna: Fauna
+var praia: Praia
 var interacao: Interacao
 var inventario: Inventario
 var saque: Saque
@@ -393,77 +396,130 @@ func _aranhas() -> void:
 			ga.membros.append(a))
 		matilhas.append(ga)
 
-# Lodosos: grupos de 3 (um grande e dois jovens) em trechos da beira do rio, do lago e da praia
+# Lodosos (peixe-sapo): grupos de no máximo 3 em pontos da praia (a costa inteira), das duas margens dos rios e do
+# lago, cada um com seu acampamento (cabanas de palafita, varal de peixes, rede, monte de tralhas, fogueira).
+# Composição: um Pescador (ou um Xamã da Lama) + Jovens. O Grão-Lodoso (chefe) fica na foz do rio do leste.
+const LODOSOS_MAX := 70
+# água sem montar a malha do terreno (na_agua usa a malha: caro na carga, quando o pedaço ainda não existe)
+func _molhado(x: float, z: float) -> bool:
+	var h := reg.altura(x, z)
+	if h < 0.35: return true
+	var nv := reg.agua(x, z)
+	return nv != 0.0 and h < nv + 0.15
+func linha_praia(z: float) -> float:          # x onde a areia encontra o mar nesta latitude (ou -1 se não achar)
+	var x := 2040.0
+	if reg.altura(x, z) <= 1.2 or reg.altura(x - 40.0, z) <= 1.2: return -1.0     # pântano / porto: não é praia
+	while x < Regiao.X1 and reg.altura(x, z) > 1.0: x += 8.0
+	if x >= Regiao.X1: return -1.0
+	x -= 8.0
+	while x < Regiao.X1 and reg.altura(x, z) > 1.0: x += 1.0
+	return x
+
 func _lodosos() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 909
 	var cands: Array[Vector2] = []
 	var r := reg.rio
 	for i in r.size() - 1:
-		for u in [0.25, 0.75]:
+		for u in [0.2, 0.5, 0.8]:
 			var a: Vector2 = r[i]; var b: Vector2 = r[i + 1]; var pt := a.lerp(b, u)
 			var nrm := Vector2(-(b - a).normalized().y, (b - a).normalized().x) * (1.0 if rng.randf() < 0.5 else -1.0)
 			var t: float = (float(i) + float(u)) / (r.size() - 1)
-			cands.append(pt + nrm * (reg.largura_rio(t) * 0.5 + 4.0))
+			cands.append(pt + nrm * (reg.largura_rio(t) * 0.5 + 5.0))
 	for k in 6:
 		var ang := TAU * k / 6.0 + 0.3
-		cands.append(Vector2(Regiao.LAGO.x, Regiao.LAGO.y) + Vector2(cos(ang), sin(ang)) * (Regiao.LAGO.z + 5.0))
-	for z0 in [-380.0, -290.0, -200.0, -120.0, -40.0, 50.0, 140.0, 220.0, 300.0]:
-		var z := Regiao.Ws(absf(z0)) * signf(z0)
-		var x := Regiao.Ws(380.0)
-		while x < Regiao.X1 and reg.altura(x, z) > 1.0: x += 8.0          # passos de 8 m e depois refina
-		x = maxf(x - 8.0, Regiao.Ws(380.0))
-		while x < Regiao.X1 and reg.altura(x, z) > 1.0: x += 1.0
-		cands.append(Vector2(x - 5.0, z))
-	var r2 := reg.rio2                                       # rio do leste também
+		cands.append(Vector2(Regiao.LAGO.x, Regiao.LAGO.y) + Vector2(cos(ang), sin(ang)) * (Regiao.LAGO.z + 6.0))
+	var z := Regiao.Z0 + 60.0                                # praia: a costa inteira, de 45 em 45 m
+	while z < Regiao.Z1 - 60.0:
+		var x := linha_praia(z)
+		if x > 0.0: cands.append(Vector2(x - rng.randf_range(6.0, 14.0), z))
+		z += 45.0
+	var r2 := reg.rio2                                       # rio do leste, nas duas margens
 	for i in r2.size() - 1:
-		for u in [0.3, 0.8]:
+		for u in [0.15, 0.5, 0.85]:
 			var a2: Vector2 = r2[i]; var b2: Vector2 = r2[i + 1]; var pt2 := a2.lerp(b2, u)
 			var nrm2 := Vector2(-(b2 - a2).normalized().y, (b2 - a2).normalized().x) * (1.0 if rng.randf() < 0.5 else -1.0)
-			var q2 := pt2 + nrm2 * (reg.largura_rio2(lerpf(reg._rio2_comp[i], reg._rio2_comp[i + 1], u)) * 0.5 + 5.0)
-			if not reg.na_cidade(q2.x, q2.y, 70.0): cands.append(q2)
+			var q2 := pt2 + nrm2 * (reg.largura_rio2(lerpf(reg._rio2_comp[i], reg._rio2_comp[i + 1], u)) * 0.5 + 6.0)
+			cands.append(q2)
 	cands.shuffle()
+	# chefe na foz do rio do leste, com a guarda de dois Pescadores
+	var foz: Vector2 = r2[r2.size() - 3].lerp(r2[r2.size() - 2], 0.5)
+	var nf := (r2[r2.size() - 2] - r2[r2.size() - 3]).normalized().orthogonal()
+	var chefe := foz + nf * (reg.largura_rio2(0.9) * 0.5 + 9.0)
 	var feitos: Array[Vector2] = []
-	for q in cands:
-		if feitos.size() >= 34: break
-		if q.length() < 160.0 or reg.dist_estrada(q.x, q.y) < 12.0 or perto_de_lugar(q.x, q.y, 18.0) or perto_de_casa(q.x, q.y, 10.0): continue
-		if reg.agua(q.x, q.y) != 0.0 and altura(q.x, q.y) < reg.agua(q.x, q.y): continue
+	for q0 in [chefe] + cands:
+		var q: Vector2 = q0
+		if feitos.size() >= LODOSOS_MAX: break
+		var e_chefe: bool = feitos.is_empty()
+		if not e_chefe:
+			if q.length() < 160.0 or reg.dist_estrada(q.x, q.y) < 12.0 or perto_de_lugar(q.x, q.y, 18.0) or perto_de_casa(q.x, q.y, 10.0): continue
+			if reg.na_cidade(q.x, q.y, 70.0) or reg.altura(q.x, q.y) > 30.0: continue
+		if e_chefe:                                  # o chefe: anda para longe do rio até achar chão seco
+			for k in 12: if _molhado(q.x, q.y): q += nf * 3.0
+		if _molhado(q.x, q.y): continue
 		var ok := true
-		for f in feitos: if q.distance_to(f) < 55.0: ok = false
+		for f in feitos: if q.distance_to(f) < 42.0: ok = false
 		if not ok: continue
 		feitos.append(q)
 		var g := {"casa": q, "membros": [], "alerta": false, "tipo": "lodoso"}
-		for j in 3:
-			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.0)
-			var nv := rng.randi_range(3, 4) if j == 0 else rng.randi_range(2, 3); var semente := rng.randi(); var giro := rng.randf() * TAU
+		var tipos: Array = ["lodoso_c", "lodoso_g", "lodoso_g"] if e_chefe else \
+			[("lodoso_x" if rng.randf() < 0.25 else "lodoso_g")] + (["lodoso_j", "lodoso_j"] if rng.randf() < 0.7 else ["lodoso_j"])
+		for j in tipos.size():
+			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.5)
+			var tp: String = tipos[j]
+			var nv := 7 if tp == "lodoso_c" else (rng.randi_range(3, 5) if tp != "lodoso_j" else rng.randi_range(2, 4))
+			var semente := rng.randi(); var giro := rng.randf() * TAU
 			var ql := q
 			_criar_depois(p, func():
 				var mo := Monstro.new(); mo.grupo = g
+				if tp == "lodoso_c": mo.nome = "Grão-Lodoso"
 				var ps := ponto_seco(p, ql)
 				raiz.add_child(mo); mo.position = Vector3(ps.x, altura_malha(ps.x, ps.y), ps.y)
-				mo.montar(self, "lodoso_g" if j == 0 else "lodoso_j", nv, semente)
+				mo.montar(self, tp, nv, semente)
 				mo.rotation.y = giro; mo.reset_physics_interpolation()
 				g.membros.append(mo))
 		matilhas.append(g)
-		_acampamento_lodoso(q, rng)
+		var sem := rng.randi(); var grande := e_chefe
+		_criar_depois(q, func(): _acampamento_lodoso(q, sem, grande))
 
-# cabaninha de juncos, varal de peixes e fogueirinha
-func _acampamento_lodoso(c: Vector2, rng: RandomNumberGenerator) -> void:
+# acampamento: 1 a 2 cabanas (grande e/ou pequena), varal de peixes, rede, monte de tralhas e fogueira, em volta do
+# centro; tudo virado para o meio e com o chão seco embaixo
+const PECAS_LODOSO := {          # arquivo, altura real (m) ou largura (m) se "larg"
+	"casa_g": ["res://assets/modelos/casa_lodoso_g.glb", 3.6, false], "casa_p": ["res://assets/modelos/casa_lodoso_p.glb", 2.5, false],
+	"varal": ["res://assets/modelos/varal_lodoso.glb", 3.0, true], "rede": ["res://assets/modelos/rede_lodoso.glb", 2.6, true],
+	"lixo": ["res://assets/modelos/lixo_lodoso.glb", 1.9, true]}
+func _acampamento_lodoso(c: Vector2, semente: int, grande: bool) -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = semente
+	var lista: Array = ["casa_g", "casa_p"] if grande or rng.randf() < 0.45 else [["casa_g", "casa_p"][rng.randi() % 2]]
+	if grande: lista.append("casa_p")
+	lista.append_array(["varal", "rede", "lixo"] if grande else [["varal", "rede", "lixo"][rng.randi() % 3]] + ([["varal", "rede", "lixo"][rng.randi() % 3]] if rng.randf() < 0.6 else []))
+	var a0 := rng.randf() * TAU
+	for k in lista.size():
+		var nome: String = lista[k]
+		var raio := (6.5 if nome.begins_with("casa") else 4.5) + rng.randf_range(0.0, 1.5)
+		var ang := a0 + TAU * k / lista.size() + rng.randf_range(-0.25, 0.25)
+		var p := c + Vector2(cos(ang), sin(ang)) * raio
+		if na_agua(p.x, p.y) or na_agua(p.x, p.y + 1.5) or na_agua(p.x + 1.5, p.y): p = c - Vector2(cos(ang), sin(ang)) * raio   # do outro lado
+		if na_agua(p.x, p.y) or na_agua(p.x, p.y + 1.5) or na_agua(p.x + 1.5, p.y): continue
+		_peca_lodoso(nome, p, atan2(c.x - p.x, c.y - p.y) + (PI if nome.begins_with("casa") else rng.randf_range(-0.4, 0.4)))
 	var y := altura_malha(c.x, c.y)
-	var st := _st()
-	var h := c + Vector2(3.0, 1.5).rotated(rng.randf() * TAU)
-	cilindro(st, Vector3(h.x, altura_malha(h.x, h.y) - 0.1, h.y), 1.2, 0.05, 1.7, 7)
-	_peca(st, mat("palha", 1.0, Color(0.75, 0.8, 0.55)), Vector3.ZERO)
-	st = _st()
-	var v0 := c + Vector2(-2.5, -1.5)
-	for d in [Vector2(0, 0), Vector2(1.8, 0)]:
-		var q: Vector2 = v0 + d; _caixa(st, Vector3(q.x, altura_malha(q.x, q.y) + 0.6, q.y), Vector3(0.08, 1.2, 0.08))
-	_caixa(st, Vector3(v0.x + 0.9, altura_malha(v0.x, v0.y) + 1.15, v0.y), Vector3(1.9, 0.05, 0.05))
-	_peca(st, mat("madeira"), Vector3.ZERO)
-	var peixes := []
-	for i in 4: peixes.append([Vector3(v0.x + 0.3 + i * 0.4, altura_malha(v0.x, v0.y) + 0.95, v0.y), Color(0.55, 0.62, 0.66), 0.22])
-	_splats(peixes, Vector2(0.5, 1.0), false, 0.0)
-	_fogo(Vector3(c.x + 1.0, y + 0.05, c.y - 2.5), 0.45, 0.6, 2)
-	luzes.append(Vector3(c.x + 1.0, y + 0.4, c.y - 2.5))
+	_fogo(Vector3(c.x, y + 0.05, c.y), 0.45, 0.6, 2)
+	luzes.append(Vector3(c.x, y + 0.4, c.y))
+
+static var _aabb_peca := {}
+func _peca_lodoso(nome: String, p: Vector2, giro: float) -> void:
+	var d: Array = PECAS_LODOSO[nome]
+	var no: Node3D = modelo_ps1(d[0])
+	if not _aabb_peca.has(nome):
+		var bb := AABB()
+		for mi in no.find_children("*", "MeshInstance3D", true, false): bb = bb.merge(mi.get_aabb()) if bb.size != Vector3.ZERO else mi.get_aabb()
+		_aabb_peca[nome] = bb
+	var b: AABB = _aabb_peca[nome]
+	var esc: float = float(d[1]) / (maxf(b.size.x, b.size.z) if d[2] else b.size.y)
+	for mi in no.find_children("*", "MeshInstance3D", true, false): mi.visibility_range_end = 130.0
+	raiz.add_child(no)
+	no.scale = Vector3.ONE * esc; no.rotation.y = giro
+	var y := minf(minf(altura_malha(p.x, p.y), altura_malha(p.x + 1.0, p.y)), altura_malha(p.x, p.y + 1.0))
+	no.position = Vector3(p.x, y - b.position.y * esc - 0.08, p.y)
 
 # Grumo, o golem de terra (chefe): dá a volta no mapa inteiro, longe da vila, andando sem parar
 var golem: Monstro
@@ -549,15 +605,16 @@ func _agendar_volta(mo: Node) -> void:
 			raiz.add_child(gm); gm.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 			gm.montar(self, "golem", nv, randi()); golem = gm; return gm
 	elif mo is Monstro:
-		var tp: String = mo.tipo; var nv: int = mo.nivel
+		var tp: String = mo.tipo; var nv: int = mo.nivel; var nm: String = mo.nome
 		f = func() -> Node3D:
-			var lm := Monstro.new(); lm.grupo = g
+			var lm := Monstro.new(); lm.grupo = g; lm.nome = nm
 			var a := randf() * TAU; var p := casa + Vector2(cos(a), sin(a)) * randf_range(0.0, 2.5)
 			p = ponto_seco(p, casa)
 			raiz.add_child(lm); lm.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 			lm.montar(self, tp, nv, randi()); return lm
 	else: return
 	var espera := VOLTA_CHEFE if (mo is Monstro and mo.tipo == "golem") else VOLTA_NORMAL
+	if mo is Monstro and mo.tipo == "lodoso_c": espera = 900.0          # Grão-Lodoso: volta em 15 min
 	if args.has("volta_rapida"): espera = float(args.volta_rapida)
 	_voltas.append([espera, f, g])
 
@@ -597,6 +654,7 @@ func monstro_morreu(mo: Node) -> void:
 		drops = [["escama_lodoso", 0.5, 1, 2 if mo.tipo == "lodoso_g" else 1], ["barbatana_lodoso", 0.35, 1, 1],
 			["olho_lodoso", 0.2, 1, 1]]
 		if mo.tipo == "lodoso_x": drops.append(["perola_lama", 0.12, 1, 1])
+		if mo.tipo == "lodoso_c": drops = [["escama_lodoso", 1.0, 2, 3], ["olho_lodoso", 0.6, 1, 2], ["perola_lama", 0.5, 1, 1]]
 	saque.registrar(mo, Saque.sortear(drops))
 
 func lobo_morreu(l: Lobo) -> void:
@@ -2766,6 +2824,15 @@ func _modo_teste() -> void:
 			"cavalarico": alvo = estabulo_pos + Vector2(-19.0, 6.0); olha = estabulo_pos + Vector2(-19.5, 0.0)
 			"taverna": alvo = taverna_pos + Vector2(10.0, -26.0); olha = taverna_pos
 			"rua_oeste": alvo = cidade_pos + Vector2(-205.0, 0.0); olha = cidade_pos
+			"lodosos":          # --ir=lodosos --n=0 (0 = acampamento do chefe)
+				var ls := matilhas.filter(func(g): return g.get("tipo", "") == "lodoso")
+				var cg: Vector2 = ls[int(args.get("n", "0")) % ls.size()].casa
+				olha = cg; alvo = cg + Vector2(float(args.get("dx", "9")), float(args.get("dz", "6")))
+				print("LODOSOS: %d grupos" % ls.size())
+			"praia":
+				var zp := float(args.get("z", "200")); var xp := linha_praia(zp)
+				alvo = Vector2(xp - float(args.get("dx", "6")), zp); olha = alvo + (Vector2(0, 10) if args.has("ao_longo") else Vector2(10, 8))
+			"rio_cidade": alvo = Vector2(1640.0, -760.0); olha = Vector2(1612.0, -700.0)
 		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position
 		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)
 		if String(args.ir) == "alto" or String(args.ir) == "arte": jogador.global_position.y += (60.0 if args.ir == "alto" else 48.0); jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35 if args.ir == "alto" else -0.2

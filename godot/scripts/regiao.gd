@@ -165,7 +165,7 @@ func _preparar_rio2() -> void:
 	for i in rio2.size():
 		var p: Vector2 = rio2[i]
 		var nv := base(p.y) - 1.3
-		if p.distance_to(CIDADE_C) < CIDADE_R + 260.0: nv = minf(nv, ALTURA_CIDADE - 1.3)
+		if p.distance_to(CIDADE_C) < CIDADE_R + 260.0: nv = minf(nv, ALTURA_CIDADE - 0.55)   # perto da margem (antes -1,3: parecia um fosso)
 		nv = lerpf(nv, 0.1, smoothstep(COSTA - 260.0, COSTA, p.x))
 		ant = minf(ant, nv); _rio2_nivel.append(ant)
 	_rasterizar(rio2, d_rio2, t_rio2, 64.0, _rio2_comp)
@@ -250,7 +250,11 @@ func altura(x: float, z: float) -> float:
 	if d2 < 60.0:
 		var t2 := _amostra(t_rio2, x, z)
 		var l2 := largura_rio2(t2) * 0.5; var n2 := nivel_rio2(t2)
-		if d2 < l2 + 14.0 and x < COSTA - 80.0: h = maxf(h, lerpf(n2 + 0.9, h, smoothstep(l2 + 4.0, l2 + 14.0, d2)))
+		if d2 < l2 + 14.0 and x < COSTA - 80.0: h = maxf(h, lerpf(n2 + 0.6, h, smoothstep(l2 + 4.0, l2 + 14.0, d2)))
+		# perto de Altamar: margens baixas, descendo suave até a água (antes era um barranco de 2–3 m, cara de fosso)
+		if d2 < l2 + 20.0 and Vector2(x, z).distance_to(CIDADE_C) < CIDADE_R + 330.0:
+			var beira := n2 + 0.45
+			if h > beira: h = lerpf(beira, h, smoothstep(l2 + 1.0, l2 + 20.0, d2))
 		if d2 < l2 + 8.0:
 			var leito := n2 - 2.2 * (1.0 - smoothstep(l2 * 0.35, l2, d2))
 			h = lerp(minf(h, leito), h, smoothstep(l2, l2 + 8.0, d2))

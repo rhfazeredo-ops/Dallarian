@@ -45,7 +45,7 @@ static func nome_de(mo: Node) -> String:
 	if mo is Monstro:
 		if mo.nome != "": return mo.nome
 		if mo.tipo == "golem": return "Grumo, o Guardião do Vale"
-		return "Lodoso"
+		return {"lodoso_j": "Lodoso Jovem", "lodoso_g": "Lodoso Pescador", "lodoso_x": "Xamã da Lama", "lodoso_c": "Grão-Lodoso"}.get(mo.tipo, "Lodoso")
 	return "Monstro"
 
 func _tem_saque(mo) -> bool:

@@ -171,3 +171,17 @@
 - **Trava de corrida mais alta**: o botão AUTO fica bem acima do joystick e só aparece esticando o dedo além da
   borda — andando para a frente não liga mais sem querer. **Botão CORRER da direita removido** (corre pela trava;
   PC: Shift ou R).
+- **Lodosos novos (peixe-sapo)**: 70 grupos de no máximo 3 — pela praia inteira, nas duas margens dos dois rios e
+  em volta do lago. Cada grupo tem um **Lodoso Pescador** (lança) ou um **Xamã da Lama** (cajado de caveira de
+  peixe) com 1 ou 2 **Lodosos Jovens**. O **Grão-Lodoso** (chefe, tridente, nível 7) fica perto da foz do rio do
+  leste com dois Pescadores de guarda (volta 15 min depois de morto; deixa escamas, olhos e Pérola da Lama).
+  A arma fica em pé na mão quando andam e deitada para a frente na estocada.
+- **Vozes dos Lodosos** (os 3 áudios enviados, cortados em vários gritos): gritam ao ver a Rachel, às vezes ao
+  atacar e ao apanhar, e ao morrer. Jovem: voz "pequeno"; Pescador e Xamã: voz normal (Xamã mais grave); chefe: a
+  do boss.
+- **Acampamentos dos Lodosos**: cabana grande e pequena de palafita, varal de bambu com peixes, rede (só a peça
+  inteira) e monte de tralhas do mar, com fogueira no meio. O do chefe é o maior.
+- **Praia viva**: conchas em leque e caramujos, pedrinhas lisas e **caranguejos vermelhos** que andam de lado e
+  fogem quando a Rachel chega perto.
+- **Rio de Altamar sem cara de fosso**: a água subiu ~0,7 m e as margens perto da cidade descem suave até a água
+  (antes eram barrancos de 2 a 3 m).
