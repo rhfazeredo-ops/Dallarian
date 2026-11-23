@@ -135,3 +135,6 @@
 - **Mais monstros**: lobos brancos 34 → 50 grupos, lobos marrons 68 → 122 grupos (de 2 a 3), aranhas 42 → 100
   (sozinhas, agora também em mata menos fechada), Lodosos 22 → 34 grupos (agora também no rio do leste);
   as terras do leste perto de Altamar ganharam monstros. Nenhum nasce na água nem dentro da cidade.
+- **Movimento mais fluido**: interpolação de física ligada (a posição da Rachel e da câmera é suavizada entre os
+  passos da física — some o "soluço" quando o FPS oscila), aceleração e freada suaves a pé e com "peso" a cavalo,
+  e a animação do cavalo no mesmo ritmo da física.

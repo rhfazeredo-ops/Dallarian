@@ -285,7 +285,7 @@ func _renascer() -> void:
 		if d < md: md = d; melhor = e
 	var p := Vector2(-4, 48); var olha := Vector2(-4, 40)
 	if not melhor.is_empty(): olha = melhor[0]; p = melhor[0] + (melhor[1] as Vector2) * 4.5
-	jogador.global_position = Vector3(p.x, altura(p.x, p.y) + 0.3, p.y); jogador.velocity = Vector3.ZERO
+	jogador.global_position = Vector3(p.x, altura(p.x, p.y) + 0.3, p.y); jogador.velocity = Vector3.ZERO; jogador.reset_physics_interpolation()
 	var d2 := olha - p; jogador.rotation.y = atan2(-d2.x, -d2.y)
 	jogador.reviver()
 	hud.vida = hud.vida_max
@@ -794,7 +794,7 @@ func _physics_process(_d: float) -> void:
 	var p := jogador.global_position
 	var fundo := reg.agua(p.x, p.z) - p.y
 	if not reg.dentro(p.x * 1.04, p.z * 1.04) or fundo > 0.9 or p.y < -20.0:
-		jogador.global_position = _ultima; jogador.velocity = Vector3.ZERO
+		jogador.global_position = _ultima; jogador.velocity = Vector3.ZERO; jogador.reset_physics_interpolation()
 	elif jogador.is_on_floor():
 		_ultima = p
 
@@ -981,7 +981,7 @@ func _tempo_chuva(delta: float) -> void:
 			_prox_troca = randf_range(120.0, 240.0) if _chuva_alvo > 0.5 else randf_range(240.0, 540.0)
 	chuva = move_toward(chuva, _chuva_alvo, delta / 25.0)                # entra e sai em ~25 s
 	RenderingServer.global_shader_parameter_set("chuva", chuva)
-	if jogador: _gotas.global_position = jogador.global_position + Vector3(0, 13, 0)
+	if jogador: _gotas.global_position = jogador.global_position + Vector3(0, 13, 0); _gotas.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_gotas.emitting = chuva > 0.15
 	_mat_gotas.albedo_color.a = 0.45 * clampf((chuva - 0.1) / 0.9, 0.1, 1.0)     # chuva fraca no começo/fim
 	if chuva > 0.01:
@@ -1020,7 +1020,7 @@ func _vento(delta: float) -> void:
 	var raj := clampf(0.5 + 0.6 * sin(t * 0.19) * sin(t * 0.47 + 1.3) + 0.15 * sin(t * 1.3), 0.0, 1.0)
 	vento = lerpf(vento, 0.65 + raj * 0.85 + chuva * 0.6, 1.0 - exp(-0.8 * delta))
 	RenderingServer.global_shader_parameter_set("forca_vento", vento)
-	if jogador: _folhas.global_position = jogador.global_position + Vector3(0, 1.5, 0) - DIR_VENTO * 6.0
+	if jogador: _folhas.global_position = jogador.global_position + Vector3(0, 1.5, 0) - DIR_VENTO * 6.0; _folhas.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_folhas.emitting = vento > 1.05 and chuva < 0.6 and hora > 5.5 and hora < 20.0
 	_folhas.speed_scale = clampf(vento * 0.8, 0.6, 1.6)
 	_som_vento.volume_db = linear_to_db(clampf((vento - 0.45) / 1.5, 0.08, 1.0)) - 7.0

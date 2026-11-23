@@ -55,7 +55,7 @@ func _process(_d: float) -> void:
 				c.ativos[f[1]] = _bloco(c, f[1]); continue
 			var ch := [ci, f[1]]
 			if obras.pendente(ch) or obras.cheio(): continue
-			var cc: Dictionary = c; var kk: Vector2i = f[1]
+			var cc: Dictionary = c.duplicate(); cc.erase("ativos"); var kk: Vector2i = f[1]   # cópia: a tarefa não lê o dicionário que o jogo altera
 			obras.pedir(ch, func(): return Obras.empacotar(_itens(cc, kk), true))   # monta em segundo plano
 		for k in c.ativos.keys():                                  # apaga os que ficaram longe
 			var centro := Vector2((k.x + 0.5) * b, (k.y + 0.5) * b)
@@ -165,3 +165,6 @@ func _pocas() -> void:
 			var q := Vector3(p.x + o.x, 0, p.y + o.y); q.y = m.altura_malha(q.x, q.z) + 0.12
 			itens.append([_transf(q, nrm, r * 1.5, r * 1.5 * alonga, ang), Color.WHITE, 1.0])
 	_multimesh(itens)
+
+
+func _exit_tree() -> void: obras.esperar_tudo()          # nenhuma tarefa em segundo plano fica rodando ao fechar

@@ -635,3 +635,6 @@ func _process(_d: float) -> void:
 			add_child(corpo); corpos[k] = corpo
 		elif not perto and corpos.has(k) and centro.distance_to(p) > COLIDE + 40.0:
 			corpos[k].queue_free(); corpos.erase(k)
+
+
+func _exit_tree() -> void: obras.esperar_tudo()          # nenhuma tarefa em segundo plano fica rodando ao fechar

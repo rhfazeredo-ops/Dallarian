@@ -86,6 +86,7 @@ func _novo_bando(longe_ok: bool) -> Dictionary:
 	var offs := [Vector2.ZERO, Vector2(-3.2, 2.6), Vector2(-3.2, -2.6)]
 	for k in n:
 		var ave := _ave()
+		ave[0].physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # mexe no _process
 		add_child(ave[0])
 		b.aves.append({"no": ave[0], "asa_e": ave[1], "asa_d": ave[2], "off": offs[k], "fase": rng.randf() * TAU,
 			"batendo": rng.randf_range(0.0, 2.0)})

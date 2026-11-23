@@ -74,7 +74,7 @@ func _process(_d: float) -> void:
 			if orcamento > 100: c.ativos[f[1]] = _bloco(c, f[1]); continue      # começo do jogo: na hora
 			var ch := [ci, f[1]]
 			if obras.pendente(ch) or obras.cheio(): continue
-			var cc: Dictionary = c; var kk: Vector2i = f[1]
+			var cc: Dictionary = c.duplicate(); cc.erase("ativos"); var kk: Vector2i = f[1]   # cópia: a tarefa não lê o dicionário que o jogo altera
 			obras.pedir(ch, func():
 				var ls := _itens(cc, kk)
 				return [Obras.empacotar(ls[0], false), Obras.empacotar(ls[1], false)])
@@ -145,3 +145,6 @@ func _multimesh(malha: ArrayMesh, itens: Array) -> MultiMeshInstance3D:
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi); return mi
+
+
+func _exit_tree() -> void: obras.esperar_tudo()          # nenhuma tarefa em segundo plano fica rodando ao fechar

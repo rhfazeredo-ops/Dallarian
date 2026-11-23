@@ -85,3 +85,7 @@ relampago={
 "type": "float",
 "value": 0.0
 }
+
+[physics]
+
+common/physics_interpolation=true

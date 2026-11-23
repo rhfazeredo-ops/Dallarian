@@ -144,3 +144,6 @@ func _detalhado_de(k: Vector2i, arrays: Array) -> Node3D:
 	var forma := ConcavePolygonShape3D.new(); forma.set_faces(arrays[Mesh.ARRAY_VERTEX]); forma.backface_collision = true
 	cs.shape = forma; corpo.add_child(cs); mi.add_child(corpo)
 	add_child(mi); return mi
+
+
+func _exit_tree() -> void: obras.esperar_tudo()          # nenhuma tarefa em segundo plano fica rodando ao fechar

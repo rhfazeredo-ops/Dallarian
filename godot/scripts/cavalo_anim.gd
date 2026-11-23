@@ -21,7 +21,7 @@ func _ready() -> void:
 		var l := _modelo.find_children("Esqueleto", "Skeleton3D", true, false)
 		if not l.is_empty(): _esq = l[0]
 func _q(eixo: Vector3, ang: float) -> Quaternion: return Quaternion(eixo, ang)
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:     # no ritmo da física (a interpolação suaviza)
 	var c: Node3D = get_parent()
 	if not c.is_visible_in_tree(): return
 	_t += delta

@@ -482,8 +482,14 @@ func _physics_process(delta: float) -> void:
 	_pulo_pedido -= delta
 	if _pulo_pedido > 0.0 and _coyote > 0.0 and velocity.y <= 0.5:
 		velocity.y = PULO; _pulo_pedido = 0.0; _coyote = 0.0
+	# aceleração e freada suaves (antes a velocidade mudava de uma vez): a pé responde rápido; a cavalo tem "peso"
 	var mov := transform.basis * Vector3(dir.x, 0, dir.y); mov.y = 0
-	velocity.x = mov.x * vel; velocity.z = mov.z * vel
+	var alvo_v := Vector2(mov.x, mov.z) * vel
+	var atual := Vector2(velocity.x, velocity.z)
+	var k := (4.0 if alvo_v.length() > atual.length() else 6.0) if montado else (14.0 if alvo_v.length() > atual.length() else 18.0)
+	if not is_on_floor(): k *= 0.35                      # no ar quase não muda a direção
+	atual = atual.lerp(alvo_v, 1.0 - exp(-k * delta))
+	velocity.x = atual.x; velocity.z = atual.y
 	if not is_on_floor(): velocity.y -= GRAV * delta
 	var vy := velocity.y
 	move_and_slide()

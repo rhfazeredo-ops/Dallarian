@@ -16,6 +16,11 @@ func pedir(chave, f: Callable) -> void:
 	var id := WorkerThreadPool.add_task(func(): caixa[0] = f.call(), false, "obra do mundo")
 	_tarefas[chave] = [id, caixa]
 
+# espera todas terminarem (antes de fechar o jogo ou apagar o sistema)
+func esperar_tudo() -> void:
+	for chave in _tarefas.keys(): WorkerThreadPool.wait_for_task_completion(_tarefas[chave][0])
+	_tarefas.clear()
+
 func prontos() -> Array:
 	var r := []
 	for chave in _tarefas.keys():
