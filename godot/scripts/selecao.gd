@@ -47,7 +47,7 @@ func _ready() -> void:
 			var sombra := ColorRect.new(); sombra.color = Color(0.05, 0.03, 0.08, 0.55); sombra.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(sombra)
 	# a heroína em 3D no meio
 	var cont := SubViewportContainer.new(); cont.stretch = true; cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cont.anchor_left = 0.28; cont.anchor_right = 0.66; cont.anchor_top = 0.12; cont.anchor_bottom = 0.98; add_child(cont)
+	cont.anchor_left = 0.3; cont.anchor_right = 0.7; cont.anchor_top = 0.14; cont.anchor_bottom = 0.86; add_child(cont)
 	var vp := SubViewport.new(); vp.transparent_bg = true; vp.own_world_3d = true; cont.add_child(vp)
 	_modelo = load("res://assets/modelos/dallarian.glb").instantiate(); vp.add_child(_modelo)
 	_modelo.rotation_degrees.y = -90

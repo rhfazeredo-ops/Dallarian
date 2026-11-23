@@ -285,3 +285,5 @@
   humana feminina — a Rachel — disponível; o resto escuro com "?" até chegarem os ícones); à direita a **lore da
   raça**; sem customização (os heróis vêm prontos). Ícones das raças: `assets/ui/racas/N_m.png` e `N_f.png`;
   fundo pintado opcional: `assets/ui/criacao_fundo.png`.
+- **Seleção de heróis com o fundo do salão do castelo de Altamar** (arte enviada): a heroína em pé no tapete
+  vermelho, na frente do estrado.
