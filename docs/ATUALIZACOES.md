@@ -271,3 +271,7 @@
 - **Modelos 3D e ícones do dono** para Cutelo do Rochedo, Marreta da Bigorna, Malho de Tronco, Escudo de ferro e
   Égide da Guardiã — agora aparecem na mão/braço da Rachel com o modelo de cada um.
 - Cutelo do Rochedo virado: a ponta curva fica para dentro (para a Rachel) e o fio reto para fora.
+- **Seleção de heróis** ao abrir o jogo (como a tela de personagens do WoW): a Rachel em 3D no meio (virando
+  devagar), lista de heróis à direita (nome, nível do save, classe e onde está), **CRIAR NOVO HERÓI** (em breve) e
+  **INICIAR JOGO** embaixo à direita. O fundo do salão do castelo de Altamar entra quando chegar a arte
+  (`assets/ui/selecao_fundo.png`); até lá usa a arte de Altamar.

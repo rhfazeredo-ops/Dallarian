@@ -40,6 +40,17 @@ func _ready() -> void:
 		for k in 6: await RenderingServer.frame_post_draw
 		for x in OS.get_cmdline_user_args(): if x.begins_with("--shot="): get_viewport().get_texture().get_image().save_png(x.trim_prefix("--shot="))
 		get_tree().quit(); return
+	# seleção de heróis (só quando o jogo abre de verdade; os testes com argumentos vão direto para o mundo)
+	var args2 := OS.get_cmdline_user_args()
+	if args2.is_empty() or args2.has("--selecao"):
+		var sel = load("res://scripts/selecao.gd").new(); add_child(sel)
+		if args2.has("--selecao"):
+			for k in 8: await RenderingServer.frame_post_draw
+			for x in args2: if x.begins_with("--shot="): get_viewport().get_texture().get_image().save_png(x.trim_prefix("--shot="))
+			get_tree().quit(); return
+		await sel.iniciar
+		_texto.text = "Entrando no Vale de Aldren..."; sel.queue_free()
+		await RenderingServer.frame_post_draw; await RenderingServer.frame_post_draw
 	get_tree().change_scene_to_file(CENA)
 
 # só para testar no PC atrás de um proxy (--proxy=host:porta --ca=arquivo.crt); no celular não usa
