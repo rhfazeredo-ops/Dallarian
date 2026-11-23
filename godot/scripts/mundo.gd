@@ -45,6 +45,7 @@ func _ready() -> void:
 	_lugares()                      # antes do terreno: as construções aplanam o chão embaixo delas
 	if args.has("carga"): print("CARGA lugares ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	terreno.montar(self)
+	if args.has("gerar_terreno"): return               # só gerando o terreno pronto (workflow do APK)
 	if args.has("carga"): print("CARGA terreno ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	for f in _depois: f.call()        # cercas, muros e blocos: assentados na malha final do terreno
 	if args.has("carga"): print("CARGA depois ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
@@ -2814,6 +2815,19 @@ func _modo_teste() -> void:
 					if sl != null and sl[0] == "pocao_m":
 						var c := bolsa.consumir(k, i, hud.vida_max); hud.vida = minf(hud.vida + c, hud.vida_max)
 						print("POCAO: +%d -> vida %.0f / %.0f" % [c, hud.vida, hud.vida_max]); return)
+	if args.has("frutiferas"):     # teste: conta árvores frutíferas e arbustos de frutinha montados e vai até a frutífera mais perto
+		get_tree().create_timer(1.5).timeout.connect(func():
+			var na := 0; var nb := 0; var pj := jogador.global_position; var melhor := Vector3.ZERO; var md := 1e9
+			for k in floresta.bagas.keys():
+				for q in floresta.bagas[k][1]:
+					if k.x >= 50000: na += 1
+					else: nb += 1
+					var d: float = (q - pj).length()
+					if k.x >= 50000 and d < md: md = d; melhor = q
+			print("FRUTIFERAS árvores=%d arbustos=%d (perto da Rachel); mais perto a %.0f m" % [na, nb, md])
+			var dir := Vector3(1, 0, 0.4).normalized()
+			jogador.global_position = melhor + dir * 1.6 + Vector3(0, 0.3, 0); jogador.reset_physics_interpolation()
+			jogador.rotation.y = atan2(dir.x, dir.z); jogador.pescoco.rotation.x = 0.35)
 	if args.has("fluxo_frutinhas"): # teste: vai até o arbusto de frutinhas mais perto, coleta, abre a bolsa e come uma
 		get_tree().create_timer(1.5).timeout.connect(func():
 			var pj := jogador.global_position; var melhor := Vector3.ZERO; var md := 1e9

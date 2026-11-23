@@ -2,3 +2,4 @@ godot/.godot/
 dist/
 *.tmp
 node_modules/
+godot/dados/terreno_longe.bin

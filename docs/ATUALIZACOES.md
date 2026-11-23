@@ -145,3 +145,7 @@
   da praia em passos de 8 m (antes de 1 em 1 m: ~1 milhão de cálculos), sorteio dos monstros com as verificações
   baratas primeiro, monstros criados aos poucos depois que o jogo abre (os mais perto primeiro) e o terreno de longe
   calculado em todos os núcleos. Árvores com a copa completa até 70 m no celular (antes 55 m).
+- **Terreno pronto dentro do jogo**: as alturas e cores do mapa inteiro são calculadas no GitHub ao gerar cada
+  versão (2,2 MB) — o terreno de longe passou de ~5,7 s para ~0,8 s no carregamento.
+- **Árvores frutíferas** espalhadas por região (vale, beira da mata, pomares perto das fazendas e da vila) com
+  COLETAR, e arbustos de frutinha em todo o mapa (antes só em 1/3 dos pedaços).

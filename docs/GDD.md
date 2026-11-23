@@ -195,6 +195,9 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   **Frutinhas silvestres** para a bolsa (pilha de 20, vendem por 1 cobre). O arbusto fica sem frutinhas e elas
   voltam em 5 minutos.
 - Na bolsa, tocar nas frutinhas mostra **CONSUMIR**: cada uma recupera **5 de vida** (para uma emergência).
+- **Árvores frutíferas** (copa com frutinhas vermelhas e laranja), planejadas por região: soltas no vale e na beira
+  da mata, pomares perto das fazendas e em volta da vila; nenhuma na montanha, no pântano ou na mata fechada.
+  Também têm COLETAR. Arbustos de frutinha em todo o mapa, mais comuns na beira das matas.
 
 ## 7.1.7 Freiras e poções de vida
 - **Irmã Celina** fica na frente da igreja da vila e **Irmã Odília** na escadaria da catedral de Altamar, com LOJA e

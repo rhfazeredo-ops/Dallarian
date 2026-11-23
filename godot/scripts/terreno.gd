@@ -19,7 +19,10 @@ var _primeira := true
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
 	_nx = int(ceil((Regiao.X1 - Regiao.X0) / PED)); _nz = int(ceil((Regiao.Z1 - Regiao.Z0) / PED))
-	# terreno de longe do mapa inteiro: calculado em paralelo em todos os núcleos (antes um só: ~6 s no carregamento)
+	# terreno de longe do mapa inteiro: as alturas e cores vêm PRONTAS no APK (dados/terreno_longe.bin, gerado no
+	# GitHub a cada versão); sem o arquivo (ou gerando), calcula tudo em paralelo em todos os núcleos
+	if m.args.has("gerar_terreno"): _gerar_arquivo(); return
+	_ler_pronto()
 	var blocos := []
 	for j in range(0, _nz, 2): for i in range(0, _nx, 2): blocos.append(Vector2i(i, j))
 	var caixas := []
@@ -30,6 +33,36 @@ func montar(mundo) -> void:
 	var _t1 := Time.get_ticks_msec()
 	for idx in blocos.size(): _simples_bloco_de(blocos[idx], caixas[idx][0])
 	if m.args.has("carga"): print("CARGA  terreno calculo ", _t1 - _t0, " malhas ", Time.get_ticks_msec() - _t1, " blocos ", blocos.size())
+
+const ARQ_PRONTO := "res://dados/terreno_longe.bin"
+const VERSAO_PRONTO := 1
+var _pronto := {}                 # Vector2i → [alturas, cores] dos pedaços de longe
+func _ler_pronto() -> void:
+	if m.args.has("sem_pronto") or not FileAccess.file_exists(ARQ_PRONTO): return
+	var f := FileAccess.open_compressed(ARQ_PRONTO, FileAccess.READ, FileAccess.COMPRESSION_ZSTD)
+	if f == null: return
+	var d = f.get_var()
+	if not d is Dictionary or int(d.get("versao", 0)) != VERSAO_PRONTO or int(d.get("nx", 0)) != _nx or int(d.get("nz", 0)) != _nz: return
+	var hs: Array = d.hs; var cs: Array = d.cores
+	for j in _nz: for i in _nx:
+		var idx := j * _nx + i
+		_pronto[Vector2i(i, j)] = [hs[idx], cs[idx]]
+
+# roda no GitHub antes de exportar: calcula as grades de todos os pedaços de longe (em paralelo) e grava o arquivo
+func _gerar_arquivo() -> void:
+	var t0 := Time.get_ticks_msec()
+	var n := _nx * _nz
+	var caixas := []
+	for i in n: caixas.append([null])
+	var g := WorkerThreadPool.add_group_task(func(idx: int): caixas[idx][0] = _grade(Vector2i(idx % _nx, idx / _nx), 8, true), n, -1, true, "gerar terreno")
+	WorkerThreadPool.wait_for_group_task_completion(g)
+	var hs := []; var cs := []
+	for c in caixas: hs.append(c[0][0]); cs.append(c[0][1])
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://dados"))
+	var f := FileAccess.open_compressed(ProjectSettings.globalize_path(ARQ_PRONTO), FileAccess.WRITE, FileAccess.COMPRESSION_ZSTD)
+	f.store_var({"versao": VERSAO_PRONTO, "nx": _nx, "nz": _nz, "hs": hs, "cores": cs}); f.close()
+	print("TERRENO PRONTO: %d pedaços em %d ms" % [n, Time.get_ticks_msec() - t0])
+	m.get_tree().quit()
 
 var _nx := 0
 var _nz := 0
@@ -92,6 +125,11 @@ func _malha(k: Vector2i, cel: int, desce: bool) -> ArrayMesh:
 
 # os arrays da malha de um pedaço (roda fora do quadro principal: só lê o mapa)
 func _malha_arrays(k: Vector2i, cel: int, desce: bool) -> Array:
+	var g := _grade(k, cel, desce)
+	return _arrays_de_grade(k, cel, g[0], g[1])
+
+# alturas e cores dos pontos da grade de um pedaço (a parte cara: muitas contas do relevo)
+func _grade(k: Vector2i, cel: int, desce: bool) -> Array:
 	var o := _origem(k); var passo := PED / cel
 	var hs := PackedFloat32Array(); hs.resize((cel + 1) * (cel + 1))
 	var a := alturas(k) if not desce else PackedFloat32Array()
@@ -107,6 +145,11 @@ func _malha_arrays(k: Vector2i, cel: int, desce: bool) -> Array:
 		var hz := hs[min(j + 1, cel) * (cel + 1) + i] - hs[max(j - 1, 0) * (cel + 1) + i]
 		var ny := Vector3(-hx, 2.0 * passo, -hz).normalized().y
 		cores[j * (cel + 1) + i] = reg.cor(x, z, hs[j * (cel + 1) + i], ny)
+	return [hs, PackedColorArray(cores)]
+
+# os triângulos do pedaço a partir da grade (rápido)
+func _arrays_de_grade(k: Vector2i, cel: int, hs: PackedFloat32Array, cores: PackedColorArray) -> Array:
+	var o := _origem(k); var passo := PED / cel
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var cx := PED * 0.5
 	for j in cel: for i in cel:
@@ -133,7 +176,9 @@ func _bloco_arrays(b: Vector2i) -> Array:
 			var k := Vector2i(b.x + di, b.y + dj)
 			if k.x >= _nx or k.y >= _nz: continue
 			var c := _origem(k) + Vector2(PED, PED) * 0.5 - centro
-			var a := _malha_arrays(k, 8, true)
+			var a: Array
+			if _pronto.has(k): a = _arrays_de_grade(k, 8, _pronto[k][0], _pronto[k][1])     # veio pronto no APK
+			else: a = _malha_arrays(k, 8, true)
 			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
 			for q in v.size(): v[q] += Vector3(c.x, 0, c.y)
 			vs.append_array(v); ns.append_array(a[Mesh.ARRAY_NORMAL]); cs.append_array(a[Mesh.ARRAY_COLOR]); uvs.append_array(a[Mesh.ARRAY_TEX_UV])

@@ -41,10 +41,11 @@ func _registrar_bagas(k: Vector2i, mm: MultiMesh, itens: Array) -> void:
 		if colhidos.has(_chave(p)) and colhidos[_chave(p)] > m._tempo_jogo(): mm.set_instance_color(i, COR_COLHIDO)
 	bagas[k] = [mm, pos]
 # arbusto com frutinhas a até "raio" metros: [MultiMesh, índice, posição] (ou vazio)
-func baga_perto(p: Vector3, raio := 2.3) -> Array:
+func baga_perto(p: Vector3, raio := 2.6) -> Array:
 	var melhor := []; var md := raio
 	for k in bagas.keys():
-		if k != JARDIM and (_origem_ped(k) + Vector2(PED, PED) * 0.5).distance_to(Vector2(p.x, p.z)) > PED: continue
+		var kc: Vector2i = Vector2i(k.x - 100000, k.y) if k.x >= 50000 else k       # árvores frutíferas: pedaço + 100000
+		if k != JARDIM and (_origem_ped(kc) + Vector2(PED, PED) * 0.5).distance_to(Vector2(p.x, p.z)) > PED: continue
 		var l: Array = bagas[k][1]
 		for i in l.size():
 			var q: Vector3 = l[i]
@@ -92,7 +93,7 @@ func _montar_perto(tudo: bool) -> void:
 		obras.pedir(kk, func(): return _pedaco_dados(kk))
 	for k in _montados.keys():
 		if (_origem_ped(k) + Vector2(PED, PED) * 0.5).distance_to(p) > alcance + PED * 1.5:
-			_montados[k].queue_free(); _montados.erase(k); arvores.erase(k); bagas.erase(k)
+			_montados[k].queue_free(); _montados.erase(k); arvores.erase(k); bagas.erase(k); bagas.erase(Vector2i(k.x + 100000, k.y))
 			if corpos.has(k): corpos[k].queue_free(); corpos.erase(k)
 # pontas dos galhos na malha do tronco (cartões saem delas)
 const PONTAS := [Vector3(1.4, 4.2, 0.3), Vector3(-1.2, 4.7, -0.5), Vector3(0.2, 4.9, 1.2)]
@@ -110,6 +111,7 @@ func montar(mundo) -> void:
 		"flor_c": _material(_tex_florido(29, [Color(0.72, 0.5, 0.88), Color(0.9, 0.62, 0.8)])),       # flores lilás
 		"samambaia": _material(_tex_samambaia(96, 160, 31)),
 		"junco": _material(_tex_junco(128, 192, 37)),
+		"fruta": _material(_tex_frutifera(41)),                                                       # árvore frutífera
 	}
 	if OS.get_cmdline_user_args().has("--desenhos"):
 		for k in _mat_cartao.keys():
@@ -126,6 +128,7 @@ func montar(mundo) -> void:
 		"flor_c": [null, _cartoes_arbusto(9, "flor_c")],
 		"samambaia": [null, _cartoes_samambaia(10)],
 		"morta": [_tronco_copa(Color(0.55, 0.52, 0.48)), null],
+		"fruta": [_tronco_copa(), _cartoes_copa(7, "fruta"), _cartoes_copa(7, "fruta", 9)],
 	}
 	# pedaços montados aos poucos em volta da Rachel (o mapa é grande: montar tudo no começo demora demais)
 	_nx = int(ceil((Regiao.X1 - Regiao.X0) / PED)); _nz = int(ceil((Regiao.Z1 - Regiao.Z0) / PED))
@@ -391,6 +394,27 @@ func _pix(im: Image, x: int, y: int, c: Color) -> void:
 	if x >= 0 and y >= 0 and x < im.get_width() and y < im.get_height(): im.set_pixel(x, y, Color(c.r, c.g, c.b, 1.0))
 
 # arbusto com flores ou frutinhas: a folhagem redonda pintada de verde + pontinhos coloridos por cima
+# copa de árvore frutífera: a folhagem das árvores com frutinhas vermelhas e laranja (com brilho) espalhadas
+func _tex_frutifera(seed: int) -> ImageTexture:
+	var im: Image = _tex_folhagem(192, seed).get_image()
+	im.clear_mipmaps()
+	for y in im.get_height():                              # folhas já verdes na textura (a cor da árvore fica branca)
+		for x in im.get_width():
+			var c := im.get_pixel(x, y)
+			if c.a > 0.5: im.set_pixel(x, y, Color(c.r * 0.4, c.r * 0.62, c.r * 0.22, c.a))
+	var rng := RandomNumberGenerator.new(); rng.seed = seed * 13
+	var cores := [Color(0.86, 0.14, 0.12), Color(0.95, 0.32, 0.1), Color(0.78, 0.1, 0.18)]
+	for k in 230:
+		var x := rng.randi_range(6, 184); var y := rng.randi_range(6, 184)
+		if im.get_pixel(x, y).a < 0.5 or im.get_pixel(x + 3, y + 3).a < 0.5: continue
+		var c: Color = cores[rng.randi() % cores.size()] * rng.randf_range(0.9, 1.1)
+		for dy in 4: for dx in 4:
+			if (dx == 0 or dx == 3) and (dy == 0 or dy == 3): continue                     # bolinha
+			_pix(im, x + dx, y + dy, c * (0.75 if dy == 3 else 1.0))
+		_pix(im, x + 1, y + 1, Color(1.0, 0.85, 0.75))                                         # brilho
+	im.generate_mipmaps()
+	return ImageTexture.create_from_image(im)
+
 func _tex_florido(seed: int, cores: Array) -> ImageTexture:
 	var base: Image = _tex_folhagem(128, seed, true).get_image()
 	var im := Image.create(128, 128, true, Image.FORMAT_RGBA8); im.fill(Color(0, 0, 0, 0))
@@ -528,6 +552,17 @@ func _jardins() -> void:
 		var mi := _mm(malhas[nome][1], itens[nome], true); add_child(mi)
 		if nome == "flor_b": _registrar_bagas(JARDIM, mi.multimesh, itens[nome])
 
+# árvore frutífera? Planejado por região: nenhuma na montanha (pinheiros), no pântano nem na mata fechada;
+# soltas no vale e na beira da mata; pomares perto das fazendas e em volta da vila
+func _frutifera(rng: RandomNumberGenerator, x: float, z: float, f: float, h: float) -> bool:
+	if h > 16.0 or f > 0.62 or reg.zona_pantano(z) > 0.2 or reg.na_cidade(x, z, 20.0): return false
+	var chance := 0.14 * (1.0 - smoothstep(0.35, 0.62, f))          # vale e beira de mata
+	var dv := Vector2(x, z).length()
+	if dv > 60.0 and dv < 260.0: chance += 0.18                       # em volta da vila
+	for c in reg.campos:                                              # pomares perto das fazendas
+		if Vector2(x - c[0], z - c[1]).length() < 70.0: chance += 0.3; break
+	return rng.randf() < chance
+
 # ---------- distribuição ----------
 func _pedaco(k: Vector2i) -> void: _pedaco_montar(k, _pedaco_dados(k))
 
@@ -562,7 +597,11 @@ func _pedaco_dados(k: Vector2i) -> Array:
 				var tipo := "arbusto"; var cor := _verde(rng, f) * 0.9
 				var r := rng.randf()
 				if f > 0.45 and r < 0.45: tipo = "samambaia"; s *= 1.1
-				elif r < 0.2: tipo = ["flor_a", "flor_b", "flor_c"][absi(k.x * 7 + k.y * 3) % 3]; cor = Color(1, 1, 1) * rng.randf_range(0.88, 1.06)
+				elif r < 0.3:                                         # floridos: frutinhas são metade (mais na beira da mata)
+					var beira := 1.0 - absf(f - 0.45) * 2.0
+					var rr := rng.randf()
+					tipo = "flor_b" if rr < 0.45 + beira * 0.25 else ("flor_a" if rr < 0.8 else "flor_c")
+					cor = Color(1, 1, 1) * rng.randf_range(0.88, 1.06)
 				grupos[tipo].append([Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(0.8, 1.2), s)), Vector3(x, h - 0.05, z)), cor])
 				continue
 			var sorteio := rng.randf()
@@ -573,6 +612,10 @@ func _pedaco_dados(k: Vector2i) -> Array:
 			elif h > 18.0 or reg.ruido.get_noise_2d(x * 0.9, z * 0.9) > 0.25:
 				var t := Transform3D(giro.scaled(Vector3(s, s * rng.randf_range(1.0, 1.35), s)), base)
 				grupos["pinho"].append([t, Color(0.3, 0.48, 0.3) * rng.randf_range(0.85, 1.1)]); lista.append([base, 0.26 * s])
+			elif _frutifera(rng, x, z, f, h):
+				var lf := s * rng.randf_range(0.8, 1.0)
+				var tf := Transform3D(giro.scaled(Vector3(lf, lf * rng.randf_range(0.85, 1.0), lf)), base)
+				grupos["fruta"].append([tf, Color(1, 1, 1) * rng.randf_range(0.9, 1.05)]); lista.append([base, 0.32 * lf])
 			else:
 				var larg := s * rng.randf_range(0.85, 1.2)          # umas mais largas, outras mais altas
 				var t := Transform3D(giro.scaled(Vector3(larg, s * rng.randf_range(0.85, 1.2), larg)), base)
@@ -592,6 +635,7 @@ func _pedaco_montar(k: Vector2i, dados: Array) -> void:
 		if tronco: no.add_child(_mm(tronco, itens, false))
 		if par.size() > 2:                         # copa completa perto, simplificada longe
 			var perto := _mm(par[1], itens, true); perto.visibility_range_end = PERTO; no.add_child(perto)
+			if nome == "fruta": _registrar_bagas(Vector2i(k.x + 100000, k.y), perto.multimesh, itens)   # dá para COLETAR
 			var longe := _mm(par[2], itens, true); longe.visibility_range_begin = PERTO; no.add_child(longe)
 		elif par[1]:
 			var mi := _mm(par[1], itens, true); no.add_child(mi)
