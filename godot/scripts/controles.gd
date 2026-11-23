@@ -1,5 +1,5 @@
-# Controles: celular (joystick à esquerda, arrastar à direita para olhar, botões ATACAR, BLOQUEAR, CORRER,
-# PULAR — atacar, bloquear e correr funcionam segurando) e PC (WASD anda, Shift corre, espaço pula,
+# Controles: celular (joystick à esquerda, arrastar à direita para olhar, botões ATACAR, BLOQUEAR e PULAR —
+# atacar e bloquear funcionam segurando; correr é pela trava acima do joystick) e PC (WASD anda, Shift corre, espaço pula,
 # mouse olha, botão esquerdo ataca — segurar = golpe forte —, botão direito bloqueia).
 extends Control
 class_name Controles
@@ -28,7 +28,7 @@ var _mostrar_trava := false
 var _joy := Vector2.ZERO
 var _r_antes := false
 func _centro_fixo() -> Vector2: return Vector2(250, get_viewport_rect().size.y - 260)
-func _pos_trava() -> Vector2: return _centro_fixo() + Vector2(0, -RAIO * 2.3)
+func _pos_trava() -> Vector2: return _centro_fixo() + Vector2(0, -RAIO * 3.3)   # bem acima: andando não pega sem querer
 func _aplicar_dir() -> void:
 	if auto:
 		if _joy.y > 0.55: auto = false; dir = _joy; return          # puxou para trás: desliga a trava
@@ -40,7 +40,6 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_botao("ATACAR", -320, -310, 250, "atacar")
 	_botao("BLOQUEAR", -575, -240, 180, "bloquear")
-	_botao("CORRER", -300, -540, 165, "correr")
 	_botao("PULAR", -520, -455, 150, "pular")
 	_botao("ALVO", -190, -720, 130, "alvo")
 	_base = load("res://assets/ui/joystick_base.png"); _pino = load("res://assets/ui/joystick_pino.png")
@@ -85,8 +84,8 @@ func _arrastar(pos: Vector2) -> void:
 	_ponta = pos
 	var v: Vector2 = (_ponta - _centro) / RAIO
 	_joy = v.limit_length(1.0) if v.length() > 0.12 else Vector2.ZERO
-	_mostrar_trava = not auto and v.y < -1.1 and absf(v.x) < 0.9            # passou da borda para cima
-	if _mostrar_trava and _ponta.distance_to(_pos_trava()) < 70.0:
+	_mostrar_trava = not auto and v.y < -1.9 and absf(v.x) < 0.9            # esticou o dedo bem além da borda
+	if _mostrar_trava and _ponta.distance_to(_pos_trava()) < 60.0:
 		auto = true; _mostrar_trava = false
 	_aplicar_dir(); queue_redraw()
 

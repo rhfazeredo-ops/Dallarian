@@ -2790,6 +2790,7 @@ func _modo_teste() -> void:
 			var ev := InputEventScreenDrag.new(); ev.index = 0; ev.position = pos; controles._input(ev)
 		get_tree().create_timer(2.0).timeout.connect(func(): toque.call(true, controles._centro_fixo()))
 		get_tree().create_timer(2.3).timeout.connect(func(): arrasta.call(controles._centro_fixo() + Vector2(0, -150)))
+		get_tree().create_timer(2.5).timeout.connect(func(): arrasta.call(controles._centro_fixo() + Vector2(0, -253)); print("ALTURA ANTIGA: ", controles.auto))
 		get_tree().create_timer(2.8).timeout.connect(func(): arrasta.call(controles._pos_trava()); print("TRAVA: ", controles.auto, " pos ", jogador.global_position.round()))
 		get_tree().create_timer(3.2).timeout.connect(func(): toque.call(false, controles._pos_trava()))
 		get_tree().create_timer(3.6).timeout.connect(func(): toque.call(true, controles._centro_fixo()); arrasta.call(controles._centro_fixo() + Vector2(90, 0)))

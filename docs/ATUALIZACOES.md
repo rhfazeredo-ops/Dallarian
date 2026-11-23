@@ -168,3 +168,6 @@
 - **Chance de drop pelo valor** (o mais barato cai mais): dentes e garras 45% / pelo 35%; presa 40% / veneno 30%;
   escama 50% / barbatana 35% / olho 20%; Pérola da Lama 12%.
 - Ícones novos: olho e barbatana de Lodoso, veneno de aranha, pelo de lobo e Pérola da Lama.
+- **Trava de corrida mais alta**: o botão AUTO fica bem acima do joystick e só aparece esticando o dedo além da
+  borda — andando para a frente não liga mais sem querer. **Botão CORRER da direita removido** (corre pela trava;
+  PC: Shift ou R).
