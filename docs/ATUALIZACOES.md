@@ -255,3 +255,5 @@
   íngremes usa a textura de rocha clara com musgo tirada do modelo da entrada (projetada de lado), com neve por
   cima no alto; nas partes planas continua a grama.
 - Frente da gruta toda com grama (o caminho de terra agora só existe lá dentro).
+- **Vegetação em volta da entrada da gruta**: pinheiros nas encostas dos lados, árvores no vale, arbustos,
+  moitas floridas e samambaias no pé das rochas — com a passagem até a boca livre.

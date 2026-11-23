@@ -136,6 +136,7 @@ func montar(mundo) -> void:
 	_beira_agua()
 	_jardins()
 	_arvores_cidade()
+	_arredores_gruta()
 
 func _material(t: ImageTexture) -> ShaderMaterial:
 	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/cartao.gdshader")
@@ -529,6 +530,47 @@ func _arvores_cidade() -> void:
 		var s: float = t[1]
 		itens.append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), t[0]), _verde(rng, 0.0)])
 	add_child(_mm(malhas["copa_a"][0], itens, false)); add_child(_mm(malhas["copa_a"][1], itens, true))
+
+# em volta da entrada da Gruta dos Lodosos: pinheiros nas encostas dos lados, árvores e moitas no vale, samambaias
+# e arbustos floridos encostados nas rochas da boca — deixando livre a passagem até a entrada
+func _arredores_gruta() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 4545
+	var cx := Regiao.GRUTA_ENTRADA.x; var bz := Regiao.GRUTA_COBERTA_Z
+	var grupos := {"pinho": [], "copa_a": [], "copa_c": [], "arbusto": [], "samambaia": [], "flor_a": [], "flor_c": []}
+	var feitos: Array[Vector2] = []
+	var pode := func(q: Vector2, folga: float) -> bool:
+		if absf(q.x - cx) < 5.5 and q.y > bz - 2.0: return false                     # passagem até a boca
+		if absf(q.x - cx) < 12.0 and q.y < bz + 9.5: return false                    # a rocha da entrada
+		if m.reg.agua(q.x, q.y) != 0.0 and m.reg.altura(q.x, q.y) < m.reg.agua(q.x, q.y) + 0.2: return false
+		for f in feitos: if f.distance_to(q) < folga: return false
+		return true
+	var por := func(nome: String, n: int, dx: Vector2, dz: Vector2, esc: Vector2, folga: float) -> void:
+		var tent := 0
+		while n > 0 and tent < 200:
+			tent += 1
+			var lado := -1.0 if rng.randf() < 0.5 else 1.0
+			var q := Vector2(cx + lado * rng.randf_range(dx.x, dx.y), bz + rng.randf_range(dz.x, dz.y))
+			if not pode.call(q, folga): continue
+			feitos.append(q); n -= 1
+			var sc := rng.randf_range(esc.x, esc.y)
+			var y := reg.altura(q.x, q.y) - (0.2 if nome in ["pinho", "copa_a", "copa_c"] else 0.05)
+			var cor := _verde(rng, 0.3) if not nome.begins_with("flor") else Color(1, 1, 1) * rng.randf_range(0.9, 1.05)
+			if nome == "pinho": cor = Color(0.3, 0.48, 0.3) * rng.randf_range(0.85, 1.1)
+			grupos[nome].append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc * rng.randf_range(0.9, 1.2), sc)), Vector3(q.x, y, q.y)), cor])
+	por.call("pinho", 10, Vector2(13.0, 34.0), Vector2(-8.0, 24.0), Vector2(0.9, 1.6), 5.0)      # encostas dos lados
+	por.call("copa_a", 4, Vector2(9.0, 28.0), Vector2(14.0, 42.0), Vector2(0.9, 1.3), 6.0)       # árvores no vale
+	por.call("copa_c", 3, Vector2(9.0, 28.0), Vector2(14.0, 42.0), Vector2(0.8, 1.2), 6.0)
+	por.call("samambaia", 10, Vector2(11.5, 16.0), Vector2(0.0, 11.0), Vector2(1.0, 1.6), 1.4)   # no pé das rochas
+	por.call("arbusto", 14, Vector2(6.0, 20.0), Vector2(4.0, 30.0), Vector2(0.9, 1.6), 1.8)
+	por.call("flor_a", 7, Vector2(6.0, 16.0), Vector2(8.0, 26.0), Vector2(0.9, 1.3), 1.6)
+	por.call("flor_c", 6, Vector2(6.0, 16.0), Vector2(8.0, 26.0), Vector2(0.9, 1.3), 1.6)
+	for nome in grupos.keys():
+		var itens: Array = grupos[nome]
+		if itens.is_empty(): continue
+		var par: Array = malhas[nome]
+		var tronco: ArrayMesh = par[0] if par[0] != null else (malhas["copa_a"][0] if nome.begins_with("copa") else null)
+		if tronco: add_child(_mm(tronco, itens, false))
+		add_child(_mm(par[1], itens, true))
 
 # arbustos floridos e moitas perto das casas (jardins), sem encostar na rua
 func _jardins() -> void:
