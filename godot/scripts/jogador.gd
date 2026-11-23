@@ -242,8 +242,9 @@ func trocar_equip(lugar: String, id: String) -> void:
 		var bb := AABB()
 		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
 		var k := (0.85 if modelo == "marreta" else 1.0) / maxf(bb.size.y, 0.01)
-		mod.scale = Vector3(k, k, k)
-		mod.position = -Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.15, bb.get_center().z) * k
+		var giro := PI if modelo == "cutelo" else 0.0                     # cutelo: ponta curva para a Rachel, fio reto para fora
+		mod.scale = Vector3(k, k, k); mod.rotation.y = giro
+		mod.position = -(Basis(Vector3.UP, giro) * Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.15, bb.get_center().z)) * k
 		no.add_child(mod)
 	elif lugar == "arma" and (modelo in ["ferro", "presa", "malho", "marreta", "cutelo"]):        # (presa: a de ferro até chegar o modelo)
 		# espada de ferro (a primeira do Tripo): 0,51 m no arquivo → 1 m; cabo na origem, lâmina em +Y

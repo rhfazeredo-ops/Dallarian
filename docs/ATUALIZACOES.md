@@ -270,3 +270,4 @@
 - **Cutelo do Rochedo** (espada incomum, item level 12, 11–18, requer nível 7): cai de Barrogar (15%).
 - **Modelos 3D e ícones do dono** para Cutelo do Rochedo, Marreta da Bigorna, Malho de Tronco, Escudo de ferro e
   Égide da Guardiã — agora aparecem na mão/braço da Rachel com o modelo de cada um.
+- Cutelo do Rochedo virado: a ponta curva fica para dentro (para a Rachel) e o fio reto para fora.
