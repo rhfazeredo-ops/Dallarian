@@ -65,7 +65,10 @@ func _ready() -> void:
 	_moradores()
 	if args.has("carga"): print("CARGA moradores ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	raiz.add_child(jogador)
-	jogador.position = Vector3(-4, altura(-4, 48) + 0.3, 48)
+	# a Rachel começa no portão oeste de Altamar, logo antes de sair do reino, virada para a ponte (testes: --vila)
+	var ini := Vector2(-4, 48) if args.has("vila") else Regiao.CIDADE_C + Vector2(-Regiao.CIDADE_R + 9.0, 0.0)
+	jogador.position = Vector3(ini.x, altura(ini.x, ini.y) + 0.3, ini.y)
+	if not args.has("vila"): jogador.rotation.y = PI * 0.5                # olhando para o oeste (portão e ponte)
 	_ultima = jogador.position
 	controles = Controles.new(); var cl := CanvasLayer.new(); add_child(cl); cl.add_child(controles)
 	jogador.controles = controles
@@ -2232,7 +2235,8 @@ func _estabulo() -> void:
 	_peca(st, mat("palha"), Vector3.ZERO)
 	_colisor_caixa(Vector3(e.x, y, e.y - 10.8), Vector3(18.0, 3.0, 0.4), 0.0)
 	# chão de terra batida debaixo do telheiro e no cercado (antes era o terreno liso)
-	_chao_textura(Regiao.ESTABULO_TERRA, mat("terra", 0.5))       # o quadrado inteiro do estábulo
+	_chao_textura(Rect2(e.x - 10.6, e.y - 11.6, 21.2, 11.4), mat("terra", 0.5))      # telheiro
+	_chao_textura(Rect2(e.x - 12.2, e.y + 0.8, 24.4, 14.4), mat("terra", 0.5))       # cercado
 	# cercado na frente do telheiro (aberto do lado da casa, para entrar)
 	var cerca := _st()
 	var cx0 := e.x - 12.0; var cx1 := e.x + 12.0; var cz0 := e.y + 1.0; var cz1 := e.y + 15.0

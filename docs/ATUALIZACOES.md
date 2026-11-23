@@ -226,3 +226,5 @@
 - **Estábulo**: terra batida num quadrado certinho pegando o telheiro e o cercado (sem grama dentro); embaixo da
   casa do cavalariço e do Edric, uma mancha irregular de terra com um pouco de grama.
 - **Som da chuva mais baixo** (-7 dB).
+- Estábulo: terra batida só dentro do telheiro e do cercado; do lado de fora volta a grama, igual em volta.
+- **A Rachel começa no portão oeste de Altamar** (logo antes de sair do reino, virada para a ponte).

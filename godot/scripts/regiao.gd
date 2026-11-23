@@ -303,8 +303,12 @@ const ESTABULO := Vector2(FOSSO_X - 58.0, CIDADE_C.y - 42.0)
 const PATIO_NIVEL := Rect2(FOSSO_X - 112.0, CIDADE_C.y - 78.0, 96.0, 106.0)     # aplainado no nível da estrada
 # terra batida do estábulo: um quadrado certinho pegando o telheiro e o cercado (sem grama nenhuma)...
 const ESTABULO_TERRA := Rect2(ESTABULO.x - 13.5, ESTABULO.y - 12.5, 27.0, 29.0)
-static func patio_estabulo(x: float, z: float) -> float:          # 1 dentro do quadrado
-	return 1.0 if ESTABULO_TERRA.has_point(Vector2(x, z)) else 0.0
+static func patio_estabulo(x: float, z: float) -> float:          # 1 dentro do telheiro/cercado
+	return 1.0 if dentro_estabulo(x, z) else 0.0
+# dentro do telheiro e do cercado não nasce nada; no resto do quadrado, um pouco de grama (como em volta)
+static func dentro_estabulo(x: float, z: float) -> bool:
+	var q := Vector2(x, z) - ESTABULO
+	return (absf(q.x) < 10.6 and q.y > -11.6 and q.y < -0.2) or (absf(q.x) < 12.2 and q.y > 0.8 and q.y < 15.2)
 # ...e uma mancha irregular embaixo da casa do cavalariço e do Edric (com um pouco de grama)
 func patio_casa(x: float, z: float) -> float:
 	var d := Vector2(x, z).distance_to(ESTABULO + Vector2(-22.0, -1.0)) / 11.0 + ruido.get_noise_2d(x * 9.0, z * 9.0) * 0.3
@@ -475,7 +479,7 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 
 # dentro do chão de alguma construção (casa, ferraria, moinho...)?
 func em_construcao(x: float, z: float) -> bool:
-	if patio_estabulo(x, z) > 0.5: return true                       # sem grama nem manchas dentro do estábulo
+	if dentro_estabulo(x, z): return true                            # sem grama nem manchas no telheiro e no cercado
 	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 9.0: return true
 	for pl in planos:
 		var c: Vector2 = pl[0]
