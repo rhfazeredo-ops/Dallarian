@@ -584,7 +584,7 @@ func monstro_morreu(mo: Node) -> void:
 	elif mo is Aranha: mult = 1.3
 	if ganho > 0.0: hud.ganhar_xp(roundf(ganho * mult))
 	var drops := []                       # [id, chance, mín, máx]
-	if mo is Aranha: drops = [["presa_aranha", 0.4, 1, 1]]
+	if mo is Aranha: drops = [["presa_aranha", 0.4, 1, 1], ["veneno_aranha", 0.25, 1, 1]]
 	elif mo is Monstro and mo.tipo == "golem":
 		drops = [["nucleo_golem", 1.0, 1, 1], ["espada_ferro", 0.35, 1, 1], ["bolsa_16", 0.35, 1, 1]]
 		var moedas := randi_range(150, 400); bolsa.cobre += moedas; bolsa.mudou.emit()
@@ -606,11 +606,17 @@ func lobo_morreu(l: Lobo) -> void:
 	_agendar_volta(l)
 	var ganho := Hud.xp_por_matar(l.nivel, hud.nivel)
 	if ganho > 0.0: hud.ganhar_xp(ganho)
-	if randf() > 0.4: return                                  # deixa dentes e garras em ~40% das vezes
-	var n := randi_range(1, 2) if l.lider else 1
-	var sobra := bolsa.pegar("dentes_garras", n)
-	if n - sobra > 0: hud.avisar("+%d %s" % [n - sobra, Bolsa.ITENS["dentes_garras"].nome], Color(0.62, 0.62, 0.62))
-	if sobra > 0: hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3))
+	# dentes e garras (~40%) e pelo (~30%; o líder deixa mais)
+	_dar_drops([["dentes_garras", 0.4, 1, 2 if l.lider else 1], ["pelo_lobo", 0.3, 1, 2 if l.lider else 1]])
+
+func _dar_drops(drops: Array) -> void:      # [[id, chance, mín, máx], ...]
+	for d in drops:
+		if randf() > d[1]: continue
+		var n := randi_range(d[2], d[3])
+		var sobra := bolsa.pegar(d[0], n)
+		var info: Dictionary = Bolsa.ITENS[d[0]]
+		if n - sobra > 0: hud.avisar("+%d %s" % [n - sobra, info.nome], Bolsa.CORES[info.qual])
+		if sobra > 0: hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3))
 
 # progresso salvo no aparelho (nível, XP, dinheiro e itens); nos testes com print não carrega nem salva
 var bolsa := Bolsa.new()
@@ -2636,6 +2642,7 @@ func _modo_teste() -> void:
 		if args.has("novos"):
 			bolsa.pegar("escama_lodoso", 7); bolsa.pegar("presa_aranha", 3)
 			bolsa.pegar("barbatana_lodoso", 2); bolsa.pegar("olho_lodoso", 1); bolsa.pegar("perola_lama", 1)
+			bolsa.pegar("pelo_lobo", 4); bolsa.pegar("veneno_aranha", 2)
 		bolsa.pegar("dentes_garras", int(args.get("itens", args.get("loja", "27")))); bolsa.cobre = int(args.get("dinheiro", "1234"))
 		if args.has("bolsas"):
 			bolsa.pegar("bolsa_16"); bolsa.pegar("bolsa_30")

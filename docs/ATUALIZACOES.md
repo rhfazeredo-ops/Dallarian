@@ -160,3 +160,4 @@
 - Lança de osso de peixe também apagada (por enquanto).
 - **Itens novos de Lodoso** (caem quando os Lodosos novos voltarem): Barbatana de Lodoso (30%), Olho de Lodoso (15%)
   e, só do Xamã da Lama, a **Pérola da Lama** (incomum, 35%). Ícones provisórios até chegarem os desenhados.
+- **Pelo de lobo** (30%, o líder pode deixar 2) e **Veneno de aranha-musgo** (25%) como drops novos.
