@@ -8,22 +8,36 @@ const MAX_BOLSAS := 3
 # qualidade (cor do nome, como no WoW): lixo = cinza, comum = branco, incomum = verde, raro = azul
 const CORES := {"lixo": Color(0.62, 0.62, 0.62), "comum": Color(1, 1, 1), "incomum": Color(0.12, 1.0, 0.0), "raro": Color(0.0, 0.44, 0.87)}
 # itens: id → nome, venda (cobre), compra (cobre, 0 = não se compra), pilha, qualidade, espaços (bolsas), descrição
+const ILVL_MAX := 120
+const QUAL_MULT := {"lixo": 0.8, "comum": 1.0, "incomum": 1.12, "raro": 1.25, "epico": 1.4}
+# arma pelo item level: dano por segundo = (1 + 0,36 × ilvl) × qualidade; o golpe varia ±25% em volta da média
+static func arma_por_ilvl(ilvl: int, qual: String, velocidade: float) -> Dictionary:
+	ilvl = clampi(ilvl, 1, ILVL_MAX)
+	var media := (1.0 + 0.36 * ilvl) * float(QUAL_MULT.get(qual, 1.0)) * velocidade
+	return {"dano_min": maxi(1, roundi(media * 0.75)), "dano_max": maxi(2, roundi(media * 1.25)), "nivel": maxi(1, ilvl - 5)}
+# escudo pelo item level: armadura = (20 + 10 × ilvl) × qualidade, bloqueio = (4 + ilvl) × qualidade
+static func escudo_por_ilvl(ilvl: int, qual: String) -> Dictionary:
+	ilvl = clampi(ilvl, 1, ILVL_MAX); var q := float(QUAL_MULT.get(qual, 1.0))
+	return {"armadura": roundi((20 + 10 * ilvl) * q), "bloqueio": roundi((4 + ilvl) * q), "nivel": maxi(1, ilvl - 5)}
+
 const ITENS := {
+	# ITEM LEVEL (como no WoW, de 1 a 120): o nível do item define a força dele (Bolsa.arma_por_ilvl e
+	# Bolsa.escudo_por_ilvl) e o nível exigido fica uns 5 abaixo. O Vale de Aldren (primeiro mapa) vai até ~15.
 	# armas (como no Classic): dano mín–máx, velocidade (s por golpe), nível exigido
 	"espada_treino": {"nome": "Espada de treino de madeira", "venda": 5, "compra": 0, "pilha": 1, "qual": "comum",
-		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 2, "dano_max": 4, "velocidade": 1.8, "nivel": 1,
+		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 2, "dano_max": 3, "velocidade": 1.8, "nivel": 1, "ilvl": 1,
 		"modelo": "madeira", "desc": "Madeira dura e farpas. Serve para aprender."},
 	"espada_ferro": {"nome": "Espada de ferro", "venda": 38, "compra": 150, "pilha": 1, "qual": "comum",
-		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 6, "dano_max": 11, "velocidade": 2.2, "nivel": 3,
+		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 6, "dano_max": 10, "velocidade": 2.2, "nivel": 2, "ilvl": 7,
 		"modelo": "ferro", "desc": "Ferro batido na bigorna do Bram."},
 	"presa_da_mare": {"nome": "Presa da Maré", "venda": 420, "compra": 0, "pilha": 1, "qual": "raro",
-		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 11, "dano_max": 18, "velocidade": 2.3, "nivel": 6,
+		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 13, "dano_max": 22, "velocidade": 2.3, "nivel": 9, "ilvl": 14,
 		"modelo": "presa", "desc": "A mandíbula de um peixe das profundezas, afiada e presa num cabo de osso com conchas. Arrancada do Grão-Lodoso no fundo da gruta."},
 	# escudos: armadura (reduz todo dano), valor de bloqueio (tirado quando bloqueia) e quanto o bloqueio ativo segura
 	"escudo_madeira": {"nome": "Escudo de madeira", "venda": 5, "compra": 0, "pilha": 1, "qual": "comum",
-		"tipo": "escudo", "subtipo": "Escudo", "armadura": 30, "bloqueio": 5, "bloqueio_ativo": 0.6, "nivel": 1,
+		"tipo": "escudo", "subtipo": "Escudo", "armadura": 30, "bloqueio": 5, "bloqueio_ativo": 0.6, "nivel": 1, "ilvl": 1,
 		"modelo": "madeira", "desc": "Tábuas presas com tiras de couro."},
-	"nucleo_golem": {"nome": "Coração de barro do Grumo", "venda": 250, "compra": 0, "pilha": 5, "qual": "incomum",
+	"nucleo_golem": {"nome": "Coração de barro de Barrogar", "venda": 250, "compra": 0, "pilha": 5, "qual": "incomum",
 		"desc": "Ainda pulsa, morno. Dizem que guarda a força do vale."},
 	# montarias (compradas no estábulo de Altamar): não ocupam a bolsa, vão para o menu do personagem
 	"cavalo_branco": {"nome": "Cavalo branco malhado", "venda": 0, "compra": 80, "pilha": 1, "qual": "incomum", "tipo_m": "montaria", "cor": Color(0.94, 0.93, 0.9),

@@ -135,7 +135,7 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   para cima. Drop: presa de aranha-musgo (40%).
 - **Lodosos** (peixe-sapo, modelos do Tripo): 70 grupos de até 3 na praia, nos rios e no lago, cada um com
   acampamento (cabanas de palafita, varal, rede, tralhas, fogueira). Tipos: Jovem (lança, nível 2–4), Pescador
-  (lança, 3–5), Xamã da Lama (cajado, 3–5) e o chefe Grão-Lodoso (tridente, nível 8) no fundo da Gruta dos Lodosos.
+  (lança, 3–5), Xamã da Lama (cajado, 3–5) e o chefe Grão-Lodoso **Glorgo, o Rei da Lama** (tridente, nível 10) no fundo da Gruta dos Lodosos.
   Drops: escama 50%, barbatana 35%, olho 20%; Xamã: Pérola da Lama 12%; chefe: escamas, olhos e pérola 50%.
 - **Chefe: Grumo, o Guardião do Vale** (golem de terra, 9 m — do tamanho das árvores, nível 8): dá a volta no mapa inteiro, longe da vila,
   sem parar; o chão treme perto dele. Soco e PANCADA com as duas mãos no chão (dano em área de 9 m, mais forte
@@ -278,3 +278,12 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Entrada na montanha do norte, a oeste do rio do leste (≈ 1545, -880). Túneis com teto, salas com acampamento,
   6 grupos de Lodosos (nível 4–6) e o Grão-Lodoso (nível 8) na câmara final; ele renasce 30 min depois de morto.
 - Futuro: quest de um soldado de Altamar pedindo para matar o Grão-Lodoso.
+
+## Item level
+- De 1 a 120 (como no WoW). Arma: dano por segundo = (1 + 0,36 × ilvl) × qualidade (comum 1; incomum 1,12;
+  raro 1,25; épico 1,4), golpe ±25%. Escudo: armadura (20 + 10 × ilvl) × q, bloqueio (4 + ilvl) × q.
+  Nível exigido ≈ ilvl − 5. Vale de Aldren: ilvl 1–15.
+
+## Monstros únicos
+- **Barrogar, o Colosso do Vale** (golem de barro, nível 8) — dá a volta no mapa.
+- **Glorgo, o Rei da Lama** (Grão-Lodoso, nível 10) — câmara final da Gruta dos Lodosos; renasce em 30 min.

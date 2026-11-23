@@ -209,3 +209,10 @@
   pedras com mato entre elas por cima do terreno, montada em pedaços só perto da Rachel; sem grama nem
   manchinhas de folha por cima.
 - **Chão de terra batida no estábulo** (debaixo do telheiro e no cercado).
+- **Item level (como no WoW, de 1 a 120)**: cada arma e escudo tem "Nível do item" na dica; a força vem do item
+  level e da qualidade (fórmula em bolsa.gd) e o nível exigido fica ~5 abaixo. O Vale de Aldren vai até ~15:
+  espada de treino e escudo de madeira 1, espada de ferro 7, **Presa da Maré 14** (13–22 de dano, requer nível 9).
+- **Presa da Maré**: lado liso da lâmina para a frente e os dentes virados para a Rachel. Cai do chefe (10%), vai
+  para a bolsa e com EQUIPAR entra no lugar da espada.
+- **Nomes dos monstros únicos**: o Grão-Lodoso agora é **Glorgo, o Rei da Lama** (nível 10, barra de chefe no
+  alto da tela) e o golem é **Barrogar, o Colosso do Vale**.

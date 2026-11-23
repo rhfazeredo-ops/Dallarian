@@ -178,7 +178,7 @@ func _desenhar_aviso_golpe() -> void:
 	draw_rect(r, Color(0.15, 0.05, 0.03, 0.9))
 	draw_rect(Rect2(r.position, Vector2(w * f, h)), cor)
 	draw_rect(r.grow(4), UI.DOURADO, false, 2.0)
-	var t := "PANCADA NO CHÃO!" if pancada else "Soco"
+	var t := "PANCADA NO CHÃO!" if pancada else ("Estocada" if chefe._golpe == "estocada" else "Soco")
 	var tw := fonte.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24).x
 	var pos := Vector2(p.x - tw * 0.5, r.position.y - 10)
 	draw_string_outline(fonte, pos, t, HORIZONTAL_ALIGNMENT_LEFT, -1, 30 if pancada else 24, 8, Color(0, 0, 0, 0.9))

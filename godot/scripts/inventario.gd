@@ -182,6 +182,7 @@ func _mostrar_dica(id: String, qtd: int, alvo: Control, botoes: Array, equipada 
 	_dica = _caixa_dica()
 	var v: VBoxContainer = _dica.get_child(0)
 	v.add_child(UI.rotulo(info.nome, 28, Bolsa.CORES[info.qual]))
+	if info.has("ilvl"): v.add_child(UI.rotulo("Nível do item %d" % info.ilvl, 21, UI.AMARELO))
 	if Bolsa.eh_bolsa(id): v.add_child(UI.rotulo("Bolsa de %d espaços%s" % [info.espacos, "  (equipada)" if equipada else ""], 22))
 	if info.get("tipo", "") == "arma":
 		v.add_child(_linha_dupla(info.maos, info.subtipo))

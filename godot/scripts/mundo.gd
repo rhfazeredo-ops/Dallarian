@@ -473,7 +473,7 @@ func _lodosos() -> void:
 			var ql := q
 			_criar_depois(p, func():
 				var mo := Monstro.new(); mo.grupo = g
-				if tp == "lodoso_c": mo.nome = "Grão-Lodoso"
+				if tp == "lodoso_c": mo.nome = NOME_CHEFE_LODOSO; chefe_lodoso = mo
 				var ps := ponto_seco(p, ql)
 				raiz.add_child(mo); mo.position = Vector3(ps.x, altura_malha(ps.x, ps.y), ps.y)
 				mo.montar(self, tp, nv, semente)
@@ -696,11 +696,11 @@ func _gruta_monstros() -> void:
 		for j in tipos.size():
 			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.5)
 			var tp: String = tipos[j]
-			var nv := 8 if tp == "lodoso_c" else (rng.randi_range(5, 6) if tp != "lodoso_j" else rng.randi_range(4, 5))
+			var nv := 10 if tp == "lodoso_c" else (rng.randi_range(5, 6) if tp != "lodoso_j" else rng.randi_range(4, 5))
 			var semente := rng.randi(); var giro := rng.randf() * TAU
 			_criar_depois(p, func():
 				var mo := Monstro.new(); mo.grupo = g
-				if tp == "lodoso_c": mo.nome = "Grão-Lodoso"
+				if tp == "lodoso_c": mo.nome = NOME_CHEFE_LODOSO; chefe_lodoso = mo
 				raiz.add_child(mo); mo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
 				mo.montar(self, tp, nv, semente)
 				mo.rotation.y = giro; mo.reset_physics_interpolation()
@@ -714,7 +714,11 @@ func _gruta_luz(delta: float) -> void:
 	var dentro := reg.gruta_coberta(p.x, p.z) and p.y < Regiao.GRUTA_Y + Regiao.GRUTA_TETO
 	gruta_dentro = move_toward(gruta_dentro, 1.0 if dentro else 0.0, delta / 1.2)
 
-# Grumo, o golem de terra (chefe): dá a volta no mapa inteiro, longe da vila, andando sem parar
+# os dois monstros únicos do Vale de Aldren
+const NOME_GOLEM := "Barrogar, o Colosso do Vale"          # o golem de barro (nível 8)
+const NOME_CHEFE_LODOSO := "Glorgo, o Rei da Lama"         # o Grão-Lodoso, no fundo da Gruta dos Lodosos (nível 10)
+var chefe_lodoso: Monstro
+# Barrogar, o golem de terra (chefe): dá a volta no mapa inteiro, longe da vila, andando sem parar
 var golem: Monstro
 func _golem() -> void:
 	var rota := []
@@ -728,7 +732,7 @@ func _golem() -> void:
 				melhor = q; break
 		if melhor != Vector2.ZERO: rota.append(melhor)
 	if rota.size() < 4: return
-	golem = Monstro.new(); golem.rota = rota; golem.nome = "Grumo, o Guardião do Vale"
+	golem = Monstro.new(); golem.rota = rota; golem.nome = NOME_GOLEM
 	golem.grupo = {"casa": rota[0], "membros": [golem], "alerta": false, "tipo": "golem"}
 	var p: Vector2 = rota[0]
 	raiz.add_child(golem); golem.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
@@ -801,6 +805,7 @@ func _agendar_volta(mo: Node) -> void:
 		var tp: String = mo.tipo; var nv: int = mo.nivel; var nm: String = mo.nome
 		f = func() -> Node3D:
 			var lm := Monstro.new(); lm.grupo = g; lm.nome = nm
+			if tp == "lodoso_c": chefe_lodoso = lm
 			var a := randf() * TAU; var p := casa + Vector2(cos(a), sin(a)) * randf_range(0.0, 2.5)
 			p = ponto_seco(p, casa)
 			raiz.add_child(lm); lm.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
@@ -842,7 +847,7 @@ func monstro_morreu(mo: Node) -> void:
 		drops = [["nucleo_golem", 1.0, 1, 1], ["espada_ferro", 0.35, 1, 1], ["bolsa_16", 0.35, 1, 1]]
 		var moedas := randi_range(150, 400); bolsa.cobre += moedas; bolsa.mudou.emit()
 		hud.avisar("+%s" % Bolsa.texto_dinheiro(moedas), Color(0.95, 0.75, 0.4))
-		hud.avisar("Grumo, o Guardião do Vale foi derrotado!", Color(1.0, 0.82, 0.2))
+		hud.avisar("%s foi derrotado!" % NOME_GOLEM, Color(1.0, 0.82, 0.2))
 	elif mo is Monstro:                   # Lodosos: escama, barbatana e olho; o xamã (lodoso_x) larga a Pérola da Lama
 		drops = [["escama_lodoso", 0.5, 1, 2 if mo.tipo == "lodoso_g" else 1], ["barbatana_lodoso", 0.35, 1, 1],
 			["olho_lodoso", 0.2, 1, 1]]
@@ -1215,8 +1220,11 @@ func _process(delta: float) -> void:
 	_dia_noite(delta)
 	_tick_veneno(delta)
 	if jogador: _tick_voltas(delta)
-	if hud and golem and is_instance_valid(golem):
-		hud.chefe = golem if (golem.grupo.alerta and golem.estado != "morto" and golem.global_position.distance_to(jogador.global_position) < 60.0) else null
+	if hud and jogador:            # barra de vida do chefe no alto da tela (golem ou Rei da Lama) quando ele está brigando perto
+		var ch: Monstro = null
+		for c in [golem, chefe_lodoso]:
+			if c and is_instance_valid(c) and c.grupo.alerta and c.estado != "morto" and c.global_position.distance_to(jogador.global_position) < 60.0: ch = c
+		hud.chefe = ch
 	if _salvar_em > 0.0:
 		_salvar_em -= delta
 		if _salvar_em <= 0.0:

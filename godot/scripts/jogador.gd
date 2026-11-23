@@ -221,9 +221,10 @@ func trocar_equip(lugar: String, id: String) -> void:
 		var bb := AABB()
 		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
 		var k := 0.95 / maxf(bb.size.y, 0.01)
-		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
+		var giro := 0.0          # lado liso da lâmina para a frente, os dentes virados para a Rachel
+		mod.scale = Vector3(k, k, k); mod.rotation.y = giro
 		var cabo := Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.2, bb.get_center().z)   # o arquivo não vem centrado
-		mod.position = -(Basis(Vector3.UP, PI * 0.5) * cabo) * k
+		mod.position = -(Basis(Vector3.UP, giro) * cabo) * k
 		no.add_child(mod)
 	elif lugar == "arma" and (modelo == "ferro" or modelo == "presa"):        # (presa: a de ferro até chegar o modelo)
 		# espada de ferro (a primeira do Tripo): 0,51 m no arquivo → 1 m; cabo na origem, lâmina em +Y

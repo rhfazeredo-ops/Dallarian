@@ -1,5 +1,5 @@
 # Monstros com esqueleto de humanoide (o mesmo esqueleto do NPC base): Lodosos (grande e jovem, com lança de osso)
-# e o chefe Grumo, o golem de terra. Animação procedural nos ossos, como a dos moradores:
+# e o chefe Barrogar, o golem de barro. Animação procedural nos ossos, como a dos moradores:
 #  andar, correr, atacar (Lodoso: estocada de lança; golem: soco e PANCADA com as duas mãos no chão, dano em área)
 #  e morrer (cai de costas). Mesmo "contrato" dos lobos para a espada da Rachel (grupo "lobos").
 extends CharacterBody3D
