@@ -27,11 +27,13 @@ func _origem(k: Vector2i) -> Vector2: return Vector2(Regiao.X0 + k.x * PED, Regi
 func pedaco(x: float, z: float) -> Vector2i:
 	return Vector2i(int(floor((x - Regiao.X0) / PED)), int(floor((z - Regiao.Z0) / PED)))
 
+var _mx := Mutex.new()            # o cache de alturas é lido/escrito também pelas obras em segundo plano
 func alturas(k: Vector2i) -> PackedFloat32Array:
-	if _alt.has(k): return _alt[k]
+	_mx.lock(); var tem = _alt.get(k); _mx.unlock()
+	if tem != null: return tem
 	var o := _origem(k); var a := PackedFloat32Array(); a.resize((CEL + 1) * (CEL + 1))
 	for j in CEL + 1: for i in CEL + 1: a[j * (CEL + 1) + i] = reg.altura(o.x + i * PASSO, o.y + j * PASSO)
-	_alt[k] = a; return a
+	_mx.lock(); _alt[k] = a; _mx.unlock(); return a
 
 # altura exata da malha detalhada (mesma divisão dos triângulos)
 func altura_malha(x: float, z: float) -> float:
@@ -62,14 +64,24 @@ func _process(_d: float) -> void:
 			if d < RAIO and not ativos.has(k) and i >= 0 and j >= 0 and i < _nx and j < _nz:
 				faltam.append([d, k])
 	faltam.sort_custom(func(a, b): return a[0] < b[0])
+	for pr in obras.prontos():                                   # pedaços prontos em segundo plano: põe na tela
+		var kr: Vector2i = pr[0]
+		if ativos.has(kr) or (_origem(kr) + Vector2(PED, PED) * 0.5).distance_to(p) > RAIO + 50.0: continue
+		ativos[kr] = _detalhado_de(kr, pr[1])
 	for f in faltam:
-		if orc <= 0: break
-		ativos[f[1]] = _detalhado(f[1]); orc -= 1
+		if orc > 100: ativos[f[1]] = _detalhado(f[1]); continue        # começo do jogo: na hora
+		if obras.pendente(f[1]) or obras.cheio(): continue
+		var kk: Vector2i = f[1]
+		obras.pedir(kk, func(): return _malha_arrays(kk, CEL, false))
 	for k in ativos.keys():
 		if (_origem(k) + Vector2(PED, PED) * 0.5).distance_to(p) > RAIO + 50.0:
 			ativos[k].queue_free(); ativos.erase(k)
 
 func _malha(k: Vector2i, cel: int, desce: bool) -> ArrayMesh:
+	var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _malha_arrays(k, cel, desce)); return mesh
+
+# os arrays da malha de um pedaço (roda fora do quadro principal: só lê o mapa)
+func _malha_arrays(k: Vector2i, cel: int, desce: bool) -> Array:
 	var o := _origem(k); var passo := PED / cel
 	var hs := PackedFloat32Array(); hs.resize((cel + 1) * (cel + 1))
 	var a := alturas(k) if not desce else PackedFloat32Array()
@@ -99,7 +111,7 @@ func _malha(k: Vector2i, cel: int, desce: bool) -> ArrayMesh:
 			for q in tri:
 				st.set_normal(nrm); st.set_color(cores[id[q]])
 				st.set_uv(Vector2(vs[q].x + o.x, vs[q].z + o.y) / 4.0); st.add_vertex(vs[q])
-	return st.commit()
+	return st.commit_to_arrays()
 
 # versão simples em blocos de 2×2 pedaços (128 m): 4× menos objetos para desenhar ao longe
 func _simples_bloco(i0: int, j0: int) -> void:
@@ -122,10 +134,13 @@ func _simples(k: Vector2i) -> void:
 	mi.visibility_range_begin = LONGE
 	add_child(mi)
 
-func _detalhado(k: Vector2i) -> Node3D:
-	var mi := MeshInstance3D.new(); mi.mesh = _malha(k, CEL, false); mi.material_override = m.mat("terreno")
+var obras := Obras.new()
+func _detalhado(k: Vector2i) -> Node3D: return _detalhado_de(k, _malha_arrays(k, CEL, false))
+func _detalhado_de(k: Vector2i, arrays: Array) -> Node3D:
+	var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.material_override = m.mat("terreno")
 	mi.position = Vector3(_origem(k).x + PED * 0.5, 0, _origem(k).y + PED * 0.5)
 	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new()
-	var forma: ConcavePolygonShape3D = mi.mesh.create_trimesh_shape(); forma.backface_collision = true
+	var forma := ConcavePolygonShape3D.new(); forma.set_faces(arrays[Mesh.ARRAY_VERTEX]); forma.backface_collision = true
 	cs.shape = forma; corpo.add_child(cs); mi.add_child(corpo)
 	add_child(mi); return mi

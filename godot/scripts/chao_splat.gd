@@ -30,9 +30,11 @@ func montar(mundo) -> void:
 	_pocas()
 
 var _primeira := true
+var obras := Obras.new()
 func _process(_d: float) -> void:
 	if m == null or m.jogador == null: return
 	var p: Vector2 = Vector2(m.jogador.global_position.x, m.jogador.global_position.z)
+	_receber()
 	var orcamento := 1000000 if _primeira else 2         # no começo monta tudo de uma vez
 	_primeira = false
 	for c in camadas:
@@ -47,9 +49,14 @@ func _process(_d: float) -> void:
 				var k := Vector2i(i, j)
 				if not c.ativos.has(k): faltam.append([centro.distance_to(p), k])
 		faltam.sort_custom(func(a, bb): return a[0] < bb[0])     # os mais perto primeiro
+		var ci: int = camadas.find(c)
 		for f in faltam:
-			if orcamento <= 0: break
-			c.ativos[f[1]] = _bloco(c, f[1]); orcamento -= 1
+			if orcamento > 100:                                    # começo do jogo: monta tudo na hora
+				c.ativos[f[1]] = _bloco(c, f[1]); continue
+			var ch := [ci, f[1]]
+			if obras.pendente(ch) or obras.cheio(): continue
+			var cc: Dictionary = c; var kk: Vector2i = f[1]
+			obras.pedir(ch, func(): return Obras.empacotar(_itens(cc, kk), true))   # monta em segundo plano
 		for k in c.ativos.keys():                                  # apaga os que ficaram longe
 			var centro := Vector2((k.x + 0.5) * b, (k.y + 0.5) * b)
 			if centro.distance_to(p) > r + b * 1.5:
@@ -76,6 +83,11 @@ func _transf(p: Vector3, n: Vector3, sx: float, sz: float, ang: float) -> Transf
 	return Transform3D(Basis(t * sx, n, t.cross(n) * sz), p)
 
 func _bloco(c: Dictionary, k: Vector2i) -> MultiMeshInstance3D:
+	var itens := _itens(c, k)
+	return _multimesh(itens) if not itens.is_empty() else null
+
+# as manchas de um bloco (roda fora do quadro principal: só lê o mapa)
+func _itens(c: Dictionary, k: Vector2i) -> Array:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash([k.x, k.y, c.bloco])
 	var b: int = c.bloco; var itens := []
 	for n in int(b * b * c.dens):
@@ -94,7 +106,26 @@ func _bloco(c: Dictionary, k: Vector2i) -> MultiMeshInstance3D:
 					var q := Vector3(x + rng.randf_range(-0.3, 0.3), 0, z + rng.randf_range(-0.3, 0.3))
 					q.y = m.altura_malha(q.x, q.z) + 0.13
 					itens.append([_transf(q, nrm, 0.09, 0.09, 0.0), fl * rng.randf_range(0.9, 1.1), 0.0, c.raio])
-	return _multimesh(itens) if not itens.is_empty() else null
+	return itens
+
+# blocos que ficaram prontos em segundo plano: põe na tela (se ainda estão no alcance)
+func _receber() -> void:
+	if m == null or m.jogador == null: return
+	var p := Vector2(m.jogador.global_position.x, m.jogador.global_position.z)
+	for r in obras.prontos():
+		var c: Dictionary = camadas[r[0][0]]; var k: Vector2i = r[0][1]; var buf: PackedFloat32Array = r[1]
+		var b: int = c.bloco
+		if c.ativos.has(k) or Vector2((k.x + 0.5) * b, (k.y + 0.5) * b).distance_to(p) > c.raio + b * 1.5: continue
+		c.ativos[k] = _multimesh_buf(buf) if buf.size() > 0 else null
+
+func _multimesh_buf(buf: PackedFloat32Array) -> MultiMeshInstance3D:
+	var pm := PlaneMesh.new(); pm.size = Vector2(1, 1)
+	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true; mm.use_custom_data = true; mm.mesh = pm
+	mm.instance_count = buf.size() / 20; mm.buffer = buf
+	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi); return mi
 
 func _multimesh(itens: Array) -> MultiMeshInstance3D:
 	var pm := PlaneMesh.new(); pm.size = Vector2(1, 1)

@@ -129,3 +129,6 @@
   a câmera montada balança no ritmo da passada.
 - **Cavalo com andaduras de verdade** (pela referência enviada): passo em 4 tempos (uma pata de cada vez, joelho
   dobrando e casco virando para trás), trote nas diagonais e galope; a pata fica mais tempo no chão e volta rápida.
+- **Desempenho (60 FPS)**: o mundo em volta da Rachel (chão, grama, terreno e floresta) agora é montado em segundo
+  plano, nos outros núcleos do celular — antes cada pedaço travava o jogo por 10 a 90 ms enquanto ela andava.
+  Jogo travado em 60 FPS (sem oscilar) e nitidez automática: se o celular não aguentar, baixa um nível sozinho.

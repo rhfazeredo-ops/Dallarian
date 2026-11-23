@@ -56,6 +56,7 @@ func _process(_d: float) -> void:
 	var jp: Vector3 = m.jogador.global_position
 	mat.set_shader_parameter("jogador", jp)
 	var p := Vector2(jp.x, jp.z)
+	_receber(p)
 	var orcamento := 1000000 if _primeira else 2
 	_primeira = false
 	for c in camadas:
@@ -68,16 +69,47 @@ func _process(_d: float) -> void:
 				var k := Vector2i(i, j)
 				if not c.ativos.has(k): faltam.append([centro.distance_to(p), k])
 		faltam.sort_custom(func(a, bb): return a[0] < bb[0])
+		var ci: int = camadas.find(c)
 		for f in faltam:
-			if orcamento <= 0: break
-			c.ativos[f[1]] = _bloco(c, f[1]); orcamento -= 1
+			if orcamento > 100: c.ativos[f[1]] = _bloco(c, f[1]); continue      # começo do jogo: na hora
+			var ch := [ci, f[1]]
+			if obras.pendente(ch) or obras.cheio(): continue
+			var cc: Dictionary = c; var kk: Vector2i = f[1]
+			obras.pedir(ch, func():
+				var ls := _itens(cc, kk)
+				return [Obras.empacotar(ls[0], false), Obras.empacotar(ls[1], false)])
 		for k in c.ativos.keys():
 			var centro := Vector2((k.x + 0.5) * b, (k.y + 0.5) * b)
 			if centro.distance_to(p) > r + b * 1.5:
 				for n in c.ativos[k]: n.queue_free()
 				c.ativos.erase(k)
 
+var obras := Obras.new()
+func _receber(p: Vector2) -> void:
+	for r in obras.prontos():
+		var c: Dictionary = camadas[r[0][0]]; var k: Vector2i = r[0][1]; var b: int = c.bloco
+		if c.ativos.has(k) or Vector2((k.x + 0.5) * b, (k.y + 0.5) * b).distance_to(p) > c.raio + b * 1.5: continue
+		var ms: Array = malhas[c.malha]; var nos := []
+		for q in 2:
+			var buf: PackedFloat32Array = r[1][q]
+			if buf.size() == 0: continue
+			var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = true; mm.mesh = ms[q]
+			mm.instance_count = buf.size() / 16; mm.buffer = buf
+			var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(mi); nos.append(mi)
+		c.ativos[k] = nos
+
 func _bloco(c: Dictionary, k: Vector2i) -> Array:
+	var ls := _itens(c, k)
+	var nos := []
+	var ms: Array = malhas[c.malha]
+	if not ls[0].is_empty(): nos.append(_multimesh(ms[0], ls[0]))
+	if not ls[1].is_empty(): nos.append(_multimesh(ms[1], ls[1]))
+	return nos
+
+# tufos de um bloco: [verdes, trigo] (roda fora do quadro principal: só lê o mapa)
+func _itens(c: Dictionary, k: Vector2i) -> Array:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash([k.x, k.y, c.bloco, 5])
 	var b: int = c.bloco
 	var verde := []; var trigo := []
@@ -103,11 +135,7 @@ func _bloco(c: Dictionary, k: Vector2i) -> Array:
 		var cc := Color(cor.r * tom.r, cor.g * tom.g, cor.b * tom.b) * rng.randf_range(0.9, 1.1)
 		if not eh_trigo: cc = cc.lerp(Color(0.42, 0.6, 0.24), 0.35)    # grama um pouco mais verde e viva
 		(trigo if eh_trigo else verde).append([t, cc])
-	var nos := []
-	var ms: Array = malhas[c.malha]
-	if not verde.is_empty(): nos.append(_multimesh(ms[0], verde))
-	if not trigo.is_empty(): nos.append(_multimesh(ms[1], trigo))
-	return nos
+	return [verde, trigo]
 
 func _multimesh(malha: ArrayMesh, itens: Array) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = true; mm.mesh = malha

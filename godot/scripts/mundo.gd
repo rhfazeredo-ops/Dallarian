@@ -125,6 +125,12 @@ func _moradores() -> void:
 # matilhas de 4 a 6 com um líder preto (maior): brancos só nas montanhas, marrons só nas florestas.
 var hud: Hud
 var heroina_desmaiada := false
+# medição de "trancos": quanto cada sistema gasta montando pedaços do mundo (só com --picos)
+var _picos := {}
+func pico(nome: String, t0: int) -> void:
+	if not args.has("picos"): return
+	var dt := (Time.get_ticks_usec() - t0) / 1000.0
+	var p: Array = _picos.get(nome, [0, 0.0, 0.0]); p[0] += 1; p[1] += dt; p[2] = maxf(p[2], dt); _picos[nome] = p
 var estatuas := []                # Estátuas da Guardiã (onde a Rachel renasce): [posição, direção da frente]
 var morte_pos := Vector2.ZERO     # onde a Rachel morreu por último (caveirinha no mapa e na bússola por 5 min)
 var morte_ate := -1.0
@@ -720,6 +726,24 @@ func perto_de_casa(x: float, z: float, folga: float) -> bool:
 	return false
 
 # música de fundo ("Time Flows Ever Onward"), em volume bem baixo, repetindo
+# nitidez automática (celular): o jogo roda travado em 60 FPS; se ficar abaixo de ~48 por 4 s seguidos (fora do
+# carregamento e com o jogo aberto), baixa UM nível de nitidez (a imagem 3D fica um pouco mais "pixelada", mas tudo
+# continua igual). Não salva: na próxima vez começa da escolha do menu de novo.
+var _auto_t := 0.0
+var _auto_q := 0
+var _auto_espera := 8.0
+func _nitidez_auto(delta: float) -> void:
+	if not celular or menu == null or menu.aberto or get_tree().paused: return
+	_auto_espera -= delta
+	if _auto_espera > 0.0: return
+	_auto_t += delta; _auto_q += 1
+	if _auto_t < 4.0: return
+	var fps := _auto_q / _auto_t
+	_auto_t = 0.0; _auto_q = 0
+	if fps < 48.0 and menu.nitidez < 4:
+		menu.nitidez += 1; aplicar_imagem(menu.nitidez, menu.pontilhado)
+		_auto_espera = 6.0
+
 # música: a do vale em todo lugar; dentro dos muros de Altamar entra a música da cidade (troca devagar, em 3 s,
 # e a outra fica pausada no ponto onde parou). Sem o arquivo da cidade, continua só a do vale.
 const VOL_MUSICA := -16.0
@@ -857,6 +881,7 @@ var _raio := 0.0
 func _process(delta: float) -> void:
 	Audio.atualizar(delta)
 	_tick_musica(delta)
+	_nitidez_auto(delta)
 	_dia_noite(delta)
 	_tick_veneno(delta)
 	if jogador: _tick_voltas(delta)
@@ -2676,6 +2701,19 @@ func _modo_teste() -> void:
 		get_tree().create_timer(5.0).timeout.connect(func(): print("AUTO: ", controles.auto, " dir ", controles.dir, " pos ", jogador.global_position.round()))
 	if args.has("musica"):
 		get_tree().create_timer(5.0).timeout.connect(func(): print("MUSICA cidade=%s vale=%.0f dB (pausada=%s) cidade=%.0f dB" % [_na_cidade, _mus_vale.volume_db, _mus_vale.stream_paused, _mus_cidade.volume_db if _mus_cidade else -99.0]))
+	if args.has("picos"):          # teste: corre a cavalo pela Estrada Real e mede quadros lentos e quem montou o quê
+		var quadros := []
+		get_tree().create_timer(4.0).timeout.connect(func():
+			_picos.clear()
+			for id in ["cavalo_preto"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
+			bolsa.montaria_sel = "cavalo_preto"; jogador.montar_em("cavalo_preto", cavalo("cavalo_preto"))
+			controles.auto = true)
+		get_tree().create_timer(4.0).timeout.connect(func():
+			get_tree().process_frame.connect(func(): quadros.append(get_process_delta_time() * 1000.0)))
+		get_tree().create_timer(19.0).timeout.connect(func():
+			quadros.sort(); var n := quadros.size()
+			print("PICOS quadros=%d  mediana=%.1fms  p95=%.1fms  pior=%.1fms  >25ms=%d" % [n, quadros[n / 2], quadros[int(n * 0.95)], quadros[n - 1], quadros.filter(func(q): return q > 25.0).size()])
+			for k in _picos: print("PICOS %-10s %3d pedaços  média %.1fms  pior %.1fms" % [k, _picos[k][0], _picos[k][1] / maxf(_picos[k][0], 1), _picos[k][2]]))
 	if args.has("morrer"): get_tree().create_timer(2.0).timeout.connect(func(): hud.vida = 1.0; ferir_heroina(50.0, jogador.global_position + Vector3(0, 0, -2), 1))
 	if args.has("loja_freira"):
 		get_tree().create_timer(3.0).timeout.connect(func(): bolsa.cobre = 500; print("NPC: ", interacao._tipo_npc); interacao._abrir_loja())

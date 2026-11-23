@@ -23,6 +23,7 @@ var _mat_cartao := {}
 var _nx := 0
 var _nz := 0
 var _montados := {}             # Vector2i → nó do pedaço
+var obras := Obras.new()
 # arbustos de frutinhas vermelhas (flor_b): dá para COLETAR; colhido fica sem frutinhas (cor verde por cima dos
 # pontinhos) e as frutinhas voltam em 5 min. Os pedaços são montados e soltos, então o "colhido" fica guardado
 # pela posição do arbusto.
@@ -80,9 +81,15 @@ func _montar_perto(tudo: bool) -> void:
 			var d := (_origem_ped(k) + Vector2(PED, PED) * 0.5).distance_to(p)
 			if d < alcance: faltam.append([d, k])
 	faltam.sort_custom(func(a, b): return a[0] < b[0])
+	for pr in obras.prontos():                                   # pedaços prontos em segundo plano: põe na tela
+		var kr: Vector2i = pr[0]
+		if _montados.has(kr) or (_origem_ped(kr) + Vector2(PED, PED) * 0.5).distance_to(p) > alcance + PED: continue
+		_pedaco_montar(kr, pr[1])
 	for f in faltam:
-		_pedaco(f[1])
-		if not tudo: break
+		if tudo: _pedaco(f[1]); continue
+		if obras.pendente(f[1]) or obras.cheio(): continue
+		var kk: Vector2i = f[1]
+		obras.pedir(kk, func(): return _pedaco_dados(kk))
 	for k in _montados.keys():
 		if (_origem_ped(k) + Vector2(PED, PED) * 0.5).distance_to(p) > alcance + PED * 1.5:
 			_montados[k].queue_free(); _montados.erase(k); arvores.erase(k); bagas.erase(k)
@@ -522,7 +529,10 @@ func _jardins() -> void:
 		if nome == "flor_b": _registrar_bagas(JARDIM, mi.multimesh, itens[nome])
 
 # ---------- distribuição ----------
-func _pedaco(k: Vector2i) -> void:
+func _pedaco(k: Vector2i) -> void: _pedaco_montar(k, _pedaco_dados(k))
+
+# onde vai cada árvore/arbusto do pedaço (roda fora do quadro principal: só lê o mapa)
+func _pedaco_dados(k: Vector2i) -> Array:
 	var rng := RandomNumberGenerator.new(); rng.seed = hash([k.x, k.y, 99])
 	var o := _origem_ped(k)
 	var grupos := {}   # nome → [[Transform3D, Color], ...]
@@ -567,7 +577,11 @@ func _pedaco(k: Vector2i) -> void:
 				var larg := s * rng.randf_range(0.85, 1.2)          # umas mais largas, outras mais altas
 				var t := Transform3D(giro.scaled(Vector3(larg, s * rng.randf_range(0.85, 1.2), larg)), base)
 				grupos[["copa_a", "copa_b"][rng.randi() % 2] if (k.x + k.y) % 2 == 0 else ["copa_c", "copa_d"][rng.randi() % 2]].append([t, _cor_copa(rng, x, z)]); lista.append([base, 0.32 * s])
-	arvores[k] = lista
+	return [grupos, lista]
+
+func _pedaco_montar(k: Vector2i, dados: Array) -> void:
+	var grupos: Dictionary = dados[0]
+	arvores[k] = dados[1]
 	var no := Node3D.new(); add_child(no); _montados[k] = no
 	for nome in grupos.keys():
 		var itens: Array = grupos[nome]
