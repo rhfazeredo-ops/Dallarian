@@ -904,7 +904,7 @@ func monstro_morreu(mo: Node) -> void:
 	var drops := []
 	if mo is Aranha: drops = [["presa_aranha", 0.4, 1, 1], ["veneno_aranha", 0.3, 1, 1]]
 	elif mo is Monstro and mo.tipo == "golem":
-		drops = [["nucleo_golem", 1.0, 1, 1], ["espada_ferro", 0.35, 1, 1], ["bolsa_16", 0.35, 1, 1], ["egide_guardia", 0.2, 1, 1]]
+		drops = [["nucleo_golem", 1.0, 1, 1], ["espada_ferro", 0.35, 1, 1], ["bolsa_16", 0.35, 1, 1], ["egide_guardia", 0.2, 1, 1], ["cutelo_rochedo", 0.15, 1, 1]]
 		var moedas := randi_range(150, 400); bolsa.cobre += moedas; bolsa.mudou.emit()
 		hud.avisar("+%s" % Bolsa.texto_dinheiro(moedas), Color(0.95, 0.75, 0.4))
 		hud.avisar("%s foi derrotado!" % NOME_GOLEM, Color(1.0, 0.82, 0.2))

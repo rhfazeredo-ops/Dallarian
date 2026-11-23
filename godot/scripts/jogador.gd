@@ -236,7 +236,16 @@ func trocar_equip(lugar: String, id: String) -> void:
 		var cabo := Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.15, bb.get_center().z)
 		mod.position = -cabo * k
 		no.add_child(mod)
-	elif lugar == "arma" and (modelo == "ferro" or modelo == "presa" or modelo == "malho"):        # (presa: a de ferro até chegar o modelo)
+	elif lugar == "arma" and modelo in ["marreta", "cutelo"] and ResourceLoader.exists("res://assets/modelos/%s.glb" % modelo):
+		# armas do Tripo (quando chegarem): cabo na mão, ponta/cabeça para cima
+		var mod: Node3D = m.modelo_ps1("res://assets/modelos/%s.glb" % modelo)
+		var bb := AABB()
+		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
+		var k := (0.85 if modelo == "marreta" else 1.0) / maxf(bb.size.y, 0.01)
+		mod.scale = Vector3(k, k, k)
+		mod.position = -Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.15, bb.get_center().z) * k
+		no.add_child(mod)
+	elif lugar == "arma" and (modelo in ["ferro", "presa", "malho", "marreta", "cutelo"]):        # (presa: a de ferro até chegar o modelo)
 		# espada de ferro (a primeira do Tripo): 0,51 m no arquivo → 1 m; cabo na origem, lâmina em +Y
 		var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada.glb")
 		var k := 1.0 / 0.51
