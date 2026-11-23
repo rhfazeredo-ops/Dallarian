@@ -807,7 +807,7 @@ func _agendar_volta(mo: Node) -> void:
 			lm.montar(self, tp, nv, randi()); return lm
 	else: return
 	var espera := VOLTA_CHEFE if (mo is Monstro and mo.tipo == "golem") else VOLTA_NORMAL
-	if mo is Monstro and mo.tipo == "lodoso_c": espera = 900.0          # Grão-Lodoso: volta em 15 min
+	if mo is Monstro and mo.tipo == "lodoso_c": espera = 1800.0         # Grão-Lodoso: volta em 30 min
 	if args.has("volta_rapida"): espera = float(args.volta_rapida)
 	_voltas.append([espera, f, g])
 

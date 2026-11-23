@@ -174,7 +174,7 @@
 - **Lodosos novos (peixe-sapo)**: 70 grupos de no máximo 3 — pela praia inteira, nas duas margens dos dois rios e
   em volta do lago. Cada grupo tem um **Lodoso Pescador** (lança) ou um **Xamã da Lama** (cajado de caveira de
   peixe) com 1 ou 2 **Lodosos Jovens**. O **Grão-Lodoso** (chefe, tridente, nível 7) fica perto da foz do rio do
-  leste com dois Pescadores de guarda (volta 15 min depois de morto; deixa escamas, olhos e Pérola da Lama).
+  leste com dois Pescadores de guarda (deixa escamas, olhos e Pérola da Lama).
   A arma fica em pé na mão quando andam e deitada para a frente na estocada.
 - **Vozes dos Lodosos** (os 3 áudios enviados, cortados em vários gritos): gritam ao ver a Rachel, às vezes ao
   atacar e ao apanhar, e ao morrer. Jovem: voz "pequeno"; Pescador e Xamã: voz normal (Xamã mais grave); chefe: a
@@ -202,3 +202,4 @@
   **Coroa de Dentes do Grão-Lodoso** e **Tridente Partido do Grão-Lodoso**. Arma única (rara, azul):
   **Presa da Maré** — espada de uma mão, 11–18 de dano, nível 6; por enquanto cai do chefe (10%) e depois vira
   a recompensa da missão do soldado de Altamar. Na mão usa a espada de ferro até chegar o modelo.
+- **Grão-Lodoso renasce 30 minutos** depois de morto.

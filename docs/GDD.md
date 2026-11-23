@@ -276,5 +276,5 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 
 ## Gruta dos Lodosos (DG aberta)
 - Entrada na montanha do norte, a oeste do rio do leste (≈ 1545, -880). Túneis com teto, salas com acampamento,
-  6 grupos de Lodosos (nível 4–6) e o Grão-Lodoso (nível 8) na câmara final.
+  6 grupos de Lodosos (nível 4–6) e o Grão-Lodoso (nível 8) na câmara final; ele renasce 30 min depois de morto.
 - Futuro: quest de um soldado de Altamar pedindo para matar o Grão-Lodoso.
