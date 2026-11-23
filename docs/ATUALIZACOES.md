@@ -228,3 +228,6 @@
 - **Som da chuva mais baixo** (-7 dB).
 - Estábulo: terra batida só dentro do telheiro e do cercado; do lado de fora volta a grama, igual em volta.
 - **A Rachel começa no portão oeste de Altamar** (logo antes de sair do reino, virada para a ponte).
+- **Texturas pintadas do dono**: pedra nova (blocos arroxeados) em muros, muralha, torres, ponte, castelo e bases das
+  casas; parede enxaimel nova (painel com a mão-francesa) nas casas da vila e da cidade. O telhado de ardósia azul
+  continua o mesmo (não muda nunca).

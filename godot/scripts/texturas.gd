@@ -14,9 +14,9 @@ static func pegar(nome: String) -> ImageTexture:
 	var im: Image
 	match nome:
 		"terreno": im = _terreno()
-		"parede": im = _parede()
+		"parede": im = _arquivo("res://assets/texturas/parede.png") if ResourceLoader.exists("res://assets/texturas/parede.png") else _parede()
 		"palha": im = _palha()
-		"pedra": im = _pedra()
+		"pedra": im = _arquivo("res://assets/texturas/pedra.png") if ResourceLoader.exists("res://assets/texturas/pedra.png") else _pedra()
 		"madeira": im = _madeira()
 		"casca": im = _casca()
 		"pinho": im = _pinho()
