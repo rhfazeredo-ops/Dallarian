@@ -499,7 +499,7 @@ func _physics_process(delta: float) -> void:
 	var amp: float = (0.034 if correr else 0.016) * min(anda, 1.0)
 	if montado:                            # montada: um balanço por passada do cavalo (calmo), mais suave
 		var vh := Vector2(velocity.x, velocity.z).length()
-		var passada := lerpf(2.4, 6.0, clampf((vh - 6.0) / 4.0, 0.0, 1.0))
+		var passada := lerpf(lerpf(3.4, 4.6, smoothstep(3.0, 6.0, vh)), 6.8, smoothstep(8.5, 10.5, vh))   # igual ao cavalo
 		_passo += delta * TAU * vh / passada if is_on_floor() else 0.0
 		amp = 0.022 * minf(vh / 4.0, 1.0)
 	else:

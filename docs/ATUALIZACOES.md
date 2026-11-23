@@ -127,3 +127,5 @@
 - **Ponte dos Guardiões no nível das margens e da cidade**, com estrada calçada de pedra da ponte até o portão.
 - **Cavalo com passada mais longa e calma**: trote no passo e galope de verdade (frente juntas, depois trás);
   a câmera montada balança no ritmo da passada.
+- **Cavalo com andaduras de verdade** (pela referência enviada): passo em 4 tempos (uma pata de cada vez, joelho
+  dobrando e casco virando para trás), trote nas diagonais e galope; a pata fica mais tempo no chão e volta rápida.

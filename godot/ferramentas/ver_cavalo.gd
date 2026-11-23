@@ -20,10 +20,11 @@ func _initialize() -> void:
 	var cam := Camera3D.new(); cam.projection = Camera3D.PROJECTION_ORTHOGONAL; cam.size = 1.15
 	cam.position = Vector3(0, 0, 3); vp.add_child(cam); cam.current = true
 	if a.has("frente"): cam.position = Vector3(3, 0, 0); cam.rotation_degrees.y = 90
-	var folha := Image.create(420 * 6, 360, false, Image.FORMAT_RGBA8)
+	var nq := int(a.get("quadros", "6"))
+	var folha := Image.create(420 * nq, 360, false, Image.FORMAT_RGBA8)
 	await process_frame
-	for q in 6:
-		an._process(2.6 / maxf(an.vel, 0.1) / 6.0)          # 1/6 de passada por quadro
+	for q in nq:
+		an._process(float(a.get("passo_t", "0.1")))
 		for k in 3: await RenderingServer.frame_post_draw
 		folha.blit_rect(vp.get_texture().get_image(), Rect2i(0, 0, 420, 360), Vector2i(q * 420, 0))
 	folha.save_png(a.saida); quit()

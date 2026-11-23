@@ -12,6 +12,8 @@ var _modelo: Node3D
 var _esq: Skeleton3D
 const FASES := [0.0, PI, PI, 0.0]          # frente-esq, frente-dir, trás-esq, trás-dir (trote em diagonal)
 const GALOPE := [0.0, 0.6, PI, PI + 0.6]   # galope: frente juntas, depois trás juntas
+# passo em 4 tempos: trás-esq, frente-esq, trás-dir, frente-dir (cada uma 1/4 de passada depois da anterior)
+const PASSO := [-TAU * 0.25, -TAU * 0.75, 0.0, -TAU * 0.5]
 func _ready() -> void:
 	_modelo = get_parent().get_node_or_null("Modelo")
 	if _modelo:
@@ -24,24 +26,37 @@ func _process(delta: float) -> void:
 	if not c.is_visible_in_tree(): return
 	_t += delta
 	var a := clampf(vel / 4.0, 0.0, 1.0)
-	# passada mais longa quanto mais rápido (passo ~2,4 m, galope ~6 m): o ritmo fica calmo, ~1,2 a 1,9 passadas/s
-	var galope := clampf((vel - 6.0) / 4.0, 0.0, 1.0)
-	var passada := lerpf(2.4, 6.0, galope)
+	# andaduras (como num cavalo de verdade): PASSO em 4 tempos (uma pata de cada vez) até ~4 m/s, TROTE (diagonais)
+	# por volta de 6–8 m/s e GALOPE (frente juntas, depois trás) correndo. A passada cresce com a velocidade, então o
+	# ritmo fica calmo: no passo ~0,9 passadas/s, no galope ~1,7.
+	var trote := smoothstep(3.0, 5.5, vel) * (1.0 - smoothstep(8.5, 10.5, vel))
+	var galope := smoothstep(8.5, 10.5, vel)
+	var passada := lerpf(lerpf(3.4, 4.6, smoothstep(3.0, 6.0, vel)), 6.8, galope)
 	_fase = fmod(_fase + delta * TAU * maxf(vel, 0.0) / passada, TAU * 100.0)
 	if _modelo:
-		var sobe := absf(sin(_fase)) * lerpf(0.015, 0.045, galope) * a + sin(_t * 1.3) * 0.004 * (1.0 - a)
-		if galope > 0.0: sobe = lerpf(sobe, (0.5 + 0.5 * sin(_fase)) * 0.06 * a, galope)     # galope: um balanço por passada
+		var balanco := sin(_fase * 2.0)                                  # passo/trote: dois apoios por passada
+		var sobe := (absf(balanco) * lerpf(0.012, 0.03, trote) * (1.0 - galope) + (0.5 + 0.5 * sin(_fase)) * 0.06 * galope) * a
+		sobe += sin(_t * 1.3) * 0.004 * (1.0 - a)
 		_modelo.position = _base + Vector3(0, sobe, 0)
-		_modelo.rotation.z = lerpf(sin(_fase * 2.0) * 0.008, sin(_fase) * 0.035, galope) * a      # galope balança para a frente e para trás
+		_modelo.rotation.z = (balanco * 0.006 * (1.0 - galope) + sin(_fase) * 0.035 * galope) * a
+		_modelo.rotation.x = sin(_fase) * 0.012 * (1.0 - trote - galope) * a         # no passo o corpo gira de leve
 		if _esq == null: return
-		var amp := lerpf(0.32, 0.5, galope) * a
+		var amp := lerpf(lerpf(0.36, 0.42, trote), 0.55, galope) * a
 		for k in 4:
-			# trote: patas em diagonal; galope: as duas da frente quase juntas, depois as duas de trás
-			var ph: float = _fase + lerpf(FASES[k], GALOPE[k], galope)
-			_esq.set_bone_pose_rotation(RigCavalo.COXA[k], _q(Vector3(0, 0, 1), sin(ph) * amp))
-			var dobra := maxf(0.0, cos(ph)) * a * (1.0 if k < 2 else 0.75)       # dobra o joelho quando a pata vai à frente
-			_esq.set_bone_pose_rotation(RigCavalo.CANELA[k], _q(Vector3(0, 0, 1), -dobra * lerpf(0.7, 1.0, galope)))
-		var cab := inclinar * 0.25 + lerpf(sin(_fase * 2.0) * 0.03, sin(_fase + 0.6) * 0.07, galope) * a + (sin(_t * 0.6) * 0.07 - 0.02) * (1.0 - a)
+			var off: float = lerpf(lerpf(PASSO[k], FASES[k], trote), GALOPE[k], galope)
+			var u := fposmod((_fase + off) / TAU, 1.0)
+			var apoio := lerpf(lerpf(0.64, 0.5, trote), 0.42, galope)       # parte da passada com a pata no chão
+			var ang: float; var dobra: float
+			if u < apoio:                                                    # no chão: vai da frente para trás, reta
+				var v := u / apoio
+				ang = lerpf(1.0, -1.0, v); dobra = 0.05
+			else:                                                            # no ar: levanta dobrando e volta rápido
+				var v := (u - apoio) / (1.0 - apoio)
+				ang = lerpf(-1.0, 1.0, smoothstep(0.0, 1.0, v)); dobra = sin(v * PI)
+			var forca_dobra := (1.25 if k < 2 else 0.8) * lerpf(1.0, 1.15, galope)
+			_esq.set_bone_pose_rotation(RigCavalo.COXA[k], _q(Vector3(0, 0, 1), ang * amp + (0.18 if k >= 2 else 0.0) * dobra * a))
+			_esq.set_bone_pose_rotation(RigCavalo.CANELA[k], _q(Vector3(0, 0, 1), -dobra * forca_dobra * a))
+		var cab := inclinar * 0.25 + lerpf(sin(_fase * 2.0 + 0.8) * lerpf(0.06, 0.03, trote), sin(_fase + 0.6) * 0.07, galope) * a   # a cabeça acompanha cada passo + (sin(_t * 0.6) * 0.07 - 0.02) * (1.0 - a)
 		_esq.set_bone_pose_rotation(RigCavalo.PESCOCO, _q(Vector3(0, 0, 1), cab) * _q(Vector3(0, 1, 0), sin(_t * 0.37) * 0.12 * (1.0 - a)))
 		_esq.set_bone_pose_rotation(RigCavalo.CAUDA, _q(Vector3(1, 0, 0), sin(_t * 1.7) * lerpf(0.18, 0.08, a)) * _q(Vector3(0, 0, 1), -0.35 * a))
 		return
