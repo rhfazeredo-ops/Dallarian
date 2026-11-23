@@ -185,3 +185,9 @@
   fogem quando a Rachel chega perto.
 - **Rio de Altamar sem cara de fosso**: a água subiu ~0,7 m e as margens perto da cidade descem suave até a água
   (antes eram barrancos de 2 a 3 m).
+- **Gruta dos Lodosos (DG aberta)**: na montanha do norte, do lado oeste do rio do leste (subindo o rio a partir
+  da Ponte dos Guardiões, onde ele encosta na montanha). Rampa de entrada com tochas, túneis de pedra com teto,
+  tochas pelo caminho, sala do acampamento, beco do xamã, segunda sala e a **câmara do Grão-Lodoso** no fundo
+  (mais alta, com duas cabanas grandes e três fogueiras). Dentro fica na penumbra (só tochas e fogueiras
+  iluminam) e não chove. 6 grupos de Lodosos nível 4–6 pelo caminho e o **Grão-Lodoso** (nível 8) sozinho na
+  câmara — ele saiu da foz do rio (lá ficou um acampamento comum). Aparece na bússola como "Gruta dos Lodosos".

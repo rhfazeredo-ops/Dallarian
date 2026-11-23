@@ -278,6 +278,9 @@ func altura(x: float, z: float) -> float:
 	var ds := z - (Ws(520.0) + n_borda)
 	if ds > 0.0: h += _serra(ds, 35.0) * var_m
 	if not planos.is_empty(): h = _planos(x, z, h)
+	if GRUTA_BB.grow(10.0).has_point(Vector2(x, z)):           # Gruta dos Lodosos: cânion com o chão da gruta
+		var dg := gruta_d(x, z)
+		if dg < 5.0: h = lerpf(gruta_piso(x, z), h, smoothstep(-0.3, 5.0, dg))
 	return h
 
 # altura de uma serra a "d" metros da borda: sobe rápido no pé e para em "alto"
@@ -339,6 +342,45 @@ func _planos(x: float, z: float, h: float) -> float:
 		h = lerp(pl[3], h, smoothstep(0.0, pl[4], d))
 	return h
 
+# ---------- Gruta dos Lodosos (DG aberta na montanha do norte, a oeste do rio do leste) ----------
+# O chão da gruta é o próprio terreno, cavado num cânion com o formato dos túneis e salas (assim monstros, saque e
+# tudo que usa a altura do terreno funcionam lá dentro); paredes e teto de pedra são montados em mundo.gd.
+const GRUTA_Y := 13.0                  # altura do chão (o vale na frente da montanha)
+const GRUTA_TETO := 6.5
+const GRUTA_COBERTA_Z := -915.0        # daqui para o norte tem teto (antes é a rampa aberta da entrada)
+const GRUTA_BB := Rect2(1430.0, -1110.0, 180.0, 255.0)
+# túneis [de, até, largura] e salas [centro, raio]
+const GRUTA_TUNEIS := [
+	[Vector2(1545, -862), Vector2(1545, -896), 10.0],     # entrada (rampa aberta)
+	[Vector2(1545, -896), Vector2(1538, -945), 7.0],
+	[Vector2(1532, -962), Vector2(1576, -969), 5.0],      # para a sala do lado (beco)
+	[Vector2(1532, -962), Vector2(1498, -980), 6.0],
+	[Vector2(1498, -980), Vector2(1484, -1008), 6.0],
+	[Vector2(1482, -1018), Vector2(1516, -1040), 6.0],
+	[Vector2(1516, -1040), Vector2(1540, -1060), 7.0]]
+const GRUTA_SALAS := [
+	[Vector2(1532, -962), 12.0],                           # sala 1 (acampamento)
+	[Vector2(1581, -972), 8.0],                            # beco do xamã
+	[Vector2(1482, -1018), 11.0],                          # sala 2
+	[Vector2(1549, -1076), 17.0]]                          # câmara do Grão-Lodoso
+const GRUTA_ENTRADA := Vector2(1545, -880)
+const GRUTA_CAMARA := Vector2(1549, -1076)
+# distância até a borda da gruta (negativa dentro), com a parede irregular de pedra
+func gruta_d(x: float, z: float) -> float:
+	if not GRUTA_BB.grow(6.0).has_point(Vector2(x, z)): return 99.0
+	var p := Vector2(x, z); var d := 99.0
+	for t in GRUTA_TUNEIS:
+		var a: Vector2 = t[0]; var b: Vector2 = t[1]; var ab := b - a
+		var u := clampf((p - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+		d = minf(d, p.distance_to(a + ab * u) - float(t[2]) * 0.5)
+	for sl in GRUTA_SALAS: d = minf(d, p.distance_to(sl[0]) - float(sl[1]))
+	return d + ruido.get_noise_2d(x * 4.0, z * 4.0) * 1.1 + ruido.get_noise_2d(x * 13.0 + 50.0, z * 13.0) * 0.35
+func na_gruta(x: float, z: float, folga := 0.0) -> bool: return gruta_d(x, z) < folga
+func gruta_coberta(x: float, z: float) -> bool: return z < GRUTA_COBERTA_Z and gruta_d(x, z) < 0.0
+func gruta_piso(x: float, z: float) -> float: return GRUTA_Y + ruido.get_noise_2d(x * 6.0, z * 6.0) * 0.35
+func gruta_teto(x: float, z: float) -> float: return GRUTA_Y + GRUTA_TETO + ruido.get_noise_2d(x * 5.0 + 9.0, z * 5.0) * 1.3 \
+	+ (4.0 * (1.0 - smoothstep(6.0, 17.0, Vector2(x, z).distance_to(GRUTA_CAMARA))))   # câmara final mais alta
+
 # ---------- água ----------
 # nível da água neste ponto (ou -1000 se não tem água): rio, lago, ou mar/pântano (nível 0)
 func agua(x: float, z: float) -> float:
@@ -364,6 +406,7 @@ func zona_pantano(z: float) -> float: return smoothstep(Ws(380.0), Ws(430.0), z)
 
 func floresta(x: float, z: float) -> float:
 	# 0 = aberto, 1 = mata fechada
+	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 6.0: return -1.0
 	var f := ruido_grande.get_noise_2d(x * 1.6 + 300.0, z * 1.6) * 1.6 + 0.35
 	f += 0.25 * smoothstep(Ws(250.0), Ws(420.0), Vector2(x, z).length())   # mais mata longe da vila
 	f -= 1.0 - smoothstep(40.0, 110.0, Vector2(x, z).length())       # vila e arredores abertos
@@ -402,10 +445,14 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
 	if ny < 0.8: c = c.lerp(Color(0.46, 0.5, 0.6), smoothstep(0.8, 0.65, ny))  # pedra
 	if h > 40.0: c = c.lerp(Color(0.88, 0.91, 0.98), smoothstep(40.0, 50.0, h))  # neve
+	if GRUTA_BB.grow(10.0).has_point(Vector2(x, z)):                              # gruta: lama escura e pedra
+		var dg := gruta_d(x, z)
+		if dg < 2.0: c = c.lerp(Color(0.33, 0.3, 0.26).lerp(Color(0.24, 0.28, 0.22), smoothstep(-0.3, 0.4, n)) * (0.9 + n * 0.12), 1.0 - smoothstep(0.0, 2.0, dg))
 	return c
 
 # dentro do chão de alguma construção (casa, ferraria, moinho...)?
 func em_construcao(x: float, z: float) -> bool:
+	if GRUTA_BB.grow(8.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 3.0: return true
 	for pl in planos:
 		var c: Vector2 = pl[0]
 		var dx := x - c.x; var dz := z - c.y

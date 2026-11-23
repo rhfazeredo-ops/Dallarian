@@ -96,6 +96,7 @@ func _ready() -> void:
 		["Serraria", Regiao.W(Vector2(286, -170)), "arvore", 22.0],
 		["Acampamento de Bandidos", Regiao.W(Vector2(-330, 300)), "bandidos", 25.0],
 		["Caverna do Oeste", caverna_pos, "caverna", 18.0],
+		["Gruta dos Lodosos", Regiao.GRUTA_ENTRADA, "caverna", 16.0],
 		["Desfiladeiro do Norte", Vector2(0, -Regiao.Ws(468.0)), "montanhas", 40.0],
 		["Altamar", cidade_pos, "castelo", 200.0],
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
@@ -143,6 +144,7 @@ func _moradores() -> void:
 	if args.has("carga"): print("CARGA  _aranhas ", Time.get_ticks_msec() - _t_aranhas)
 	var _t_lodosos := Time.get_ticks_msec()
 	_lodosos()
+	_gruta_iniciar()
 	if args.has("carga"): print("CARGA  _lodosos ", Time.get_ticks_msec() - _t_lodosos)
 	var _t_golem := Time.get_ticks_msec()
 	_golem()
@@ -441,7 +443,7 @@ func _lodosos() -> void:
 			var q2 := pt2 + nrm2 * (reg.largura_rio2(lerpf(reg._rio2_comp[i], reg._rio2_comp[i + 1], u)) * 0.5 + 6.0)
 			cands.append(q2)
 	cands.shuffle()
-	# chefe na foz do rio do leste, com a guarda de dois Pescadores
+	# acampamento grande na foz do rio do leste (o Grão-Lodoso mora no fundo da Gruta dos Lodosos)
 	var foz: Vector2 = r2[r2.size() - 3].lerp(r2[r2.size() - 2], 0.5)
 	var nf := (r2[r2.size() - 2] - r2[r2.size() - 3]).normalized().orthogonal()
 	var chefe := foz + nf * (reg.largura_rio2(0.9) * 0.5 + 9.0)
@@ -461,7 +463,7 @@ func _lodosos() -> void:
 		if not ok: continue
 		feitos.append(q)
 		var g := {"casa": q, "membros": [], "alerta": false, "tipo": "lodoso"}
-		var tipos: Array = ["lodoso_c", "lodoso_g", "lodoso_g"] if e_chefe else \
+		var tipos: Array = ["lodoso_g", "lodoso_x", "lodoso_j"] if e_chefe else \
 			[("lodoso_x" if rng.randf() < 0.25 else "lodoso_g")] + (["lodoso_j", "lodoso_j"] if rng.randf() < 0.7 else ["lodoso_j"])
 		for j in tipos.size():
 			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.5)
@@ -520,6 +522,193 @@ func _peca_lodoso(nome: String, p: Vector2, giro: float) -> void:
 	no.scale = Vector3.ONE * esc; no.rotation.y = giro
 	var y := minf(minf(altura_malha(p.x, p.y), altura_malha(p.x + 1.0, p.y)), altura_malha(p.x, p.y + 1.0))
 	no.position = Vector3(p.x, y - b.position.y * esc - 0.08, p.y)
+
+# ---------- Gruta dos Lodosos (DG aberta) ----------
+# O chão é o terreno cavado (regiao.gd: gruta_d). Aqui: paredes de pedra pela borda (marching squares no campo
+# de distância), teto irregular, paredão sobre a boca, tochas, acampamentos e os Lodosos; o Grão-Lodoso fica
+# na câmara do fundo. As malhas são calculadas em outro núcleo na carga e entram quando ficam prontas.
+var _gruta_tarefa := -1
+var _gruta_caixa := [null]
+var gruta_dentro := 0.0                # 0 fora, 1 dentro do trecho com teto (suave)
+func _gruta_iniciar() -> void:
+	var r := reg
+	_gruta_tarefa = WorkerThreadPool.add_task(func(): _gruta_caixa[0] = _gruta_malhas(r), false, "gruta")
+	_gruta_monstros()
+
+func _gruta_malhas(r: Regiao) -> Dictionary:
+	var bb: Rect2 = Regiao.GRUTA_BB.grow(4.0); var s := 1.0
+	var nx := int(bb.size.x / s) + 1; var nz := int(bb.size.y / s) + 1
+	var v := PackedFloat32Array(); v.resize(nx * nz)
+	for j in nz:
+		for i in nx: v[j * nx + i] = r.gruta_d(bb.position.x + i * s, bb.position.y + j * s)
+	var paredes := SurfaceTool.new(); paredes.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var faces := PackedVector3Array()
+	var ponto := func(i0: int, j0: int, i1: int, j1: int) -> Vector2:
+		var a := v[j0 * nx + i0]; var b := v[j1 * nx + i1]; var t := clampf(a / (a - b), 0.0, 1.0)
+		return bb.position + Vector2(lerpf(i0, i1, t), lerpf(j0, j1, t)) * s
+	for j in nz - 1:
+		for i in nx - 1:
+			var c := 0
+			if v[j * nx + i] < 0.0: c |= 1
+			if v[j * nx + i + 1] < 0.0: c |= 2
+			if v[(j + 1) * nx + i + 1] < 0.0: c |= 4
+			if v[(j + 1) * nx + i] < 0.0: c |= 8
+			if c == 0 or c == 15: continue
+			var e := [ponto.call(i, j, i + 1, j), ponto.call(i + 1, j, i + 1, j + 1), ponto.call(i, j + 1, i + 1, j + 1), ponto.call(i, j, i, j + 1)]  # cima, dir, baixo, esq
+			var segs := []
+			match c:
+				1, 14: segs = [[e[3], e[0]]]
+				2, 13: segs = [[e[0], e[1]]]
+				3, 12: segs = [[e[3], e[1]]]
+				4, 11: segs = [[e[1], e[2]]]
+				5: segs = [[e[3], e[0]], [e[1], e[2]]]
+				6, 9: segs = [[e[0], e[2]]]
+				7, 8: segs = [[e[3], e[2]]]
+				10: segs = [[e[0], e[1]], [e[2], e[3]]]
+			for sg in segs: _gruta_parede(r, paredes, faces, sg[0], sg[1])
+	paredes.generate_normals()
+	# teto: quadrados de 2 m onde tem gruta coberta (passando um pouco da parede)
+	var teto := SurfaceTool.new(); teto.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var t := 2.0; var x := bb.position.x
+	while x < bb.end.x:
+		var z := bb.position.y
+		while z < bb.end.y:
+			var zc := z + t * 0.5
+			if zc < Regiao.GRUTA_COBERTA_Z and r.gruta_d(x + t * 0.5, zc) < 2.2:
+				var q := [Vector2(x, z), Vector2(x + t, z), Vector2(x + t, z + t), Vector2(x, z + t)]
+				var pts := []
+				for k in 4: pts.append(Vector3(q[k].x, r.gruta_teto(q[k].x, q[k].y), q[k].y))
+				var cor := Color(0.42, 0.4, 0.38) * (0.85 + r.ruido.get_noise_2d(x * 3.0, z * 3.0) * 0.2)
+				for tri in [[0, 2, 1], [0, 3, 2]]:
+					for k in tri:
+						teto.set_color(cor * (0.8 + r.ruido.get_noise_2d(pts[k].x * 9.0, pts[k].z * 9.0) * 0.3)); teto.set_normal(Vector3.DOWN); teto.set_uv(Vector2(pts[k].x, pts[k].z) * 0.25); teto.add_vertex(pts[k])
+			z += t
+		x += t
+	# paredão por cima da boca da gruta (esconde o vão entre o teto e a encosta)
+	var bz := Regiao.GRUTA_COBERTA_Z + 0.5
+	for k in 8:
+		var x0 := Regiao.GRUTA_ENTRADA.x - 14.0 + k * 3.5; var x1 := x0 + 3.5
+		var y0a := r.gruta_teto(x0, bz) - 0.8; var y0b := r.gruta_teto(x1, bz) - 0.8
+		var y1a := maxf(r.altura(x0, bz - 4.0), y0a + 6.0) + 1.0; var y1b := maxf(r.altura(x1, bz - 4.0), y0b + 6.0) + 1.0
+		var quad := [Vector3(x0, y0a, bz), Vector3(x1, y0b, bz), Vector3(x1, y1b, bz - 3.0), Vector3(x0, y1a, bz - 3.0)]
+		for tri in [[0, 1, 2], [0, 2, 3]]:
+			for i in tri:
+				paredes.set_color(Color(0.5, 0.48, 0.45)); paredes.set_normal(Vector3(0, 0.3, 1).normalized())
+				paredes.set_uv(Vector2(quad[i].x, quad[i].y) * 0.25); paredes.add_vertex(quad[i])
+	return {"paredes": paredes.commit_to_arrays(), "teto": teto.commit_to_arrays(), "faces": faces}
+
+# um pedaço de parede de pedra de a até b (3 faixas na altura, a do meio estufada para dentro)
+func _gruta_parede(r: Regiao, st: SurfaceTool, faces: PackedVector3Array, a: Vector2, b: Vector2) -> void:
+	var m := (a + b) * 0.5; var n := (b - a).normalized().orthogonal()
+	if r.gruta_d(m.x + n.x * 0.4, m.y + n.y * 0.4) > r.gruta_d(m.x - n.x * 0.4, m.y - n.y * 0.4): n = -n   # n aponta para dentro
+	var linha := []
+	for p: Vector2 in [a, b]:
+		var piso := r.gruta_piso(p.x, p.y)
+		var coberta := p.y < Regiao.GRUTA_COBERTA_Z + 1.0
+		var topo := r.gruta_teto(p.x, p.y) + 0.8 if coberta else piso + 4.5 + r.ruido.get_noise_2d(p.x * 7.0, p.y * 7.0) * 1.5
+		var estufa := 0.35 + 0.45 * (0.5 + 0.5 * r.ruido.get_noise_2d(p.x * 9.0, p.y * 9.0))
+		var meio := lerpf(piso, topo, 0.45 + 0.15 * r.ruido.get_noise_2d(p.x * 11.0, p.y * 11.0))
+		linha.append([Vector3(p.x, piso - 1.0, p.y), Vector3(p.x + n.x * estufa, meio, p.y + n.y * estufa), Vector3(p.x + n.x * 0.25, topo, p.y + n.y * 0.25)])
+	var cor := Color(0.52, 0.49, 0.45) * (0.85 + r.ruido.get_noise_2d(m.x * 2.0, m.y * 2.0) * 0.25)
+	for k in 2:
+		var p00: Vector3 = linha[0][k]; var p01: Vector3 = linha[0][k + 1]; var p10: Vector3 = linha[1][k]; var p11: Vector3 = linha[1][k + 1]
+		for tri in [[p00, p10, p11], [p00, p11, p01]]:
+			for q: Vector3 in tri:
+				var mancha := 0.78 + r.ruido.get_noise_2d(q.x * 9.0 + q.y * 5.0, q.z * 9.0 - q.y * 4.0) * 0.32   # rocha manchada
+				st.set_color(cor * mancha * (0.8 if k == 0 else 1.0)); st.set_uv(Vector2(q.x + q.z, q.y) * 0.25); st.add_vertex(q)
+				faces.append(q)
+
+func _gruta_pronta() -> void:
+	if _gruta_tarefa < 0 or not WorkerThreadPool.is_task_completed(_gruta_tarefa): return
+	WorkerThreadPool.wait_for_task_completion(_gruta_tarefa); _gruta_tarefa = -1
+	var d: Dictionary = _gruta_caixa[0]
+	var pedra := mat("", 1.0, Color(0.95, 0.92, 0.88))            # rocha lisa com manchas pelas cores dos vértices
+	for nome in ["paredes", "teto"]:
+		var am := ArrayMesh.new(); am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, d[nome])
+		var mi := MeshInstance3D.new(); mi.mesh = am; mi.material_override = pedra; raiz.add_child(mi)
+	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var forma := ConcavePolygonShape3D.new()
+	forma.set_faces(d.faces); forma.backface_collision = true; cs.shape = forma; corpo.add_child(cs); raiz.add_child(corpo)
+	_gruta_enfeites()
+	if args.has("carga"): print("GRUTA pronta: ", (d.faces as PackedVector3Array).size() / 3, " triângulos de parede")
+
+# tochas pelos túneis, acampamentos nas salas, tralhas e ossos de peixe pelo caminho
+func _gruta_enfeites() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 4242
+	for t in Regiao.GRUTA_TUNEIS:
+		var a: Vector2 = t[0]; var b: Vector2 = t[1]; var comp := a.distance_to(b)
+		var n := (b - a).normalized().orthogonal(); var k := 6.0; var lado := 1.0
+		while k < comp - 2.0:
+			var p: Vector2 = a.lerp(b, k / comp)
+			var q := p + n * lado * (float(t[2]) * 0.5 - 0.9)
+			if reg.gruta_d(q.x, q.y) < -0.3: _tocha_gruta(q)
+			k += 13.0; lado = -lado
+	var salas: Array = Regiao.GRUTA_SALAS
+	# sala 1: acampamento
+	var c1: Vector2 = salas[0][0]
+	_peca_lodoso("casa_p", c1 + Vector2(-6.5, -3.0), 0.8); _peca_lodoso("varal", c1 + Vector2(5.5, -5.0), -0.6)
+	_peca_lodoso("lixo", c1 + Vector2(4.5, 5.5), 2.4); _fogueira_gruta(c1)
+	# beco do xamã
+	var c2: Vector2 = salas[1][0]
+	_peca_lodoso("rede", c2 + Vector2(3.5, -2.5), -1.2); _peca_lodoso("lixo", c2 + Vector2(-1.5, 4.0), 0.4); _fogueira_gruta(c2 + Vector2(-1.0, -0.5))
+	# sala 2
+	var c3: Vector2 = salas[2][0]
+	_peca_lodoso("casa_g", c3 + Vector2(-5.0, -4.5), 0.6); _peca_lodoso("varal", c3 + Vector2(5.0, 3.5), 2.2)
+	_peca_lodoso("rede", c3 + Vector2(5.5, -4.5), -2.0); _fogueira_gruta(c3 + Vector2(0.5, 1.5))
+	# câmara do Grão-Lodoso: duas cabanas grandes, tralhas, redes e três fogueiras
+	var c4: Vector2 = salas[3][0]
+	_peca_lodoso("casa_g", c4 + Vector2(-9.0, -8.0), 0.7); _peca_lodoso("casa_g", c4 + Vector2(9.5, -7.0), -0.7)
+	_peca_lodoso("lixo", c4 + Vector2(-11.0, 4.0), 1.2); _peca_lodoso("lixo", c4 + Vector2(10.5, 5.0), -1.6)
+	_peca_lodoso("rede", c4 + Vector2(0.0, -12.5), 0.0); _peca_lodoso("varal", c4 + Vector2(-4.0, 11.0), PI)
+	for f in [Vector2(-5.0, 2.0), Vector2(5.0, 2.0), Vector2(0.0, -5.0)]: _fogueira_gruta(c4 + f)
+	# boca da gruta: duas tochas e um monte de tralhas
+	var e := Regiao.GRUTA_ENTRADA
+	_tocha_gruta(e + Vector2(-4.2, -6.0)); _tocha_gruta(e + Vector2(4.2, -6.0)); _peca_lodoso("lixo", e + Vector2(-6.0, 2.0), 0.9)
+
+func _tocha_gruta(p: Vector2) -> void:
+	var y := reg.gruta_piso(p.x, p.y)
+	var st := _st(); _caixa(st, Vector3(p.x, y + 0.7, p.y), Vector3(0.14, 1.4, 0.14)); _peca(st, mat("madeira"), Vector3.ZERO)
+	_fogo(Vector3(p.x, y + 1.4, p.y), 0.22, 0.4, 1)
+	luzes.append(Vector3(p.x, y + 1.6, p.y))
+
+func _fogueira_gruta(p: Vector2) -> void:
+	var y := reg.gruta_piso(p.x, p.y)
+	_fogo(Vector3(p.x, y + 0.05, p.y), 0.5, 0.7, 2)
+	luzes.append(Vector3(p.x, y + 0.5, p.y))
+
+# Lodosos da gruta: grupos pelos túneis e salas (nível 4–6) e o Grão-Lodoso sozinho na câmara do fundo
+func _gruta_monstros() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 5150
+	var salas: Array = Regiao.GRUTA_SALAS
+	var grupos := [
+		[salas[0][0], ["lodoso_g", "lodoso_j", "lodoso_j"]],
+		[salas[1][0], ["lodoso_x", "lodoso_j"]],
+		[Vector2(1491, -994), ["lodoso_g", "lodoso_j"]],
+		[salas[2][0], ["lodoso_g", "lodoso_x", "lodoso_j"]],
+		[Vector2(1516, -1040), ["lodoso_j", "lodoso_j"]],
+		[salas[3][0], ["lodoso_c"]]]
+	for gr in grupos:
+		var q: Vector2 = gr[0]; var tipos: Array = gr[1]
+		var g := {"casa": q, "membros": [], "alerta": false, "tipo": "lodoso", "gruta": true}
+		for j in tipos.size():
+			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.5)
+			var tp: String = tipos[j]
+			var nv := 8 if tp == "lodoso_c" else (rng.randi_range(5, 6) if tp != "lodoso_j" else rng.randi_range(4, 5))
+			var semente := rng.randi(); var giro := rng.randf() * TAU
+			_criar_depois(p, func():
+				var mo := Monstro.new(); mo.grupo = g
+				if tp == "lodoso_c": mo.nome = "Grão-Lodoso"
+				raiz.add_child(mo); mo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
+				mo.montar(self, tp, nv, semente)
+				mo.rotation.y = giro; mo.reset_physics_interpolation()
+				g.membros.append(mo))
+		matilhas.append(g)
+
+# dentro da gruta: escurece (as tochas e fogueiras acendem como de noite) e não chove
+func _gruta_luz(delta: float) -> void:
+	if jogador == null: return
+	var p := jogador.global_position
+	var dentro := reg.gruta_coberta(p.x, p.z) and p.y < Regiao.GRUTA_Y + Regiao.GRUTA_TETO
+	gruta_dentro = move_toward(gruta_dentro, 1.0 if dentro else 0.0, delta / 1.2)
 
 # Grumo, o golem de terra (chefe): dá a volta no mapa inteiro, longe da vila, andando sem parar
 var golem: Monstro
@@ -1011,6 +1200,8 @@ var _raio := 0.0
 func _process(delta: float) -> void:
 	Audio.atualizar(delta)
 	_tick_criar()
+	_gruta_pronta()
+	_gruta_luz(delta)
 	_tick_musica(delta)
 	_nitidez_auto(delta)
 	_dia_noite(delta)
@@ -1054,9 +1245,10 @@ func _dia_noite(delta: float) -> void:
 	_vento(delta)
 	if hud: hud.hora = hora
 	c = c.lerp(c * Color(0.62, 0.66, 0.74), chuva)                  # chovendo: tudo mais escuro e azulado
+	c = c.lerp(Color(0.38, 0.37, 0.42), gruta_dentro)                # dentro da gruta: penumbra (tochas acesas)
 	RenderingServer.global_shader_parameter_set("luz_ambiente", Vector3(c.r, c.g, c.b))
 	RenderingServer.global_shader_parameter_set("noite", noite)
-	var acesa := smoothstep(0.25, 0.6, noite)
+	var acesa := maxf(smoothstep(0.25, 0.6, noite), gruta_dentro)
 	for b in _brilhos: b.visible = acesa > 0.05
 	_t_luzes -= delta
 	if _t_luzes > 0.0 or jogador == null: return
@@ -1105,7 +1297,7 @@ func _tempo_chuva(delta: float) -> void:
 	chuva = move_toward(chuva, _chuva_alvo, delta / 25.0)                # entra e sai em ~25 s
 	RenderingServer.global_shader_parameter_set("chuva", chuva)
 	if jogador: _gotas.global_position = jogador.global_position + Vector3(0, 13, 0); _gotas.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
-	_gotas.emitting = chuva > 0.15
+	_gotas.emitting = chuva > 0.15 and gruta_dentro < 0.5
 	_mat_gotas.albedo_color.a = 0.45 * clampf((chuva - 0.1) / 0.9, 0.1, 1.0)     # chuva fraca no começo/fim
 	if chuva > 0.01:
 		if not _som_chuva.playing: _som_chuva.play()
@@ -2832,6 +3024,15 @@ func _modo_teste() -> void:
 			"praia":
 				var zp := float(args.get("z", "200")); var xp := linha_praia(zp)
 				alvo = Vector2(xp - float(args.get("dx", "6")), zp); olha = alvo + (Vector2(0, 10) if args.has("ao_longo") else Vector2(10, 8))
+			"gruta":           # --ir=gruta --onde=boca|sala1|sala2|camara
+				var onde := String(args.get("onde", "boca"))
+				var pts := {"boca": [Regiao.GRUTA_ENTRADA + Vector2(0, 14), Regiao.GRUTA_ENTRADA + Vector2(0, -20)],
+					"tunel": [Vector2(1544, -905), Vector2(1539, -945)],
+					"sala1": [Vector2(1540, -940), Regiao.GRUTA_SALAS[0][0]],
+					"sala2": [Vector2(1490, -1000), Regiao.GRUTA_SALAS[2][0]],
+					"camara": [Vector2(1536, -1056), Regiao.GRUTA_CAMARA],
+					"chefe": [Regiao.GRUTA_CAMARA + Vector2(-2, 9), Regiao.GRUTA_CAMARA]}
+				alvo = pts[onde][0]; olha = pts[onde][1]
 			"rio_cidade": alvo = Vector2(1640.0, -760.0); olha = Vector2(1612.0, -700.0)
 		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position
 		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)
