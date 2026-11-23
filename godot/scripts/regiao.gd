@@ -264,6 +264,12 @@ func altura(x: float, z: float) -> float:
 	if wa > 0.0 and absf(x - FOSSO_X) > 19.5:
 		var alvo := lerpf(ALTURA_CIDADE + 0.35, ALTURA_CIDADE, smoothstep(FOSSO_X + 20.0, CIDADE_C.x - CIDADE_R, x))
 		h = lerpf(h, alvo, wa)
+	# estábulo e chegada da ponte: tudo no nível da estrada (antes o estábulo ficava num platô ~4 m acima e a
+	# estrada passava num corte com barrancos dos lados)
+	var dpt := _dist_ret(x, z, PATIO_NIVEL)
+	if dpt < 24.0:
+		var longe_rio := smoothstep(9.0, 15.0, dist_rio2(x, z))            # não mexe no leito nem na margem do rio
+		h = lerpf(h, lerpf(ALTURA_CIDADE + 0.35, h, smoothstep(0.0, 24.0, dpt)), longe_rio)
 	# pântano ao sul
 	var pant := smoothstep(Ws(370.0), Ws(430.0), z + ruido_grande.get_noise_2d(x * 2.0, 0.0) * 30.0)
 	if pant > 0.0: h = lerp(h, 0.25 + ruido.get_noise_2d(x * 1.7, z * 1.7) * 0.9, pant)
@@ -293,6 +299,15 @@ func na_cidade(x: float, z: float, folga := 0.0) -> bool: return _dist_cidade(x,
 
 # bairros de Altamar pelo ângulo e pela distância ao centro (leste = 0, sul = PI/2, oeste = PI, norte = -PI/2)
 const FOSSO_X := CIDADE_C.x - CIDADE_R - 42.0
+const ESTABULO := Vector2(FOSSO_X - 58.0, CIDADE_C.y - 42.0)
+const PATIO_NIVEL := Rect2(FOSSO_X - 112.0, CIDADE_C.y - 78.0, 96.0, 106.0)     # aplainado no nível da estrada
+# pátio de terra batida do estábulo (cavalos e gente o tempo todo: sem grama)
+static func patio_estabulo(x: float, z: float) -> float:          # 1 dentro, 0 fora (borda suave)
+	var d := Vector2((x - ESTABULO.x + 8.0) / 36.0, (z - ESTABULO.y - 2.0) / 25.0).length()
+	return 1.0 - smoothstep(0.85, 1.0, d)
+static func _dist_ret(x: float, z: float, r: Rect2) -> float:
+	var dx := maxf(maxf(r.position.x - x, x - r.end.x), 0.0); var dz := maxf(maxf(r.position.y - z, z - r.end.y), 0.0)
+	return Vector2(dx, dz).length()
 static var LAGO_PARQUE := CIDADE_C + Vector2(cos(PI * 0.45), sin(PI * 0.45)) * 165.0
 static func distrito(x: float, z: float) -> String:
 	var d := Vector2(x, z) - CIDADE_C; var r := d.length()
@@ -443,6 +458,8 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 		elif dzp < 8.0: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)
 		elif dzp < 11.0: c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1)
 	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
+	var pe := patio_estabulo(x, z)
+	if pe > 0.0: c = c.lerp(Color(0.5, 0.38, 0.25) * (0.9 + n * 0.14), pe)          # terra batida do estábulo
 	var p := zona_pantano(z)
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
 	if ny < 0.8: c = c.lerp(Color(0.46, 0.5, 0.6), smoothstep(0.8, 0.65, ny))  # pedra
@@ -454,6 +471,7 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 
 # dentro do chão de alguma construção (casa, ferraria, moinho...)?
 func em_construcao(x: float, z: float) -> bool:
+	if patio_estabulo(x, z) > 0.3: return true                       # sem grama nem manchas no pátio do estábulo
 	if GRUTA_BB.grow(12.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 9.0: return true
 	for pl in planos:
 		var c: Vector2 = pl[0]

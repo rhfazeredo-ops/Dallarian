@@ -17,13 +17,13 @@ var _luz := FastNoiseLite.new()
 var camadas := [
 	{ "bloco": 8, "raio": 15.0, "dens": 13.0, "tam": Vector2(0.18, 0.38), "alt": 0.06, "flores": true, "ativos": {} },
 	{ "bloco": 24, "raio": 42.0, "dens": 1.6, "tam": Vector2(0.28, 0.55), "alt": 0.035, "flores": false, "ativos": {} },
-	{ "bloco": 64, "raio": 120.0, "dens": 0.16, "tam": Vector2(1.4, 3.0), "alt": 0.012, "flores": false, "ativos": {} },
+	# (as manchas grandes de 1,4–3 m saíram: viravam "bolas" de terra no chão)
 ]
 
 func montar(mundo) -> void:
 	m = mundo
 	if m.celular:
-		camadas[0].raio = 12.0; camadas[0].dens = 10.0; camadas[1].raio = 34.0; camadas[1].dens = 1.2; camadas[2].raio = 95.0
+		camadas[0].raio = 12.0; camadas[0].dens = 10.0; camadas[1].raio = 34.0; camadas[1].dens = 1.2
 	_luz.seed = 3; _luz.frequency = 0.03
 	mat = ShaderMaterial.new(); mat.shader = load("res://shaders/splat_chao.gdshader")
 	mat.set_shader_parameter("neblina", m.NEBLINA)
@@ -156,15 +156,9 @@ func _pocas() -> void:
 		var r := rng.randf_range(0.6, 1.5)
 		var ang := rng.randf() * TAU; var alonga := rng.randf_range(0.5, 0.9)
 		var nrm: Vector3 = m.normal_malha(p.x, p.y)
-		for j in 12:                            # borda de lama em manchas pequenas
-			var a := TAU * j / 12.0 + rng.randf() * 0.3
-			var o := Vector2(cos(a) * r, sin(a) * r * alonga).rotated(ang) * 0.95
-			var q := Vector3(p.x + o.x, 0, p.y + o.y); q.y = m.altura_malha(q.x, q.z) + 0.09
-			itens.append([_transf(q, nrm, r * 0.45, r * 0.3, a), Color(0.3, 0.21, 0.14) * rng.randf_range(0.85, 1.1), 0.0])
-		for j in 4:                             # água
-			var o := Vector2(rng.randf_range(-0.35, 0.35) * r, rng.randf_range(-0.35, 0.35) * r * alonga).rotated(ang)
-			var q := Vector3(p.x + o.x, 0, p.y + o.y); q.y = m.altura_malha(q.x, q.z) + 0.12
-			itens.append([_transf(q, nrm, r * 1.5, r * 1.5 * alonga, ang), Color.WHITE, 1.0])
+		# uma poça só: um disco de água inteiro (sem borda de pedrinhas/lama e sem círculos sobrepostos)
+		var q := Vector3(p.x, 0, p.y); q.y = m.altura_malha(q.x, q.z) + 0.1
+		itens.append([_transf(q, nrm, r * 1.6, r * 1.6 * alonga, ang), Color.WHITE, 1.0])
 	_multimesh(itens)
 
 

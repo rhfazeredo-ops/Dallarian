@@ -1406,25 +1406,43 @@ func _postes_estrada_real() -> void:
 # ponte (de lá em diante já é o calçamento da cidade). Montada em pedaços de ~90 m só quando a Rachel chega perto
 # (usa a altura da malha do terreno, que só existe perto dela) e longe some pela distância de visão.
 const ESTRADA_MEIA := 2.9
-var _estrada_ped := []          # [centro, amostras [[ponto, normal, s]], feito]
+var _estrada_ped := []          # [centro, amostras [[ponto, normal, s]], feito, meia largura]
 var _t_estrada := 0.0
 func _estrada_preparar() -> void:
 	if reg.estrada_real < 0: return
-	var linha: PackedVector2Array = reg.estradas[reg.estrada_real]
-	var amostras := []; var sp := 0.0
-	while true:
+	var c := Regiao.CIDADE_C; var fx := Regiao.FOSSO_X; var rr := Regiao.CIDADE_R
+	# Estrada Real (vila → ponte) e, com a mesma pedra, a chegada da ponte, as quatro ruas principais de Altamar
+	# (da praça até os portões; a do norte para no castelo) e a praça
+	_faixa_linha(reg.estradas[reg.estrada_real], ESTRADA_MEIA, func(p: Vector2) -> bool: return p.x > fx - 92.0)
+	_faixa_linha(PackedVector2Array([Vector2(fx - 92.0, c.y), Vector2(fx - 19.5, c.y)]), 4.0)
+	var fora_canal := func(p: Vector2) -> bool: return absf(p.distance_to(c) - Regiao.CANAL) < 7.0    # pontes do canal
+	_faixa_linha(PackedVector2Array([Vector2(fx + 19.5, c.y), c + Vector2(-24.0, 0)]), 5.5, fora_canal)
+	_faixa_linha(PackedVector2Array([c + Vector2(24.0, 0), c + Vector2(rr + 30.0, 0)]), 5.5, fora_canal)
+	_faixa_linha(PackedVector2Array([c + Vector2(0, -24.0), c + Vector2(0, -150.0)]), 5.5, fora_canal)
+	_faixa_linha(PackedVector2Array([c + Vector2(0, 24.0), c + Vector2(0, rr - 2.0)]), 5.5, fora_canal)
+	_estrada_ped.append([c, [], false, -24.0])                     # a praça (disco de 24 m; meia < 0 = disco)
+
+# amostras a cada 1,5 m ao longo da linha; "pular" tira trechos (ponte, canal); pedaços de ~90 m
+func _faixa_linha(linha: PackedVector2Array, meia: float, pular := Callable()) -> void:
+	var trechos := [[]]; var sp := 0.0
+	var total := 0.0
+	for i in linha.size() - 1: total += linha[i].distance_to(linha[i + 1])
+	while sp <= total:
 		var pr := _ponto_na_linha(linha, sp)
 		var pt: Vector2 = pr[0]; var tg: Vector2 = pr[1]
-		if pt.x > Regiao.FOSSO_X - 92.0 or (sp > 10.0 and pr[0].distance_to(linha[linha.size() - 1]) < 1.0): break
-		amostras.append([pt, Vector2(-tg.y, tg.x), sp]); sp += 1.5
-	var k := 0
-	while k < amostras.size() - 1:
-		var fim := mini(k + 60, amostras.size() - 1)
-		var pedaco := amostras.slice(k, fim + 1)
-		var c := Vector2.ZERO
-		for a in pedaco: c += a[0]
-		_estrada_ped.append([c / pedaco.size(), pedaco, false])
-		k = fim
+		if pular.is_valid() and pular.call(pt):
+			if not trechos[-1].is_empty(): trechos.append([])
+		else: trechos[-1].append([pt, Vector2(-tg.y, tg.x), sp])
+		sp += 1.5
+	for amostras: Array in trechos:
+		var k := 0
+		while k < amostras.size() - 1:
+			var fim := mini(k + 60, amostras.size() - 1)
+			var pedaco := amostras.slice(k, fim + 1)
+			var cc := Vector2.ZERO
+			for a in pedaco: cc += a[0]
+			_estrada_ped.append([cc / pedaco.size(), pedaco, false, meia])
+			k = fim
 
 func _tick_estrada(delta: float) -> void:
 	_t_estrada -= delta
@@ -1433,18 +1451,21 @@ func _tick_estrada(delta: float) -> void:
 	var pj := Vector2(jogador.global_position.x, jogador.global_position.z)
 	for pd in _estrada_ped:
 		if pd[2] or (pd[0] as Vector2).distance_to(pj) > 240.0: continue
-		pd[2] = true; _estrada_montar(pd[1]); return            # um pedaço por vez
+		pd[2] = true                                               # um pedaço por vez
+		if float(pd[3]) < 0.0: _praca_montar(pd[0], -float(pd[3]))
+		else: _estrada_montar(pd[1], pd[3])
+		return
 
-func _estrada_montar(amostras: Array) -> void:
+func _estrada_montar(amostras: Array, meia: float) -> void:
 	var st := _st()
 	var linhas := []
 	for a in amostras:
 		var p: Vector2 = a[0]; var n: Vector2 = a[1]
 		var fila := []
 		for u in [-1.0, -0.5, 0.0, 0.5, 1.0]:
-			var q: Vector2 = p + n * float(u) * ESTRADA_MEIA
+			var q: Vector2 = p + n * float(u) * meia
 			var y := altura_malha(q.x, q.y) + (0.05 if absf(u) > 0.9 else 0.09)
-			fila.append([Vector3(q.x, y, q.y), Vector2((u + 1.0) * ESTRADA_MEIA / 2.8, float(a[2]) / 2.8)])
+			fila.append([Vector3(q.x, y, q.y), Vector2((u + 1.0) * meia / 2.8, float(a[2]) / 2.8)])
 		linhas.append(fila)
 	for i in linhas.size() - 1:
 		for j in 4:
@@ -1452,6 +1473,23 @@ func _estrada_montar(amostras: Array) -> void:
 			for t in [[v00, v10, v11], [v00, v11, v01]]:
 				for v: Array in t:
 					st.set_normal(Vector3.UP); st.set_color(Color.WHITE); st.set_uv(v[1]); st.add_vertex(v[0])
+	var mi := _peca(st, mat("estrada_pedra", 1.0), Vector3.ZERO)
+	mi.visibility_range_end = 260.0
+
+func _praca_montar(c: Vector2, r: float) -> void:              # disco de pedra (anéis de 2 m, 24 fatias)
+	var st := _st()
+	var n := 24; var aneis := int(ceil(r / 2.0))
+	var pt := func(rad: float, a: float) -> Vector3:
+		var q := c + Vector2(cos(a), sin(a)) * rad
+		return Vector3(q.x, altura_malha(q.x, q.y) + 0.08, q.y)
+	for k in aneis:
+		var r0 := r * k / aneis; var r1 := r * (k + 1) / aneis
+		for i in n:
+			var a0 := TAU * i / n; var a1 := TAU * (i + 1) / n
+			var p00: Vector3 = pt.call(r0, a0); var p01: Vector3 = pt.call(r0, a1); var p10: Vector3 = pt.call(r1, a0); var p11: Vector3 = pt.call(r1, a1)
+			for t in [[p00, p10, p11], [p00, p11, p01]]:
+				for q: Vector3 in t:
+					st.set_normal(Vector3.UP); st.set_color(Color.WHITE); st.set_uv(Vector2(q.x, q.z) / 2.8); st.add_vertex(q)
 	var mi := _peca(st, mat("estrada_pedra", 1.0), Vector3.ZERO)
 	mi.visibility_range_end = 260.0
 
@@ -1941,7 +1979,7 @@ func _cidade() -> void:
 			_poste_em(Vector2(sp.x - 6.0, c.y + lado * 7.0), Vector2(sp.x - 6.0, c.y))
 	# ---- castelo (norte) com escadaria, portão entre torres e estandartes
 	var cas := c + Vector2(0, -RR + 52.0)
-	estabulo_pos = Vector2(Regiao.FOSSO_X - 58.0, c.y - 42.0); taverna_pos = c + Vector2(-180.0, 34.0)   # antes das casas
+	estabulo_pos = Regiao.ESTABULO; taverna_pos = c + Vector2(-180.0, 34.0)   # antes das casas
 	st = _st()
 	_caixa(st, Vector3(cas.x, y + 9.0, cas.y), Vector3(64.0, 20.0, 40.0))
 	_caixa(st, Vector3(cas.x, y + 18.0, cas.y - 6.0), Vector3(24.0, 36.0, 22.0))
@@ -3125,6 +3163,7 @@ func _modo_teste() -> void:
 					"meio": [Vector2(1540, -925), Vector2(1537, -950)],
 					"perto": [Vector2(1538, -943), Vector2(1534, -960)]}
 				alvo = pts[onde][0]; olha = pts[onde][1]
+			"ponto": alvo = Vector2(float(args.get("px", "0")), float(args.get("pz", "0"))); olha = alvo + Vector2(0, -10)   # --ir=ponto --px --pz
 			"rio_cidade": alvo = Vector2(1640.0, -760.0); olha = Vector2(1612.0, -700.0)
 		jogador.global_position = Vector3(alvo.x, altura(alvo.x, alvo.y) + 0.3, alvo.y); _ultima = jogador.global_position
 		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)

@@ -216,3 +216,10 @@
   para a bolsa e com EQUIPAR entra no lugar da espada.
 - **Nomes dos monstros únicos**: o Grão-Lodoso agora é **Glorgo, o Rei da Lama** (nível 10, barra de chefe no
   alto da tela) e o golem é **Barrogar, o Colosso do Vale**.
+- **Poças** viraram um círculo só de água (sem a borda de pedrinhas/lama e sem várias bolinhas sobrepostas).
+- Tiradas as **manchas grandes redondas** do chão (as "bolas" de terra de 1,4–3 m).
+- **Estábulo no nível da estrada**: o terreno do estábulo até a chegada da ponte foi aplainado (antes ficava ~4 m
+  acima, com subida para o estábulo e barrancos dos lados da estrada parecendo um quebra-mola).
+- **Pátio de terra batida** em volta do estábulo inteiro (casa, telheiro, cercado e a frente), sem grama.
+- **Ruas de Altamar com a pedra da Estrada Real**: chegada da ponte até o portão, as quatro ruas principais (da
+  praça até os portões; a do norte até o castelo) e a praça inteira.
