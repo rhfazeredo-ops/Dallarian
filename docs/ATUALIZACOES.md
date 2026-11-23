@@ -249,3 +249,8 @@
   escurecendo para dentro, hera pendurada na borda, caminho de terra com flores e pedras.
 - Boca da gruta: o paredão de rocha e as pedras do caminho usam a **mesma textura e cor da montanha** (rocha
   azul-acinzentada, grama nos degraus), em vez de cores próprias — fica tudo da mesma pedra.
+- **Entrada da Gruta dos Lodosos com o modelo do dono** (Tripo): o arco de rochas com musgo e hera fica na boca,
+  encostado na montanha, e a toca dele leva direto ao túnel (a parede do fundo do modelo foi aberta).
+- **Todas as montanhas e encostas com a rocha da entrada**: o terreno ganhou um material próprio — nas partes
+  íngremes usa a textura de rocha clara com musgo tirada do modelo da entrada (projetada de lado), com neve por
+  cima no alto; nas partes planas continua a grama.

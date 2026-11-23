@@ -1610,7 +1610,8 @@ func _barraca(c: Vector2, ang: float) -> void:
 func mat(textura: String, escala := 1.0, cor := Color.WHITE) -> ShaderMaterial:
 	var k := "%s|%s|%s" % [textura, escala, cor]
 	if _mats.has(k): return _mats[k]
-	var m := ShaderMaterial.new(); m.shader = load("res://shaders/ps1.gdshader")
+	var m := ShaderMaterial.new(); m.shader = load("res://shaders/terreno.gdshader" if textura == "terreno" else "res://shaders/ps1.gdshader")
+	if textura == "terreno": m.set_shader_parameter("tex_rocha", Texturas.pegar("rocha_montanha"))   # montanhas com a rocha da entrada da gruta
 	if textura == "": m.set_shader_parameter("usa_tex", false)
 	else: m.set_shader_parameter("tex", Texturas.pegar(textura))
 	m.set_shader_parameter("escala_uv", escala); m.set_shader_parameter("cor", cor)

@@ -213,7 +213,7 @@ func _boca() -> void:
 	var piso := reg.gruta_piso(cx, bz); var teto := reg.gruta_teto(cx, bz)
 	var alto := Regiao.GRUTA_TETO + 3.0                 # altura do arco da boca no meio
 	var pedras := []                  # [posição, tamanho, musgo]
-	_paredao_rocha(cx, bz, meia, piso, alto, teto)
+	_entrada_modelo(cx, bz, piso)
 	# pedras pela beira do caminho (menores longe da boca)
 	for lado in [-1.0, 1.0]:
 		for i in 9:
@@ -229,21 +229,6 @@ func _boca() -> void:
 		itens.append([Transform3D(b, pd[0]), Color(0.46, 0.5, 0.6) * r.randf_range(0.9, 1.1), pd[2]])   # rocha da montanha
 	var mm_mat: ShaderMaterial = m.mat("terreno")
 	_mm_musgo(itens, mm_mat)
-	# trepadeiras caindo do alto do arco
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in 30:
-		var a := lerpf(0.25, PI - 0.25, r.randf())
-		var top := Vector3(cx + cos(a) * (meia + r.randf_range(0.2, 1.8)), piso + sin(a) * (alto + r.randf_range(0.2, 1.6)), bz + 3.2 + r.randf_range(0.0, 0.6))
-		var comp := r.randf_range(1.5, 5.5); var lg := r.randf_range(0.14, 0.26)
-		var cor := Color(0.28, 0.48, 0.2) * r.randf_range(0.8, 1.15)
-		var seg := 4
-		for k in seg:
-			var y0 := top.y - comp * k / seg; var y1 := top.y - comp * (k + 1) / seg
-			var dx0 := sin(k * 1.3 + i) * 0.08; var dx1 := sin((k + 1) * 1.3 + i) * 0.08
-			var q := [Vector3(top.x - lg + dx0, y0, top.z), Vector3(top.x + lg + dx0, y0, top.z), Vector3(top.x + lg * 0.8 + dx1, y1, top.z), Vector3(top.x - lg * 0.8 + dx1, y1, top.z)]
-			for tri in [[0, 1, 2], [0, 2, 3]]:
-				for t in tri: st.set_color(cor * (1.0 - 0.15 * k / seg)); st.set_normal(Vector3(0, 0, 1)); st.add_vertex(q[t])
-	var trep := MeshInstance3D.new(); trep.mesh = st.commit(); trep.material_override = mm_mat; add_child(trep)
 	# florzinhas e tufos na beira do caminho
 	var flores := []
 	for i in 260:
@@ -365,3 +350,42 @@ func _faceta(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, luz := 1.0) ->
 	var cor := reg.cor(m0.x, m0.z, m0.y, absf(n.y), false)
 	if luz < 1.0: cor = Color(0.5, 0.42, 0.34).lerp(cor, 0.3) * luz                  # dentro do túnel: rocha morna e escura
 	for p in [a, b, c]: st.set_color(cor); st.set_normal(n); st.set_uv(Vector2(p.x + p.z, p.y) * 0.25); st.add_vertex(p)
+
+# entrada modelada pelo dono (Tripo): rochas com musgo e hera em volta do túnel. No arquivo a boca olha para +X,
+# a largura é o eixo Z e a altura Y; aqui a boca olha para o vale (+Z) e o fundo encosta na montanha.
+func _entrada_modelo(cx: float, bz: float, piso: float) -> void:
+	var arq := "res://assets/modelos/entrada_gruta.glb"
+	if not ResourceLoader.exists(arq): return
+	var no: Node3D = m.modelo_ps1(arq)
+	var bb := AABB()
+	for mi in no.find_children("*", "MeshInstance3D", true, false):
+		bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
+		(mi as MeshInstance3D).visibility_range_end = 400.0
+	# tira a parede do fundo da toca do modelo (faces viradas para a boca, no meio e embaixo, na metade de trás):
+	# pela abertura aparece o túnel de verdade
+	for mi: MeshInstance3D in no.find_children("*", "MeshInstance3D", true, false):
+		var am := ArrayMesh.new(); var mesh: Mesh = mi.mesh
+		for sf in mesh.get_surface_count():
+			var arr := mesh.surface_get_arrays(sf)
+			var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]; var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+			var novo := PackedInt32Array()
+			var x_corte := bb.position.x + bb.size.x * 0.5; var y_corte := bb.position.y + bb.size.y * 0.5
+			var z_meia := bb.size.z * 0.19
+			for t in range(0, idx.size(), 3):
+				var a := v[idx[t]]; var b := v[idx[t + 1]]; var c := v[idx[t + 2]]
+				var cc := (a + b + c) / 3.0; var n := (b - a).cross(c - a).normalized()
+				if cc.x < x_corte and cc.y < y_corte and absf(cc.z - bb.get_center().z) < z_meia and n.x > 0.7: continue
+				novo.append(idx[t]); novo.append(idx[t + 1]); novo.append(idx[t + 2])
+			arr[Mesh.ARRAY_INDEX] = novo
+			am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+			am.surface_set_material(sf, mesh.surface_get_material(sf))
+		var mat_o = mi.get_surface_override_material(0)
+		mi.mesh = am
+		if mat_o: mi.set_surface_override_material(0, mat_o)
+	var esc := 23.0 / bb.size.z                                     # ~23 m de largura (boca de ~12 m)
+	var fundo := 0.55                                               # menos fundo (o túnel de verdade continua atrás)
+	add_child(no)
+	no.scale = Vector3(esc * fundo, esc, esc)
+	no.rotation.y = -PI * 0.5                                       # +X do arquivo → +Z (para o vale)
+	# o fundo da rocha encosta na montanha (1,5 m para dentro); a frente fica no vale
+	no.position = Vector3(cx - bb.get_center().z * esc, piso - bb.position.y * esc - 0.3, bz - 1.5 - bb.position.x * esc * fundo)
