@@ -99,7 +99,7 @@ const PONTAS := [Vector3(1.4, 4.2, 0.3), Vector3(-1.2, 4.7, -0.5), Vector3(0.2, 
 
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
-	if m.celular: VISTA = 185.0; PERTO = 55.0
+	if m.celular: VISTA = 185.0; PERTO = 70.0
 	_mat_cartao = {
 		"folhagem": _material(_tex_folhagem(192, 11)),
 		"folhagem2": _material(_tex_folhagem(192, 21)),

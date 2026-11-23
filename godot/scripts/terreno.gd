@@ -19,7 +19,17 @@ var _primeira := true
 func montar(mundo) -> void:
 	m = mundo; reg = mundo.reg
 	_nx = int(ceil((Regiao.X1 - Regiao.X0) / PED)); _nz = int(ceil((Regiao.Z1 - Regiao.Z0) / PED))
-	for j in range(0, _nz, 2): for i in range(0, _nx, 2): _simples_bloco(i, j)
+	# terreno de longe do mapa inteiro: calculado em paralelo em todos os núcleos (antes um só: ~6 s no carregamento)
+	var blocos := []
+	for j in range(0, _nz, 2): for i in range(0, _nx, 2): blocos.append(Vector2i(i, j))
+	var caixas := []
+	for b in blocos: caixas.append([null])
+	var grupo := WorkerThreadPool.add_group_task(func(idx: int): caixas[idx][0] = _bloco_arrays(blocos[idx]), blocos.size(), -1, true, "terreno de longe")
+	var _t0 := Time.get_ticks_msec()
+	WorkerThreadPool.wait_for_group_task_completion(grupo)
+	var _t1 := Time.get_ticks_msec()
+	for idx in blocos.size(): _simples_bloco_de(blocos[idx], caixas[idx][0])
+	if m.args.has("carga"): print("CARGA  terreno calculo ", _t1 - _t0, " malhas ", Time.get_ticks_msec() - _t1, " blocos ", blocos.size())
 
 var _nx := 0
 var _nz := 0
@@ -114,16 +124,28 @@ func _malha_arrays(k: Vector2i, cel: int, desce: bool) -> Array:
 	return st.commit_to_arrays()
 
 # versão simples em blocos de 2×2 pedaços (128 m): 4× menos objetos para desenhar ao longe
-func _simples_bloco(i0: int, j0: int) -> void:
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var centro := _origem(Vector2i(i0, j0)) + Vector2(PED, PED)
+# os 4 pedaços simples de um bloco 2×2 juntos num só conjunto de arrays (roda fora do quadro principal)
+func _bloco_arrays(b: Vector2i) -> Array:
+	var centro := _origem(b) + Vector2(PED, PED)
+	var vs := PackedVector3Array(); var ns := PackedVector3Array(); var cs := PackedColorArray(); var uvs := PackedVector2Array()
 	for dj in 2:
 		for di in 2:
-			var k := Vector2i(i0 + di, j0 + dj)
+			var k := Vector2i(b.x + di, b.y + dj)
 			if k.x >= _nx or k.y >= _nz: continue
 			var c := _origem(k) + Vector2(PED, PED) * 0.5 - centro
-			st.append_from(_malha(k, 8, true), 0, Transform3D(Basis(), Vector3(c.x, 0, c.y)))
-	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = m.mat("terreno")
+			var a := _malha_arrays(k, 8, true)
+			var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			for q in v.size(): v[q] += Vector3(c.x, 0, c.y)
+			vs.append_array(v); ns.append_array(a[Mesh.ARRAY_NORMAL]); cs.append_array(a[Mesh.ARRAY_COLOR]); uvs.append_array(a[Mesh.ARRAY_TEX_UV])
+	var r := []; r.resize(Mesh.ARRAY_MAX)
+	r[Mesh.ARRAY_VERTEX] = vs; r[Mesh.ARRAY_NORMAL] = ns; r[Mesh.ARRAY_COLOR] = cs; r[Mesh.ARRAY_TEX_UV] = uvs
+	return r
+
+func _simples_bloco_de(b: Vector2i, arrays: Array) -> void:
+	if (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).is_empty(): return
+	var centro := _origem(b) + Vector2(PED, PED)
+	var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.material_override = m.mat("terreno")
 	mi.position = Vector3(centro.x, 0, centro.y)
 	mi.visibility_range_begin = LONGE - 35.0
 	add_child(mi)

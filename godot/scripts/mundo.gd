@@ -35,22 +35,34 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		var p := a.trim_prefix("--").split("=", true, 1)
 		args[p[0]] = p[1] if p.size() > 1 else "1"
+	var _tc := Time.get_ticks_msec()
 	reg = Regiao.new(); estrada = reg.estradas[0]
+	if args.has("carga"): print("CARGA regiao ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_tela()
 	_ambiente()
 	terreno = Terreno.new(); raiz.add_child(terreno)
 	jogador = Jogador.new()
 	_lugares()                      # antes do terreno: as construções aplanam o chão embaixo delas
+	if args.has("carga"): print("CARGA lugares ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	terreno.montar(self)
+	if args.has("carga"): print("CARGA terreno ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	for f in _depois: f.call()        # cercas, muros e blocos: assentados na malha final do terreno
+	if args.has("carga"): print("CARGA depois ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_agua_feita = false
 	_agua()
+	if args.has("carga"): print("CARGA agua ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_espuma()
+	if args.has("carga"): print("CARGA espuma ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_juntar_estaticos()
+	if args.has("carga"): print("CARGA juntar ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self); floresta = fl
+	if args.has("carga"): print("CARGA floresta ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
+	if args.has("carga"): print("CARGA chao ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	var grama := Grama.new(); raiz.add_child(grama); grama.montar(self)
+	if args.has("carga"): print("CARGA grama ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_moradores()
+	if args.has("carga"): print("CARGA moradores ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	raiz.add_child(jogador)
 	jogador.position = Vector3(-4, altura(-4, 48) + 0.3, 48)
 	_ultima = jogador.position
@@ -86,10 +98,12 @@ func _ready() -> void:
 		["Altamar", cidade_pos, "castelo", 200.0],
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	fauna.montar(self)
+	if args.has("carga"): print("CARGA fauna ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_montar_chuva()
 	_montar_vento()
 	if args.has("chuva"): _chuva_alvo = float(args.chuva); chuva = _chuva_alvo
 	_musica()
+	if args.has("carga"): print("CARGA musica ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	if args.has("estrada"): _checar_estrada(); get_tree().quit(); return
 	if args.has("checar"): _checar_chao()
 	if args.has("shot"): _modo_teste()
@@ -101,19 +115,35 @@ func _moradores() -> void:
 	var n := 0
 	for g in grupos:
 		for i in g[2]:
+			var _ta := Time.get_ticks_usec()
 			var mo := Morador.new(); raiz.add_child(mo)
+			var _tb := Time.get_ticks_usec()
 			var a := randf() * TAU; var p: Vector2 = g[0] + Vector2(cos(a), sin(a)) * randf_range(4.0, g[1] * 0.8)
 			for t in 20:
 				if not perto_de_casa(p.x, p.y, 1.5): break
 				a = randf() * TAU; p = g[0] + Vector2(cos(a), sin(a)) * randf_range(4.0, g[1] * 0.8)
+			var _tc2 := Time.get_ticks_usec()
 			mo.position = Vector3(p.x, altura(p.x, p.y) + 0.3, p.y)
 			mo.montar(self, 1000 + n, g[0], g[1]); n += 1
+			var _dt := (Time.get_ticks_usec() - _ta) / 1000.0
+			if args.has("carga") and _dt > 50.0: print("MOR lento n=%d add=%.1f busca=%.1f resto=%.1f ms grupo=%s" % [n, (_tb - _ta) / 1000.0, (_tc2 - _tb) / 1000.0, (Time.get_ticks_usec() - _tc2) / 1000.0, str(g[0])])
+	var _t1 := Time.get_ticks_msec()
 	_profissionais()
+	if args.has("carga"): print("CARGA  profissionais ", Time.get_ticks_msec() - _t1); _t1 = Time.get_ticks_msec()
 	_criancas()
+	if args.has("carga"): print("CARGA  criancas ", Time.get_ticks_msec() - _t1)
+	var _t_lobos := Time.get_ticks_msec()
 	_lobos()
+	if args.has("carga"): print("CARGA  _lobos ", Time.get_ticks_msec() - _t_lobos)
+	var _t_aranhas := Time.get_ticks_msec()
 	_aranhas()
+	if args.has("carga"): print("CARGA  _aranhas ", Time.get_ticks_msec() - _t_aranhas)
+	var _t_lodosos := Time.get_ticks_msec()
 	_lodosos()
+	if args.has("carga"): print("CARGA  _lodosos ", Time.get_ticks_msec() - _t_lodosos)
+	var _t_golem := Time.get_ticks_msec()
 	_golem()
+	if args.has("carga"): print("CARGA  _golem ", Time.get_ticks_msec() - _t_golem)
 	fauna = Fauna.new(); raiz.add_child(fauna)
 	# já começam algumas conversas na vila
 	var vila := []
@@ -144,22 +174,27 @@ var loja_ui: Loja
 var mapa: Mapa
 var menu: Menu
 func _lobos() -> void:
+	var _tl0 := Time.get_ticks_msec()
 	var rng := RandomNumberGenerator.new(); rng.seed = 404
 	var montanha := []; var mata := []
 	for i in 24000:
 		var q := Vector2(rng.randf_range(Regiao.X0 + 60, Regiao.X1 - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
-		if q.length() < 120.0 or reg.folga_caminho(q.x, q.y) < 12.0 or reg.agua(q.x, q.y) != 0.0 or reg.altura(q.x, q.y) < 1.0 or reg.dist_rio(q.x, q.y) < 20.0: continue
-		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
+		# verificações baratas (grades e contas simples) primeiro; a altura do terreno (cara) só no fim
+		if q.length() < 120.0 or reg.dist_rio(q.x, q.y) < 20.0 or reg.dist_rio2(q.x, q.y) < 20.0 or reg.folga_caminho(q.x, q.y) < 12.0: continue
+		if reg.na_cidade(q.x, q.y, 40.0) or reg.campo_em(q.x, q.y) >= 0 or perto_de_lugar(q.x, q.y, 30.0): continue
+		var h0 := reg.altura(q.x, q.y)
+		if h0 < 1.0 or (h0 - reg.base(q.y) <= 5.0 and reg.floresta(q.x, q.y) <= 0.5): continue    # nem montanha nem mata
 		var longe_barraca := true
-		for b in barracas: if q.distance_to(b) < 60.0: longe_barraca = false
+		for b in barracas: if q.distance_to(b) < 60.0: longe_barraca = false; break
 		if not longe_barraca: continue
-		var h0 := reg.altura(q.x, q.y); var desn := 0.0
+		if reg.agua(q.x, q.y) != 0.0: continue
+		var desn := 0.0
 		for o in [Vector2(5, 0), Vector2(-5, 0), Vector2(0, 5), Vector2(0, -5)]:
 			desn = maxf(desn, absf(reg.altura(q.x + o.x, q.y + o.y) - h0))
 		if desn > 2.2: continue
-		if reg.dist_rio2(q.x, q.y) < 20.0 or reg.na_cidade(q.x, q.y, 40.0): continue
 		if h0 - reg.base(q.y) > 5.0: montanha.append(q)
 		elif reg.floresta(q.x, q.y) > 0.5: mata.append(q)
+	if args.has("carga"): print("CARGA   lobos sorteio ", Time.get_ticks_msec() - _tl0)
 	var escolhidos := []
 	for lista in [[montanha, "branco", 50], [mata, "marrom", 100]]:
 		var cands: Array = lista[0]; var feitos := 0
@@ -189,6 +224,22 @@ func _lobos() -> void:
 		escolhidos.append(q); feitos2 += 1
 		_matilha(q, "marrom", rng, true)
 
+# criar monstros DEPOIS do carregamento, alguns por quadro (os mais perto da Rachel primeiro): antes os ~650 eram
+# criados antes da primeira imagem (~5 s de carregamento a mais). Os grupos já existem; os membros vão chegando.
+var _fila_criar := []            # [posição, Callable]
+var _fila_ordenada := false
+func _criar_depois(p: Vector2, f: Callable) -> void:
+	_fila_criar.append([p, f]); _fila_ordenada = false
+func _tick_criar() -> void:
+	if _fila_criar.is_empty() or jogador == null: return
+	if not _fila_ordenada:
+		var pj := Vector2(jogador.global_position.x, jogador.global_position.z)
+		_fila_criar.sort_custom(func(a, b): return a[0].distance_squared_to(pj) > b[0].distance_squared_to(pj))   # mais perto no fim
+		_fila_ordenada = true
+	var t0 := Time.get_ticks_usec()
+	while not _fila_criar.is_empty() and Time.get_ticks_usec() - t0 < 3000:      # até 3 ms por quadro
+		_fila_criar.pop_back()[1].call()
+
 func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator, pequena := false) -> void:
 	var n := 3 if pequena else rng.randi_range(2, 3)             # no máximo 3 lobos por grupo
 	var g := {"casa": c, "membros": [], "alerta": false, "atacante": null, "tipo": tipo}
@@ -196,17 +247,19 @@ func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator, pequena := f
 	var nv_min := 2 if tipo == "marrom" else 4; var nv_max := 3 if tipo == "marrom" else 6
 	if pequena: nv_min = 1; nv_max = 2                      # grupinhos de 3 de nível 1–2, sem líder
 	for i in n:
-		var lobo := Lobo.new(); lobo.grupo = g
 		var lider := i == 0 and not pequena
 		var a := TAU * i / n + rng.randf() * 0.4; var r := 0.0 if i == 0 else rng.randf_range(3.0, 6.0)
 		var p := c + Vector2(cos(a), sin(a)) * r
-		p = ponto_seco(p, c)
-		raiz.add_child(lobo); lobo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
-		lobo.vaga = TAU * i / n
-		lobo.nivel = nv_max + 1 if lider else rng.randi_range(nv_min, nv_max)
-		lobo.montar(self, "preto" if lider else tipo, lider, rng.randi())
-		lobo.rotation.y = rng.randf() * TAU
-		g.membros.append(lobo)
+		var nv := nv_max + 1 if lider else rng.randi_range(nv_min, nv_max)
+		var semente := rng.randi(); var giro := rng.randf() * TAU; var vaga := TAU * i / n
+		_criar_depois(p, func():
+			var lobo := Lobo.new(); lobo.grupo = g
+			var ps := ponto_seco(p, c)
+			raiz.add_child(lobo); lobo.position = Vector3(ps.x, altura_malha(ps.x, ps.y), ps.y)
+			lobo.vaga = vaga; lobo.nivel = nv
+			lobo.montar(self, "preto" if lider else tipo, lider, semente)
+			lobo.rotation.y = giro; lobo.reset_physics_interpolation()
+			g.membros.append(lobo))
 	matilhas.append(g)
 
 # ---------- status de combate (como no WoW Classic) ----------
@@ -316,18 +369,26 @@ func _aranhas() -> void:
 	for i in 30000:
 		if feitos.size() >= 100: break
 		var q := Vector2(rng.randf_range(Regiao.X0 + 60, Regiao.X1 - 60), rng.randf_range(-Regiao.LIM + 60, Regiao.LIM - 60))
-		if q.length() < 170.0 or reg.altura(q.x, q.y) < 1.5 or reg.dist_rios(q.x, q.y) < 18.0 or reg.floresta(q.x, q.y) < 0.5 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.agua(q.x, q.y) != 0.0: continue
-		if perto_de_lugar(q.x, q.y, 25.0) or reg.altura(q.x, q.y) - reg.base(q.y) > 6.0 or reg.na_cidade(q.x, q.y, 40.0): continue
+		if q.length() < 170.0 or reg.dist_rios(q.x, q.y) < 18.0 or reg.folga_caminho(q.x, q.y) < 10.0 or reg.na_cidade(q.x, q.y, 40.0): continue
+		if reg.floresta(q.x, q.y) < 0.5 or perto_de_lugar(q.x, q.y, 25.0): continue
 		var ok := true
 		for f in feitos: if q.distance_to(f) < 55.0: ok = false
+		if not ok: continue
 		for g in matilhas: if q.distance_to(g.casa) < 35.0: ok = false
 		if not ok: continue
+		var ha := reg.altura(q.x, q.y)                               # a parte cara só para quem passou no resto
+		if ha < 1.5 or ha - reg.base(q.y) > 6.0 or reg.agua(q.x, q.y) != 0.0: continue
 		feitos.append(q)
-		var a := Aranha.new(); a.grupo = {"casa": q, "membros": [a], "alerta": false, "tipo": "aranha"}
-		q = ponto_seco(q, q); a.grupo.casa = q
-		raiz.add_child(a); a.position = Vector3(q.x, altura_malha(q.x, q.y), q.y)
-		a.montar(self, rng.randi_range(3, 5), rng.randi()); a.rotation.y = rng.randf() * TAU
-		matilhas.append(a.grupo)
+		var ga := {"casa": q, "membros": [], "alerta": false, "tipo": "aranha"}
+		var nv := rng.randi_range(3, 5); var semente := rng.randi(); var giro := rng.randf() * TAU
+		var qa := q
+		_criar_depois(qa, func():
+			var a := Aranha.new(); a.grupo = ga
+			var ps := ponto_seco(qa, qa); ga.casa = ps
+			raiz.add_child(a); a.position = Vector3(ps.x, altura_malha(ps.x, ps.y), ps.y)
+			a.montar(self, nv, semente); a.rotation.y = giro; a.reset_physics_interpolation()
+			ga.membros.append(a))
+		matilhas.append(ga)
 
 # Lodosos: grupos de 3 (um grande e dois jovens) em trechos da beira do rio, do lago e da praia
 func _lodosos() -> void:
@@ -346,6 +407,8 @@ func _lodosos() -> void:
 	for z0 in [-380.0, -290.0, -200.0, -120.0, -40.0, 50.0, 140.0, 220.0, 300.0]:
 		var z := Regiao.Ws(absf(z0)) * signf(z0)
 		var x := Regiao.Ws(380.0)
+		while x < Regiao.X1 and reg.altura(x, z) > 1.0: x += 8.0          # passos de 8 m e depois refina
+		x = maxf(x - 8.0, Regiao.Ws(380.0))
 		while x < Regiao.X1 and reg.altura(x, z) > 1.0: x += 1.0
 		cands.append(Vector2(x - 5.0, z))
 	var r2 := reg.rio2                                       # rio do leste também
@@ -367,13 +430,16 @@ func _lodosos() -> void:
 		feitos.append(q)
 		var g := {"casa": q, "membros": [], "alerta": false, "tipo": "lodoso"}
 		for j in 3:
-			var mo := Monstro.new(); mo.grupo = g
 			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.0)
-			p = ponto_seco(p, q)
-			raiz.add_child(mo); mo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
-			mo.montar(self, "lodoso_g" if j == 0 else "lodoso_j", rng.randi_range(3, 4) if j == 0 else rng.randi_range(2, 3), rng.randi())
-			mo.rotation.y = rng.randf() * TAU
-			g.membros.append(mo)
+			var nv := rng.randi_range(3, 4) if j == 0 else rng.randi_range(2, 3); var semente := rng.randi(); var giro := rng.randf() * TAU
+			var ql := q
+			_criar_depois(p, func():
+				var mo := Monstro.new(); mo.grupo = g
+				var ps := ponto_seco(p, ql)
+				raiz.add_child(mo); mo.position = Vector3(ps.x, altura_malha(ps.x, ps.y), ps.y)
+				mo.montar(self, "lodoso_g" if j == 0 else "lodoso_j", nv, semente)
+				mo.rotation.y = giro; mo.reset_physics_interpolation()
+				g.membros.append(mo))
 		matilhas.append(g)
 		_acampamento_lodoso(q, rng)
 
@@ -888,6 +954,7 @@ var _prox_raio := 4.0
 var _raio := 0.0
 func _process(delta: float) -> void:
 	Audio.atualizar(delta)
+	_tick_criar()
 	_tick_musica(delta)
 	_nitidez_auto(delta)
 	_dia_noite(delta)
@@ -1401,9 +1468,16 @@ func _espuma() -> void:
 	# mar: acha a linha da praia (onde o chão desce abaixo do nível 0) de norte a sul, até o pântano
 	var agua := []; var margem := []; var ys := []
 	var z := -Regiao.LIM + 40.0
+	var x_ant := -1e9
 	while z < Regiao.Ws(370.0):
-		var x := Regiao.Ws(380.0)
-		while x < Regiao.X1 and reg.altura(x, z) > 0.05: x += 1.0
+		# acha a praia em passos de 8 m (começando um pouco antes da praia da linha anterior) e refina de 1 em 1 m;
+		# antes andava de 1 em 1 m desde o meio do mapa: ~1 milhão de consultas e 12 s de carregamento
+		var x := maxf(Regiao.Ws(380.0), x_ant - 120.0)
+		while x < Regiao.X1 and reg.altura(x, z) > 0.05: x += 8.0
+		if x < Regiao.X1:
+			x = maxf(x - 8.0, Regiao.Ws(380.0))
+			while x < Regiao.X1 and reg.altura(x, z) > 0.05: x += 1.0
+			x_ant = x
 		if x < Regiao.X1:
 			agua.append(Vector2(x + 16.0, z)); margem.append(Vector2(x - 1.2, z)); ys.append(0.05)
 		z += 4.0

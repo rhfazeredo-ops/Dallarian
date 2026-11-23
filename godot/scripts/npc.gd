@@ -59,7 +59,9 @@ const FERRAMENTAS := {
 	"machado": ["res://assets/modelos/machado.glb", Vector3(-0.433, 0.694, 0.575), Vector3(-0.023, 0.026, -0.024) + Vector3(-0.433, 0.694, 0.575) * -0.56, Vector3(0.228, -0.533, 0.815), 1.29, 0.85],
 }
 
+static var _n_med := 0
 func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
+	var _t0 := Time.get_ticks_usec()
 	m = mundo; rng.seed = semente; area_centro = centro; area_raio = raio
 	var sorteio := rng.randf()
 	skin = 0 if sorteio < 0.2 else (1 if sorteio < 0.32 else 2)
@@ -101,6 +103,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 		var i := esq.find_bone(b)
 		if i >= 0: _ids[b] = i; _resto[b] = esq.get_bone_global_rest(i)
 	_fase = rng.randf() * TAU
+	if m.args.has("carga") and _n_med < 6: _n_med += 1; print("NPC montar ", (Time.get_ticks_usec() - _t0) / 1000.0, " ms skin=", skin)
 	if profissao != "":
 		if profissao == "ferreiro": _segurar("martelo")
 		if profissao == "lenhador": _segurar("machado")

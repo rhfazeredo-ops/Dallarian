@@ -141,3 +141,7 @@
 - **Galope do cavalo refeito pelo vídeo de referência** (quadro a quadro): 2 passadas por segundo, patas de trás
   apoiam primeiro e depois as da frente, fase esticada e fase recolhida com o cavalo "voando", corpo e cabeça
   balançando junto.
+- **Carregamento ~3× mais rápido** (31 s → ~11 s no servidor de testes): espuma da praia e Lodosos acham a linha
+  da praia em passos de 8 m (antes de 1 em 1 m: ~1 milhão de cálculos), sorteio dos monstros com as verificações
+  baratas primeiro, monstros criados aos poucos depois que o jogo abre (os mais perto primeiro) e o terreno de longe
+  calculado em todos os núcleos. Árvores com a copa completa até 70 m no celular (antes 55 m).
