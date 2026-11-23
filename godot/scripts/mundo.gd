@@ -140,7 +140,7 @@ func _moradores() -> void:
 	_aranhas()
 	if args.has("carga"): print("CARGA  _aranhas ", Time.get_ticks_msec() - _t_aranhas)
 	var _t_lodosos := Time.get_ticks_msec()
-	_lodosos()
+	# _lodosos()   # tirados (23/11): os modelos antigos saíram; voltam com os modelos novos estilo peixe-sapo
 	if args.has("carga"): print("CARGA  _lodosos ", Time.get_ticks_msec() - _t_lodosos)
 	var _t_golem := Time.get_ticks_msec()
 	_golem()

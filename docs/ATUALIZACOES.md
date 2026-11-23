@@ -155,3 +155,5 @@
   na frente, as de trás lá atrás) e fase recolhida (as quatro embaixo do corpo, bem dobradas, com o lobo no alto);
   as duas da frente pisam quase juntas, depois as duas de trás empurram. Cada pata fica ~1/3 da passada no chão e
   volta dobrada pelo ar; o corpo sobe e desce e inclina no ritmo, a cabeça fica quase parada e a cauda vai esticada.
+- **Lodosos antigos removidos** (junto com os acampamentos deles na beira da água) e os dois modelos apagados.
+  Voltam com os modelos novos de peixe-sapo (Jovem, Pescador, Xamã da Lama e o chefe Grão-Lodoso).
