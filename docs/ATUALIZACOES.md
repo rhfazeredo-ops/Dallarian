@@ -158,3 +158,5 @@
 - **Lodosos antigos removidos** (junto com os acampamentos deles na beira da água) e os dois modelos apagados.
   Voltam com os modelos novos de peixe-sapo (Jovem, Pescador, Xamã da Lama e o chefe Grão-Lodoso).
 - Lança de osso de peixe também apagada (por enquanto).
+- **Itens novos de Lodoso** (caem quando os Lodosos novos voltarem): Barbatana de Lodoso (30%), Olho de Lodoso (15%)
+  e, só do Xamã da Lama, a **Pérola da Lama** (incomum, 35%). Ícones provisórios até chegarem os desenhados.

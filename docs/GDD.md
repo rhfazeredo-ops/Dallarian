@@ -134,7 +134,7 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   pica (30% de chance de envenenar: dano verde por alguns segundos), dá um bote de 5–7 m. Morre virando de barriga
   para cima. Drop: presa de aranha-musgo (40%).
 - **Lodosos** (FORA do jogo desde 23/11, esperando os modelos novos de peixe-sapo: Jovem, Pescador, Xamã da Lama e
-  Grão-Lodoso chefe). Antes: 9 grupos de 3 (um grande nível 3–4 e dois jovens nível 2–3) na beira do rio, do lago e da praia, com
+  Grão-Lodoso chefe). Drops: escama 40%, barbatana 30%, olho 15%; Xamã: Pérola da Lama 35% (incomum). Antes: 9 grupos de 3 (um grande nível 3–4 e dois jovens nível 2–3) na beira do rio, do lago e da praia, com
   acampamento (cabaninha de juncos, varal de peixes, fogueirinha). Lança de osso de peixe, estocada. Drop: escama (40%).
 - **Chefe: Grumo, o Guardião do Vale** (golem de terra, 9 m — do tamanho das árvores, nível 8): dá a volta no mapa inteiro, longe da vila,
   sem parar; o chão treme perto dele. Soco e PANCADA com as duas mãos no chão (dano em área de 9 m, mais forte

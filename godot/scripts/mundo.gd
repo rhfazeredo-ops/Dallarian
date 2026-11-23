@@ -590,7 +590,10 @@ func monstro_morreu(mo: Node) -> void:
 		var moedas := randi_range(150, 400); bolsa.cobre += moedas; bolsa.mudou.emit()
 		hud.avisar("+%s" % Bolsa.texto_dinheiro(moedas), Color(0.95, 0.75, 0.4))
 		hud.avisar("Grumo, o Guardião do Vale foi derrotado!", Color(1.0, 0.82, 0.2))
-	elif mo is Monstro: drops = [["escama_lodoso", 0.4, 1, 2 if mo.tipo == "lodoso_g" else 1]]
+	elif mo is Monstro:                   # Lodosos: escama, barbatana e olho; o xamã (lodoso_x) larga a Pérola da Lama
+		drops = [["escama_lodoso", 0.4, 1, 2 if mo.tipo == "lodoso_g" else 1], ["barbatana_lodoso", 0.3, 1, 1],
+			["olho_lodoso", 0.15, 1, 1]]
+		if mo.tipo == "lodoso_x": drops.append(["perola_lama", 0.35, 1, 1])
 	for d in drops:
 		if randf() > d[1]: continue
 		var n := randi_range(d[2], d[3])
@@ -2630,7 +2633,9 @@ func _modo_teste() -> void:
 	if args.has("loja") or args.has("inv"):      # teste: --loja=N (itens e abre a loja) / --inv=1 (abre as bolsas)
 		if args.has("arma"): bolsa.pegar(String(args.arma)); hud.definir_nivel(3, 0.0)
 		if args.has("item"): bolsa.pegar(String(args.item), 3)           # --item=pocao_m: fica no 1º espaço
-		if args.has("novos"): bolsa.pegar("escama_lodoso", 7); bolsa.pegar("presa_aranha", 3)
+		if args.has("novos"):
+			bolsa.pegar("escama_lodoso", 7); bolsa.pegar("presa_aranha", 3)
+			bolsa.pegar("barbatana_lodoso", 2); bolsa.pegar("olho_lodoso", 1); bolsa.pegar("perola_lama", 1)
 		bolsa.pegar("dentes_garras", int(args.get("itens", args.get("loja", "27")))); bolsa.cobre = int(args.get("dinheiro", "1234"))
 		if args.has("bolsas"):
 			bolsa.pegar("bolsa_16"); bolsa.pegar("bolsa_30")
