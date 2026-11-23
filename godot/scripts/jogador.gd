@@ -220,9 +220,10 @@ func trocar_equip(lugar: String, id: String) -> void:
 		var mod: Node3D = m.modelo_ps1("res://assets/modelos/presa_da_mare.glb")
 		var bb := AABB()
 		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
-		var k := 1.05 / maxf(bb.size.y, 0.01)
+		var k := 0.95 / maxf(bb.size.y, 0.01)
 		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
-		mod.position = Vector3(0, -(bb.position.y + bb.size.y * 0.2) * k, 0)
+		var cabo := Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.2, bb.get_center().z)   # o arquivo não vem centrado
+		mod.position = -(Basis(Vector3.UP, PI * 0.5) * cabo) * k
 		no.add_child(mod)
 	elif lugar == "arma" and (modelo == "ferro" or modelo == "presa"):        # (presa: a de ferro até chegar o modelo)
 		# espada de ferro (a primeira do Tripo): 0,51 m no arquivo → 1 m; cabo na origem, lâmina em +Y

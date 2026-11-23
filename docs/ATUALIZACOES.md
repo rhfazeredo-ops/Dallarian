@@ -204,3 +204,8 @@
   a recompensa da missão do soldado de Altamar. Na mão usa a espada de ferro até chegar o modelo.
 - **Grão-Lodoso renasce 30 minutos** depois de morto.
 - Ícones novos: Coroa de Dentes do Grão-Lodoso, Tridente Partido e a espada Presa da Maré.
+- **Presa da Maré com modelo 3D** (Tripo, enviado pelo dono) na mão da Rachel.
+- **Estrada Real calçada de pedra** (textura enviada pelo dono) da vila até a Ponte dos Guardiões: uma faixa de
+  pedras com mato entre elas por cima do terreno, montada em pedaços só perto da Rachel; sem grama nem
+  manchinhas de folha por cima.
+- **Chão de terra batida no estábulo** (debaixo do telheiro e no cercado).

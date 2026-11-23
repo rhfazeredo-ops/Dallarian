@@ -118,7 +118,7 @@ func _itens(c: Dictionary, k: Vector2i) -> Array:
 		var p := Vector2(x, z)
 		if not m.reg.dentro(x, z): continue
 		var de: float = m._dist_estrada(p)
-		if de < 2.2 + rng.randf() * 0.8: continue                 # beira da estrada irregular
+		if de < 3.0 + rng.randf() * 0.6: continue                 # beira da estrada irregular (a Estrada Real calçada tem 2,9 m de meia largura)
 		var h: float = m.altura_malha(x, z)
 		var nrm: Vector3 = m.normal_malha(x, z)
 		if rng.randf() > m.reg.grama(x, z, h, nrm.y): continue

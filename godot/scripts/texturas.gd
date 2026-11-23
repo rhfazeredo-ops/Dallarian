@@ -21,9 +21,34 @@ static func pegar(nome: String) -> ImageTexture:
 		"casca": im = _casca()
 		"pinho": im = _pinho()
 		"telha": im = _telha_ardosia()
-		_: im = _aco()
+		"terra": im = _terra_batida()
+		_:
+			var arq := "res://assets/texturas/%s.png" % nome            # texturas pintadas (arquivos do dono)
+			im = _arquivo(arq) if ResourceLoader.exists(arq) else _aco()
 	im.generate_mipmaps()                      # para o filtro com mipmap: de longe a textura não cintila
 	var t := ImageTexture.create_from_image(im); _cache[nome] = t; return t
+
+static func _arquivo(arq: String) -> Image:
+	var im: Image = (load(arq) as Texture2D).get_image()
+	if im.is_compressed(): im.decompress()
+	im.convert(Image.FORMAT_RGBA8)
+	return im
+
+# terra batida (chão do estábulo): marrom com torrões escuros, pedrinhas e fiapos de palha
+static func _terra_batida() -> Image:
+	var im := _img(32); var r := _ruido(21)
+	for y in 32: for x in 32:
+		var v := 0.88 + r.randf() * 0.16
+		im.set_pixel(x, y, Color(0.5, 0.37, 0.24) * v)
+	for k in 26:                                              # torrões e marcas de casco
+		var cx := r.randi() % 32; var cy := r.randi() % 32
+		for d in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1)]: im.set_pixel((cx + d.x) % 32, (cy + d.y) % 32, Color(0.36, 0.26, 0.17))
+	for k in 10:                                              # pedrinhas
+		im.set_pixel(r.randi() % 32, r.randi() % 32, Color(0.62, 0.58, 0.52))
+	for k in 9:                                               # fiapos de palha
+		var cx := r.randi() % 32; var cy := r.randi() % 32; var dx := 1 if r.randf() < 0.5 else 0
+		for i in 3: im.set_pixel((cx + i * dx) % 32, (cy + i * (1 - dx)) % 32, Color(0.8, 0.68, 0.36))
+	return im
 
 # telhado de ardósia azul pintado (arte do dono, 128 px); sem o arquivo, volta para as telhas feitas por código
 static func _telha_ardosia() -> Image:

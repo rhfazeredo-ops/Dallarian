@@ -1208,6 +1208,7 @@ func _process(delta: float) -> void:
 	Audio.atualizar(delta)
 	_tick_criar()
 	_gruta_pronta()
+	_tick_estrada(delta)
 	_gruta_luz(delta)
 	_tick_musica(delta)
 	_nitidez_auto(delta)
@@ -1372,6 +1373,7 @@ func _postes() -> void:
 		if bom: lista.append(pp)
 	for pp in lista: _poste_em(pp[0], pp[1])
 	_postes_estrada_real()
+	_estrada_preparar()
 
 # Estrada Real iluminada: poste a cada 18 m, um lado e depois o outro (a luz de cada lanterna alcança ~9 m, então
 # a estrada fica clara a noite toda); começa depois dos postes da vila e para antes da ponte (lá já tem os da cidade).
@@ -1391,6 +1393,59 @@ func _postes_estrada_real() -> void:
 				_poste_em(q, pt, 130.0); n += 1; break
 		sp += 18.0; lado = -lado
 	if args.has("perf"): print("ESTRADA REAL: %d postes" % n)
+
+# Estrada Real calçada de pedra (textura pintada pelo dono): uma faixa própria por cima do terreno, da vila até a
+# ponte (de lá em diante já é o calçamento da cidade). Montada em pedaços de ~90 m só quando a Rachel chega perto
+# (usa a altura da malha do terreno, que só existe perto dela) e longe some pela distância de visão.
+const ESTRADA_MEIA := 2.9
+var _estrada_ped := []          # [centro, amostras [[ponto, normal, s]], feito]
+var _t_estrada := 0.0
+func _estrada_preparar() -> void:
+	if reg.estrada_real < 0: return
+	var linha: PackedVector2Array = reg.estradas[reg.estrada_real]
+	var amostras := []; var sp := 0.0
+	while true:
+		var pr := _ponto_na_linha(linha, sp)
+		var pt: Vector2 = pr[0]; var tg: Vector2 = pr[1]
+		if pt.x > Regiao.FOSSO_X - 92.0 or (sp > 10.0 and pr[0].distance_to(linha[linha.size() - 1]) < 1.0): break
+		amostras.append([pt, Vector2(-tg.y, tg.x), sp]); sp += 1.5
+	var k := 0
+	while k < amostras.size() - 1:
+		var fim := mini(k + 60, amostras.size() - 1)
+		var pedaco := amostras.slice(k, fim + 1)
+		var c := Vector2.ZERO
+		for a in pedaco: c += a[0]
+		_estrada_ped.append([c / pedaco.size(), pedaco, false])
+		k = fim
+
+func _tick_estrada(delta: float) -> void:
+	_t_estrada -= delta
+	if _t_estrada > 0.0 or jogador == null: return
+	_t_estrada = 0.4
+	var pj := Vector2(jogador.global_position.x, jogador.global_position.z)
+	for pd in _estrada_ped:
+		if pd[2] or (pd[0] as Vector2).distance_to(pj) > 240.0: continue
+		pd[2] = true; _estrada_montar(pd[1]); return            # um pedaço por vez
+
+func _estrada_montar(amostras: Array) -> void:
+	var st := _st()
+	var linhas := []
+	for a in amostras:
+		var p: Vector2 = a[0]; var n: Vector2 = a[1]
+		var fila := []
+		for u in [-1.0, -0.5, 0.0, 0.5, 1.0]:
+			var q: Vector2 = p + n * float(u) * ESTRADA_MEIA
+			var y := altura_malha(q.x, q.y) + (0.05 if absf(u) > 0.9 else 0.09)
+			fila.append([Vector3(q.x, y, q.y), Vector2((u + 1.0) * ESTRADA_MEIA / 2.8, float(a[2]) / 2.8)])
+		linhas.append(fila)
+	for i in linhas.size() - 1:
+		for j in 4:
+			var v00: Array = linhas[i][j]; var v01: Array = linhas[i][j + 1]; var v10: Array = linhas[i + 1][j]; var v11: Array = linhas[i + 1][j + 1]
+			for t in [[v00, v10, v11], [v00, v11, v01]]:
+				for v: Array in t:
+					st.set_normal(Vector3.UP); st.set_color(Color.WHITE); st.set_uv(v[1]); st.add_vertex(v[0])
+	var mi := _peca(st, mat("estrada_pedra", 1.0), Vector3.ZERO)
+	mi.visibility_range_end = 260.0
 
 # um poste com lanterna em q, virado para "olha"
 func _poste_em(q: Vector2, olha: Vector2, alcance := 0.0) -> void:
@@ -1662,6 +1717,22 @@ func _colisor_caixa(pos: Vector3, tam: Vector3, ang: float) -> void:
 func _peca(st: SurfaceTool, material: Material, pos: Vector3, ang := 0.0) -> MeshInstance3D:
 	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = material
 	mi.position = pos; mi.rotation.y = ang; raiz.add_child(mi); return mi
+
+# piso fino em grade de 1,5 m que acompanha o chão (um pouco acima, para não brigar com o terreno)
+func _chao_textura(r: Rect2, material: Material, passo := 1.5) -> void:
+	var st := _st()
+	var nx := int(ceil(r.size.x / passo)); var nz := int(ceil(r.size.y / passo))
+	var h := func(x: float, z: float) -> float: return reg.altura(x, z) + 0.06
+	for j in nz:
+		for i in nx:
+			var x0 := r.position.x + i * passo; var z0 := r.position.y + j * passo
+			var x1 := minf(x0 + passo, r.end.x); var z1 := minf(z0 + passo, r.end.y)
+			var a := Vector3(x0, h.call(x0, z1), z1); var b := Vector3(x1, h.call(x1, z1), z1)
+			var c := Vector3(x1, h.call(x1, z0), z0); var d := Vector3(x0, h.call(x0, z0), z0)
+			for v in [[a, b, c], [a, c, d]]:
+				for q: Vector3 in v:
+					st.set_normal(Vector3.UP); st.set_color(Color.WHITE); st.set_uv(Vector2(q.x, q.z) * 0.5); st.add_vertex(q)
+	_peca(st, material, Vector3.ZERO)
 
 func _st() -> SurfaceTool:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES); return st
@@ -2114,6 +2185,9 @@ func _estabulo() -> void:
 	_caixa(st, Vector3(e.x + 11.0, y + 0.45, e.y - 3.0), Vector3(1.4, 0.9, 1.0)); _caixa(st, Vector3(e.x + 11.2, y + 1.3, e.y - 3.1), Vector3(1.4, 0.8, 1.0))
 	_peca(st, mat("palha"), Vector3.ZERO)
 	_colisor_caixa(Vector3(e.x, y, e.y - 10.8), Vector3(18.0, 3.0, 0.4), 0.0)
+	# chão de terra batida debaixo do telheiro e no cercado (antes era o terreno liso)
+	_chao_textura(Rect2(e.x - 10.5, e.y - 11.6, 21.0, 12.0), mat("terra", 0.5))
+	_chao_textura(Rect2(e.x - 12.5, e.y + 0.4, 25.0, 15.2), mat("terra", 0.5))
 	# cercado na frente do telheiro (aberto do lado da casa, para entrar)
 	var cerca := _st()
 	var cx0 := e.x - 12.0; var cx1 := e.x + 12.0; var cz0 := e.y + 1.0; var cz1 := e.y + 15.0
@@ -3048,6 +3122,7 @@ func _modo_teste() -> void:
 		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)
 		if String(args.ir) == "alto" or String(args.ir) == "arte": jogador.global_position.y += (60.0 if args.ir == "alto" else 48.0); jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35 if args.ir == "alto" else -0.2
 		if args.has("subir"): jogador.global_position.y += float(args.subir); jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.6"))
+	if args.has("empunhar"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("arma", String(args.empunhar)))   # teste: --empunhar=presa_da_mare
 	if args.has("dar_cavalos"):    # teste: dá as três montarias (e dinheiro)
 		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
 		bolsa.montaria_sel = String(args.get("cavalo", "cavalo_preto")) if String(args.get("cavalo", "")) != "" else bolsa.montarias[0]
