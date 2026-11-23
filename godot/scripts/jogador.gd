@@ -496,9 +496,15 @@ func _physics_process(delta: float) -> void:
 	var base_d: Array = MAO["bloq" if bloquear else ("correr" if correr else "repouso")]
 	var base_e := _pose("e_bloq" if bloquear else ("e_correr" if correr else "e_repouso"))
 	var anda: float = Vector2(velocity.x, velocity.z).length() / VEL if is_on_floor() else 0.0
-	_passo += delta * (12.0 if correr else 8.5) * min(anda, 1.0)
-	# balanço do passo (figura de 8) + respiração
 	var amp: float = (0.034 if correr else 0.016) * min(anda, 1.0)
+	if montado:                            # montada: um balanço por passada do cavalo (calmo), mais suave
+		var vh := Vector2(velocity.x, velocity.z).length()
+		var passada := lerpf(2.4, 6.0, clampf((vh - 6.0) / 4.0, 0.0, 1.0))
+		_passo += delta * TAU * vh / passada if is_on_floor() else 0.0
+		amp = 0.022 * minf(vh / 4.0, 1.0)
+	else:
+		_passo += delta * (12.0 if correr else 8.5) * min(anda, 1.0)
+	# balanço do passo (figura de 8) + respiração
 	var bob := Vector3(cos(_passo * 0.5) * amp, -abs(sin(_passo * 0.5)) * amp * 1.4 + sin(_tempo * 1.6) * 0.004, 0)
 	_balanco = _balanco.lerp(Vector2.ZERO, 1.0 - exp(-9.0 * delta)); _balanco = _balanco.limit_length(0.12)
 	var sway := Vector3(_balanco.x * 0.35, _balanco.y * 0.35, 0)

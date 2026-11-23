@@ -11,6 +11,7 @@ var _base := Vector3.ZERO
 var _modelo: Node3D
 var _esq: Skeleton3D
 const FASES := [0.0, PI, PI, 0.0]          # frente-esq, frente-dir, trás-esq, trás-dir (trote em diagonal)
+const GALOPE := [0.0, 0.6, PI, PI + 0.6]   # galope: frente juntas, depois trás juntas
 func _ready() -> void:
 	_modelo = get_parent().get_node_or_null("Modelo")
 	if _modelo:
@@ -23,20 +24,24 @@ func _process(delta: float) -> void:
 	if not c.is_visible_in_tree(): return
 	_t += delta
 	var a := clampf(vel / 4.0, 0.0, 1.0)
-	_fase = fmod(_fase + delta * TAU * maxf(vel, 0.0) / 2.6, TAU * 100.0)     # ~2,6 m por passada
+	# passada mais longa quanto mais rápido (passo ~2,4 m, galope ~6 m): o ritmo fica calmo, ~1,2 a 1,9 passadas/s
+	var galope := clampf((vel - 6.0) / 4.0, 0.0, 1.0)
+	var passada := lerpf(2.4, 6.0, galope)
+	_fase = fmod(_fase + delta * TAU * maxf(vel, 0.0) / passada, TAU * 100.0)
 	if _modelo:
-		var galope := clampf((vel - 7.0) / 4.0, 0.0, 1.0)
-		var sobe := absf(sin(_fase)) * lerpf(0.02, 0.06, galope) * a + sin(_t * 1.3) * 0.004 * (1.0 - a)
+		var sobe := absf(sin(_fase)) * lerpf(0.015, 0.045, galope) * a + sin(_t * 1.3) * 0.004 * (1.0 - a)
+		if galope > 0.0: sobe = lerpf(sobe, (0.5 + 0.5 * sin(_fase)) * 0.06 * a, galope)     # galope: um balanço por passada
 		_modelo.position = _base + Vector3(0, sobe, 0)
-		_modelo.rotation.z = sin(_fase * 2.0) * 0.01 * a
+		_modelo.rotation.z = lerpf(sin(_fase * 2.0) * 0.008, sin(_fase) * 0.035, galope) * a      # galope balança para a frente e para trás
 		if _esq == null: return
-		var amp := lerpf(0.42, 0.55, galope) * a
+		var amp := lerpf(0.32, 0.5, galope) * a
 		for k in 4:
-			var ph: float = _fase + FASES[k]
+			# trote: patas em diagonal; galope: as duas da frente quase juntas, depois as duas de trás
+			var ph: float = _fase + lerpf(FASES[k], GALOPE[k], galope)
 			_esq.set_bone_pose_rotation(RigCavalo.COXA[k], _q(Vector3(0, 0, 1), sin(ph) * amp))
-			var dobra := maxf(0.0, cos(ph)) * a * (1.0 if k < 2 else 0.7)       # dobra o joelho quando a pata vai à frente
-			_esq.set_bone_pose_rotation(RigCavalo.CANELA[k], _q(Vector3(0, 0, 1), -dobra * lerpf(0.9, 1.3, galope)))
-		var cab := inclinar * 0.25 + sin(_fase * 2.0) * 0.05 * a + (sin(_t * 0.6) * 0.07 - 0.02) * (1.0 - a)
+			var dobra := maxf(0.0, cos(ph)) * a * (1.0 if k < 2 else 0.75)       # dobra o joelho quando a pata vai à frente
+			_esq.set_bone_pose_rotation(RigCavalo.CANELA[k], _q(Vector3(0, 0, 1), -dobra * lerpf(0.7, 1.0, galope)))
+		var cab := inclinar * 0.25 + lerpf(sin(_fase * 2.0) * 0.03, sin(_fase + 0.6) * 0.07, galope) * a + (sin(_t * 0.6) * 0.07 - 0.02) * (1.0 - a)
 		_esq.set_bone_pose_rotation(RigCavalo.PESCOCO, _q(Vector3(0, 0, 1), cab) * _q(Vector3(0, 1, 0), sin(_t * 0.37) * 0.12 * (1.0 - a)))
 		_esq.set_bone_pose_rotation(RigCavalo.CAUDA, _q(Vector3(1, 0, 0), sin(_t * 1.7) * lerpf(0.18, 0.08, a)) * _q(Vector3(0, 0, 1), -0.35 * a))
 		return

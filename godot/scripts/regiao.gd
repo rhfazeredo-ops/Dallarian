@@ -254,6 +254,12 @@ func altura(x: float, z: float) -> float:
 		if d2 < l2 + 8.0:
 			var leito := n2 - 2.2 * (1.0 - smoothstep(l2 * 0.35, l2, d2))
 			h = lerp(minf(h, leito), h, smoothstep(l2, l2 + 8.0, d2))
+	# acesso ao portão oeste: estrada aterrada no nível da ponte e da cidade (antes a margem ficava ~4 m acima da
+	# ponte); embaixo do vão da ponte o rio continua fundo
+	var wa := acesso_ponte(x, z)
+	if wa > 0.0 and absf(x - FOSSO_X) > 19.5:
+		var alvo := lerpf(ALTURA_CIDADE + 0.35, ALTURA_CIDADE, smoothstep(FOSSO_X + 20.0, CIDADE_C.x - CIDADE_R, x))
+		h = lerpf(h, alvo, wa)
 	# pântano ao sul
 	var pant := smoothstep(Ws(370.0), Ws(430.0), z + ruido_grande.get_noise_2d(x * 2.0, 0.0) * 30.0)
 	if pant > 0.0: h = lerp(h, 0.25 + ruido.get_noise_2d(x * 1.7, z * 1.7) * 0.9, pant)
@@ -295,6 +301,11 @@ static func distrito(x: float, z: float) -> String:
 	return "velho"
 func parque(x: float, z: float) -> bool: return distrito(x, z) == "parque"
 # distância até o eixo da rua principal mais perto (as quatro que saem da praça)
+# peso (0..1) da estrada calçada que vem da Estrada Real, passa pela Ponte dos Guardiões e entra no portão oeste
+static func acesso_ponte(x: float, z: float) -> float:
+	var dz := absf(z - CIDADE_C.y)
+	if dz > 20.0 or x < FOSSO_X - 120.0 or x > CIDADE_C.x - CIDADE_R + 6.0: return 0.0
+	return (1.0 - smoothstep(10.0, 20.0, dz)) * smoothstep(FOSSO_X - 120.0, FOSSO_X - 70.0, x)
 static func rua_cidade(x: float, z: float) -> float:
 	var d := Vector2(x, z) - CIDADE_C
 	return minf(absf(d.x), absf(d.y))
@@ -377,6 +388,11 @@ func cor(x: float, z: float, h: float, ny: float) -> Color:
 		var dr_c := rua_cidade(x, z)
 		if dr_c < 5.5: c = Color(0.66, 0.64, 0.6) * (0.94 + n * 0.08)            # rua principal de pedra clara
 		elif dr_c < 8.5: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)          # calçada de tijolo vermelho
+	if acesso_ponte(x, z) > 0.0 and x > FOSSO_X - 95.0:                         # calçamento da ponte até o portão
+		var dzp := absf(z - CIDADE_C.y)
+		if dzp < 5.5: c = Color(0.66, 0.64, 0.6) * (0.94 + n * 0.08)
+		elif dzp < 8.0: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)
+		elif dzp < 11.0: c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1)
 	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
 	var p := zona_pantano(z)
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
@@ -403,6 +419,7 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	if h < agua(x, z) + 0.15: return 0.0
 	if x > COSTA - 120.0 and h < 2.0: return 0.0
 	if na_cidade(x, z, 2.0) and not parque(x, z): return 0.0
+	if x > FOSSO_X - 95.0 and acesso_ponte(x, z) > 0.0 and absf(z - CIDADE_C.y) < 11.5: return 0.0   # calçamento do portão
 	var campo := campo_em(x, z)
 	if campo == 1: return 0.0
 	if campo == 0: return 1.0

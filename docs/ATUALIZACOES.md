@@ -123,3 +123,7 @@
   precisa mais mandar APK novo). **Save na nuvem** por perfil anônimo do aparelho (sem cadastro).
 - **Tela de carregamento** com a arte de Altamar ao pôr do sol e **ícone do jogo** (escudo dourado com o castelo e a
   espada) no APK e no site.
+- **Portões de Altamar abertos** (oeste, leste e sul estavam fechados pela muralha), arco certo por cima.
+- **Ponte dos Guardiões no nível das margens e da cidade**, com estrada calçada de pedra da ponte até o portão.
+- **Cavalo com passada mais longa e calma**: trote no passo e galope de verdade (frente juntas, depois trás);
+  a câmera montada balança no ritmo da passada.

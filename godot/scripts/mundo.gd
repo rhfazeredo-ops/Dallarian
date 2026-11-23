@@ -1436,7 +1436,7 @@ func _cidade() -> void:
 	var azul := mat("telha", 1.0, Color(0.32, 0.46, 0.9))            # telhado azul (o tom multiplica a textura de madeira)
 	var dirv := func(a: float) -> Vector2: return Vector2(cos(a), sin(a))
 	var portoes := [PI, PI * 0.5, 0.0]
-	var meia_porta := 9.0 / RR
+	var meia_porta := 8.0 / RR
 	var em_porta := func(a: float) -> bool:
 		for pa in portoes: if absf(wrapf(a - pa, -PI, PI)) < meia_porta: return true
 		return false
@@ -1445,7 +1445,7 @@ func _cidade() -> void:
 	var st := _st(); var st_am := _st()
 	for k in n_seg:
 		var a0 := TAU * k / n_seg; var a1 := TAU * (k + 1) / n_seg
-		if em_porta.call((a0 + a1) * 0.5): continue
+		if em_porta.call((a0 + a1) * 0.5) or em_porta.call(a0 + 0.001) or em_porta.call(a1 - 0.001): continue   # qualquer pedaço que toque o vão sai (antes o vão caía na junta e o portão ficava fechado)
 		var p0: Vector2 = c + dirv.call(a0) * RR; var p1: Vector2 = c + dirv.call(a1) * RR
 		var meio := (p0 + p1) * 0.5; var comp := p0.distance_to(p1) + 0.6; var ang := atan2(p1.x - p0.x, p1.y - p0.y)
 		var tr := Transform3D(Basis(Vector3.UP, ang), Vector3(meio.x, y, meio.y))
@@ -1474,7 +1474,7 @@ func _cidade() -> void:
 	for pa in portoes:
 		var pp: Vector2 = c + dirv.call(pa) * RR
 		var arco := _st(); _caixa(arco, Vector3(0, alt + 1.0, 0), Vector3(esp + 1.5, 4.0, 20.0))
-		st.append_from(arco.commit(), 0, Transform3D(Basis(Vector3.UP, atan2(-sin(pa), cos(pa)) + PI * 0.5), Vector3(pp.x, y, pp.y)))
+		st.append_from(arco.commit(), 0, Transform3D(Basis(Vector3.UP, atan2(-sin(pa), cos(pa))), Vector3(pp.x, y, pp.y)))
 	_peca(st, pedra_esc, Vector3.ZERO)
 	# ---- Ponte dos Guardiões sobre o rio do leste (portão oeste)
 	var fx := Regiao.FOSSO_X
