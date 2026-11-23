@@ -198,9 +198,8 @@ func _physics_process(delta: float) -> void:
 			if _t >= 0.35: _mudar("cacar")
 		"morto":
 			velocity = Vector3.ZERO
-			if _t > 6.0: visual.position.y -= delta * 0.25
-			if _t > 9.0: queue_free()
-			_animar(delta, 0.0); return
+			if _t < 3.0: _animar(delta, 0.0)      # depois fica parado no chão (o saque.gd tira em 3 min)
+			return
 	# viu a Rachel: a matilha toda entra na caça
 	if not grupo.alerta and (estado == "vagar" or estado == "parado") and dist < 20.0 and not m.heroina_desmaiada:
 		grupo.alerta = true

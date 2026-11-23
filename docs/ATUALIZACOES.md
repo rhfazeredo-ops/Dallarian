@@ -161,3 +161,10 @@
 - **Itens novos de Lodoso** (caem quando os Lodosos novos voltarem): Barbatana de Lodoso (30%), Olho de Lodoso (15%)
   e, só do Xamã da Lama, a **Pérola da Lama** (incomum, 35%). Ícones provisórios até chegarem os desenhados.
 - **Pelo de lobo** (30%, o líder pode deixar 2) e **Veneno de aranha-musgo** (25%) como drops novos.
+- **Saque no corpo (todos os monstros)**: o monstro morto fica no chão por 3 minutos. Com a mira nele, de perto,
+  ganha um **contorno branco**; tocar no corpo (PC: E) abre uma janelinha com o que ele deixou: tocar num item
+  passa para a bolsa, **PEGAR TUDO** pega todos (o que não couber fica no corpo) e o X fecha deixando o resto.
+  Depois de 3 minutos o corpo afunda e some, com o que sobrou.
+- **Chance de drop pelo valor** (o mais barato cai mais): dentes e garras 45% / pelo 35%; presa 40% / veneno 30%;
+  escama 50% / barbatana 35% / olho 20%; Pérola da Lama 12%.
+- Ícones novos: olho e barbatana de Lodoso, veneno de aranha, pelo de lobo e Pérola da Lama.

@@ -118,9 +118,8 @@ func _physics_process(delta: float) -> void:
 			if _t > 0.25: _mudar("cacar")
 		"morto":
 			velocity = Vector3.ZERO
-			if _t > 7.0: visual.position.y -= delta * 0.2
-			if _t > 10.0: queue_free()
-			_animar(delta, 0.0); return
+			if _t < 3.0: _animar(delta, 0.0)      # depois fica parada no chão (o saque.gd tira em 3 min)
+			return
 	if not grupo.alerta and (estado == "vagar" or estado == "parado") and dist < 15.0 and not m.heroina_desmaiada:
 		grupo.alerta = true
 	if grupo.alerta and (estado == "vagar" or estado == "parado"): _mudar("cacar")

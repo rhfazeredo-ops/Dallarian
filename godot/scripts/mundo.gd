@@ -77,6 +77,7 @@ func _ready() -> void:
 	cl.move_child(_tela_dano, hud.get_index())          # o vermelho fica embaixo do HUD (o "VOCÊ MORREU" por cima)
 	var inter := Interacao.new(); cl.add_child(inter); inter.montar(self); interacao = inter
 	inventario = Inventario.new(); cl.add_child(inventario); inventario.montar(self)
+	saque = Saque.new(); cl.add_child(saque); saque.montar(self)
 	loja_ui = Loja.new(); cl.add_child(loja_ui); loja_ui.montar(self)
 	mapa = Mapa.new(); cl.add_child(mapa); mapa.montar(self)
 	montaria_ui = Montaria.new(); cl.add_child(montaria_ui); montaria_ui.montar(self)
@@ -171,6 +172,7 @@ var matilhas := []
 var fauna: Fauna
 var interacao: Interacao
 var inventario: Inventario
+var saque: Saque
 var loja_ui: Loja
 var mapa: Mapa
 var menu: Menu
@@ -583,40 +585,26 @@ func monstro_morreu(mo: Node) -> void:
 	if mo is Monstro: mult = mo.cfg.xp
 	elif mo is Aranha: mult = 1.3
 	if ganho > 0.0: hud.ganhar_xp(roundf(ganho * mult))
-	var drops := []                       # [id, chance, mín, máx]
-	if mo is Aranha: drops = [["presa_aranha", 0.4, 1, 1], ["veneno_aranha", 0.25, 1, 1]]
+	# [id, chance, mín, máx] — quanto mais vale o item, menor a chance (o saque fica no corpo; ver saque.gd)
+	var drops := []
+	if mo is Aranha: drops = [["presa_aranha", 0.4, 1, 1], ["veneno_aranha", 0.3, 1, 1]]
 	elif mo is Monstro and mo.tipo == "golem":
 		drops = [["nucleo_golem", 1.0, 1, 1], ["espada_ferro", 0.35, 1, 1], ["bolsa_16", 0.35, 1, 1]]
 		var moedas := randi_range(150, 400); bolsa.cobre += moedas; bolsa.mudou.emit()
 		hud.avisar("+%s" % Bolsa.texto_dinheiro(moedas), Color(0.95, 0.75, 0.4))
 		hud.avisar("Grumo, o Guardião do Vale foi derrotado!", Color(1.0, 0.82, 0.2))
 	elif mo is Monstro:                   # Lodosos: escama, barbatana e olho; o xamã (lodoso_x) larga a Pérola da Lama
-		drops = [["escama_lodoso", 0.4, 1, 2 if mo.tipo == "lodoso_g" else 1], ["barbatana_lodoso", 0.3, 1, 1],
-			["olho_lodoso", 0.15, 1, 1]]
-		if mo.tipo == "lodoso_x": drops.append(["perola_lama", 0.35, 1, 1])
-	for d in drops:
-		if randf() > d[1]: continue
-		var n := randi_range(d[2], d[3])
-		var sobra := bolsa.pegar(d[0], n)
-		var info: Dictionary = Bolsa.ITENS[d[0]]
-		if n - sobra > 0: hud.avisar("+%d %s" % [n - sobra, info.nome], Bolsa.CORES[info.qual])
-		if sobra > 0: hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3))
+		drops = [["escama_lodoso", 0.5, 1, 2 if mo.tipo == "lodoso_g" else 1], ["barbatana_lodoso", 0.35, 1, 1],
+			["olho_lodoso", 0.2, 1, 1]]
+		if mo.tipo == "lodoso_x": drops.append(["perola_lama", 0.12, 1, 1])
+	saque.registrar(mo, Saque.sortear(drops))
 
 func lobo_morreu(l: Lobo) -> void:
 	_agendar_volta(l)
 	var ganho := Hud.xp_por_matar(l.nivel, hud.nivel)
 	if ganho > 0.0: hud.ganhar_xp(ganho)
-	# dentes e garras (~40%) e pelo (~30%; o líder deixa mais)
-	_dar_drops([["dentes_garras", 0.4, 1, 2 if l.lider else 1], ["pelo_lobo", 0.3, 1, 2 if l.lider else 1]])
-
-func _dar_drops(drops: Array) -> void:      # [[id, chance, mín, máx], ...]
-	for d in drops:
-		if randf() > d[1]: continue
-		var n := randi_range(d[2], d[3])
-		var sobra := bolsa.pegar(d[0], n)
-		var info: Dictionary = Bolsa.ITENS[d[0]]
-		if n - sobra > 0: hud.avisar("+%d %s" % [n - sobra, info.nome], Bolsa.CORES[info.qual])
-		if sobra > 0: hud.avisar("Suas bolsas estão cheias!", Color(1, 0.35, 0.3))
+	# dentes e garras (45%, vale menos) e pelo (35%); o líder deixa mais
+	saque.registrar(l, Saque.sortear([["dentes_garras", 0.45, 1, 2 if l.lider else 1], ["pelo_lobo", 0.35, 1, 2 if l.lider else 1]]))
 
 # progresso salvo no aparelho (nível, XP, dinheiro e itens); nos testes com print não carrega nem salva
 var bolsa := Bolsa.new()
@@ -2738,6 +2726,13 @@ func _modo_teste() -> void:
 			var pm := String(mo.anim_fixa).split(":"); mo.anim_fixa = pm[0]
 			if pm.size() > 1: mo.u_fixo = float(pm[1])
 		if tp == "golem": golem = mo; mo.grupo.alerta = true
+		if args.has("saque"):       # teste: --saque (contorno) / --saque=abrir (janelinha)
+			get_tree().create_timer(0.5).timeout.connect(func():
+				mo.anim_fixa = ""; mo.vida = 0.0; mo._mudar("morto"); mo.remove_from_group("lobos")
+				if mo is Lobo: lobo_morreu(mo)
+				else: monstro_morreu(mo)
+				mo.set_meta("saque", [["dentes_garras", 1], ["pelo_lobo", 2]]))
+			if args.saque == "abrir": get_tree().create_timer(3.0).timeout.connect(func(): saque.abrir(mo))
 	if args.has("matar_golem") and golem:
 		var gp := golem.global_position
 		golem.vida = 0.0; golem._mudar("morto"); golem.remove_from_group("lobos"); monstro_morreu(golem)
