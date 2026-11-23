@@ -280,3 +280,8 @@
   heroína em 3D numa pedra no meio, textos da raça e da classe à direita, nome com ALEATÓRIO embaixo e
   ACEITAR / VOLTAR. O herói criado entra na lista da seleção com o **seu próprio save** (a Rachel continua com o
   save antigo e o da nuvem; os novos por enquanto só no aparelho) e o nome dele aparece no HUD.
+- **Criação de herói refeita**: o herói em pé na grama de um campo de dia (visto de frente, em terceira pessoa,
+  árvores lá no fundo, sem pedestal); à esquerda as **4 raças** com retrato masculino e feminino de cada (só a
+  humana feminina — a Rachel — disponível; o resto escuro com "?" até chegarem os ícones); à direita a **lore da
+  raça**; sem customização (os heróis vêm prontos). Ícones das raças: `assets/ui/racas/N_m.png` e `N_f.png`;
+  fundo pintado opcional: `assets/ui/criacao_fundo.png`.
