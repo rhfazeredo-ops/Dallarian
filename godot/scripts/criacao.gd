@@ -147,6 +147,12 @@ func _cena_campo() -> void:
 			var t := MeshInstance3D.new(); t.mesh = tronco; t.position = Vector3(x, 2.0, z); vp.add_child(t)
 			var c := MeshInstance3D.new(); c.mesh = copa if rng.randf() < 0.6 else pinho; c.position = Vector3(x, 5.5, z)
 			c.scale = Vector3.ONE * rng.randf_range(0.8, 1.3); vp.add_child(c)
+	if tem_arte:                                            # sombra redonda nos pés (pisa na grama da arte)
+		var somb := MeshInstance3D.new(); var dm := PlaneMesh.new(); dm.size = Vector2(1.1, 0.7); somb.mesh = dm
+		var ms := StandardMaterial3D.new(); ms.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; ms.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		var gt := GradientTexture2D.new(); gt.fill = GradientTexture2D.FILL_RADIAL; gt.fill_from = Vector2(0.5, 0.5); gt.fill_to = Vector2(1.0, 0.5)
+		var gr := Gradient.new(); gr.set_color(0, Color(0.05, 0.1, 0.02, 0.55)); gr.set_color(1, Color(0.05, 0.1, 0.02, 0.0)); gt.gradient = gr
+		ms.albedo_texture = gt; dm.material = ms; somb.position = Vector3(0.08, 0.01, 0.05); vp.add_child(somb)
 	# o herói em pé na grama (no arquivo o modelo tem 0,98 de altura, de -0,49 a 0,49)
 	_modelo = load("res://assets/modelos/dallarian.glb").instantiate(); vp.add_child(_modelo)
 	_nitido(_modelo)

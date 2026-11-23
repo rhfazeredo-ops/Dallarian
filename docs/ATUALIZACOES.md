@@ -291,3 +291,5 @@
   VOLTAR); escolhendo o nome e aceitando, já entra no mundo com esse herói. A Rachel só aparece na lista para
   quem já tem o save dela.
 - Herói **maior na tela** na criação (câmera mais perto) e na seleção.
+- **Criação de herói com o fundo pintado do campo** (arte enviada): a heroína em pé na grama, com uma sombra
+  suave nos pés, entre as montanhas e as árvores.
