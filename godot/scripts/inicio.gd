@@ -42,7 +42,7 @@ func _ready() -> void:
 		get_tree().quit(); return
 	# seleção de heróis (só quando o jogo abre de verdade; os testes com argumentos vão direto para o mundo)
 	var args2 := OS.get_cmdline_user_args()
-	if args2.is_empty() or args2.has("--selecao") or args2.has("--criacao"):
+	if args2.is_empty() or args2.has("--selecao") or args2.has("--criacao") or args2.has("--apertar"):
 		var sel = load("res://scripts/selecao.gd").new(); add_child(sel)
 		# música da seleção/criação de heróis (só nessas telas; para ao entrar no mundo)
 		var musica: AudioStreamPlayer = null
@@ -53,6 +53,11 @@ func _ready() -> void:
 				musica = AudioStreamPlayer.new(); musica.stream = st; musica.volume_db = -6.0; add_child(musica); musica.play()
 				break
 		if args2.has("--criacao"): sel._abrir_criacao()
+		if args2.has("--apertar"):          # teste: aperta INICIAR JOGO e vê se entra no mundo
+			await get_tree().create_timer(1.0).timeout
+			for bt in sel.find_children("*", "Button", true, false): if bt.text == "INICIAR JOGO": bt.pressed.emit()
+			await get_tree().create_timer(0.5).timeout
+			print("APERTOU INICIAR")
 		if args2.has("--selecao") or args2.has("--criacao"):
 			for k in 8: await RenderingServer.frame_post_draw
 			for x in args2: if x.begins_with("--shot="): get_viewport().get_texture().get_image().save_png(x.trim_prefix("--shot="))
