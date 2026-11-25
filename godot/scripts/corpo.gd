@@ -50,6 +50,7 @@ class Manequim:
 
 func montar(jogador, arq: String, no_mundo := true) -> void:
 	j = jogador if jogador != null else Manequim.new()
+	_arq = arq
 	_montar_ap.call_deferred()
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mod = load(arq).instantiate(); add_child(mod)
@@ -79,17 +80,19 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 	mao_d = _presa("R_Hand", "R_Mid1", Basis(Vector3(0, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, 1)), 0.85)
 	# escudo no antebraço esquerdo: frente para fora (-Z)
 	mao_e = _presa("L_Hand", "L_Mid1", Basis(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0)), 1.0)
-	# nas costas (fora de combate): espada na diagonal com o cabo atrás do ombro direito (de onde o "sacar" puxa),
-	# lâmina para baixo e para a esquerda, deitada nas costas; escudo no meio das costas, frente para trás
-	var lam := Vector3(0.0, -1.0, -0.5).normalized(); var face := Vector3(-1, 0, 0)
-	costas_d = _nas_costas(Vector3(-0.1, 0.19, 0.1), Basis(lam.cross(face), lam, face), 0.85)
-	costas_e = _nas_costas(Vector3(-0.12, -0.06, 0.03), Basis(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
+	# fora de combate: espada na cintura, do lado esquerdo (a mão direita puxa cruzando o corpo), cabo para a frente e
+	# lâmina para trás e para baixo, face para fora; escudo no meio das costas, frente para trás
+	var lam := Vector3(-0.8, -0.6, 0.0).normalized(); var face := Vector3(0, 0, -1)
+	costas_d = _no_osso("Hip", Vector3(0.03, -0.01, -0.115), Basis(lam.cross(face), lam, face), 0.85)
+	costas_e = _no_osso("Spine02", Vector3(-0.12, 0.0, 0.0), Basis(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
+	_braco = BracoSacar.new(); _braco.c = self; esq.add_child(_braco)
 
-var costas_d: Node3D
-var costas_e: Node3D
-func _nas_costas(desvio: Vector3, b: Basis, esc: float) -> Node3D:
-	var i := esq.find_bone("Spine02")
-	var at := BoneAttachment3D.new(); at.bone_name = "Spine02"; esq.add_child(at)
+var costas_d: Node3D               # espada guardada (na cintura)
+var costas_e: Node3D               # escudo guardado (nas costas)
+var _braco: BracoSacar
+func _no_osso(osso: String, desvio: Vector3, b: Basis, esc: float) -> Node3D:
+	var i := esq.find_bone(osso)
+	var at := BoneAttachment3D.new(); at.bone_name = osso; esq.add_child(at)
 	var r := esq.get_bone_global_rest(i)
 	var no := Node3D.new(); no.transform = r.affine_inverse() * Transform3D(b.orthonormalized(), r.origin + desvio); at.add_child(no)
 	var h := Node3D.new(); h.scale = Vector3.ONE * esc / k; no.add_child(h)
@@ -252,14 +255,16 @@ func animar(delta: float) -> void:
 
 # ---------- animações do pacote ----------
 var _ap: AnimationPlayer
+var _arq := ""
 var _atual := ""
 var _acao_ant := ""
 func _montar_ap() -> void:
-	if not ResourceLoader.exists("res://assets/animacoes/heroi.res") or mod == null: return
+	var lib := "res://assets/animacoes/heroi_m.res" if _arq.ends_with("humano.glb") else "res://assets/animacoes/heroi.res"
+	if not ResourceLoader.exists(lib) or mod == null: return
 	_ap = AnimationPlayer.new(); mod.add_child(_ap); _ap.root_node = NodePath("..")
-	_ap.add_animation_library("", load("res://assets/animacoes/heroi.res"))
+	_ap.add_animation_library("", load(lib))
 	_ap.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS if j is Node else AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
-	_ap.play("parado")
+	_ap.play("parado" if j.armado else "calmo_parado")
 
 const GOLPE_CLIPE := {"leve1": "golpe1", "leve2": "golpe2", "leve3": "golpe3", "forte": "golpe_forte"}
 func _tocar(nome: String, velo := 1.0, mistura := 0.18, do_comeco := false) -> void:
@@ -270,10 +275,16 @@ func _tocar(nome: String, velo := 1.0, mistura := 0.18, do_comeco := false) -> v
 
 func _clipes(vel: float, vh: Vector2, no_chao: bool, para_tras: bool, luta: bool) -> void:
 	if j.morta: _tocar("morte", 1.0, 0.25); return
+	# sacar/guardar: a guarda (ou o parado calmo) por baixo e o braço levado à cintura por cima (BracoSacar)
+	_braco.peso = 0.0
 	if j._sacando > 0.0:
-		_tocar("sacar", _ap.get_animation("sacar").length / j.SACAR_T, 0.1, _atual != "sacar"); return
+		var u: float = 1.0 - j._sacando / j.SACAR_T
+		_braco.peso = smoothstep(0.0, 0.3, u) * (1.0 - smoothstep(0.45, 0.85, u))
+		_tocar("parado", 1.0, 0.4); return
 	if j._guardando > 0.0:
-		_tocar("guardar", _ap.get_animation("guardar").length / j.GUARDAR_T, 0.15, _atual != "guardar"); return
+		var u: float = 1.0 - j._guardando / j.GUARDAR_T
+		_braco.peso = smoothstep(0.1, 0.4, u) * (1.0 - smoothstep(0.6, 0.95, u))
+		_tocar("calmo_parado" if u > 0.5 else "parado", 1.0, 0.4); return
 	var acao: String = j._acao
 	if GOLPE_CLIPE.has(acao):
 		var clipe: String = GOLPE_CLIPE[acao]
@@ -294,13 +305,37 @@ func _clipes(vel: float, vh: Vector2, no_chao: bool, para_tras: bool, luta: bool
 	_acao_ant = acao
 	if acao == "bash": _tocar("escudada", 1.6, 0.08); return
 	if j.bloqueando: _tocar("bloqueio", 1.0, 0.12); return
-	if not no_chao: _tocar("no_ar", 1.0, 0.15); return
-	if vel < 0.4: _tocar("parado" if j.armado else "parado_calmo", 1.0, 0.3); return
+	# fora de combate (armas guardadas): andar/correr/parado sem armas, do pacote da Synty
+	var cm := "" if j.armado else "calmo_"
+	if not no_chao: _tocar(cm + "no_ar", 1.0, 0.15); return
+	if vel < 0.4: _tocar(cm + "parado", 1.0, 0.3); return
 	# para onde anda em relação ao corpo: frente, trás ou de lado (de lado só lutando, quando o corpo olha a câmera)
 	var local := vh.rotated(j.rotation.y + rotation.y)               # no espaço do corpo (−y = frente)
 	var lado := ""
 	if luta and absf(local.x) > absf(local.y): lado = "_dir" if local.x > 0.0 else "_esq"
 	elif para_tras or local.y > 0.3 * vel: lado = "_tras"
-	if vel < 2.4: _tocar("andar" + lado, clampf(vel / 1.5, 0.6, 1.6))
-	elif vel < 6.5 or lado != "": _tocar("correr" + lado, clampf(vel / 4.6, 0.7, 1.6))
-	else: _tocar("disparada", clampf(vel / 7.0, 0.8, 1.5))
+	if cm != "" and lado != "_tras": lado = ""          # sem armas não anda de lado (o corpo vira para onde anda)
+	if vel < 2.4: _tocar(cm + "andar" + lado, clampf(vel / 1.5, 0.6, 1.6))
+	elif vel < 6.5 or lado != "": _tocar(cm + "correr" + lado, clampf(vel / 4.6, 0.7, 1.6))
+	else: _tocar(cm + "disparada", clampf(vel / 7.0, 0.8, 1.5))
+
+# Sacar/guardar da cintura: depois das animações, leva a mão direita até o lado esquerdo do quadril (onde está a
+# espada) e devolve; "peso" 0..1 vem do tempo do sacar/guardar. Direções no espaço do esqueleto (+X frente, +Z direita).
+class BracoSacar extends SkeletonModifier3D:
+	var c: CorpoHeroi
+	var peso := 0.0
+	const ALVO := {"R_Upperarm": Vector3(0.5, -0.8, -0.3), "R_Forearm": Vector3(0.3, -0.3, -0.9)}
+	func _process_modification() -> void:
+		var sk := get_skeleton()
+		if sk == null or peso <= 0.001: return
+		var e := sk.find_bone("Spine02")
+		if e >= 0:                         # o tronco vira um pouco para a esquerda, junto com o braço
+			sk.set_bone_pose_rotation(e, sk.get_bone_pose_rotation(e) * Quaternion(Vector3.UP, 0.3 * peso))
+		for b in ["R_Upperarm", "R_Forearm"]:
+			var i := sk.find_bone(b); var f := sk.find_bone(CorpoHeroi.BRACOS[b])
+			if i < 0 or f < 0: continue
+			var g := sk.get_bone_global_pose(i)
+			var atual := (sk.get_bone_global_pose(f).origin - g.origin).normalized()
+			var q := Quaternion.IDENTITY.slerp(Quaternion(atual, (ALVO[b] as Vector3).normalized()), peso)
+			var pg := sk.get_bone_global_pose(sk.get_bone_parent(i))
+			sk.set_bone_pose_rotation(i, (pg.basis.inverse() * (Basis(q) * g.basis)).get_rotation_quaternion())

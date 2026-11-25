@@ -11,9 +11,13 @@
 - Os arquivos originais do pacote não vão para o repositório (são pagos); só as animações já convertidas.
 
 **Sacar e guardar as armas**
-- Fora de combate a espada e o escudo ficam nas costas e o herói fica parado relaxado, olhando em volta.
-- Apertar atacar (ou bloquear) saca as armas com animação e o primeiro golpe sai logo em seguida.
-- Depois de 8 segundos sem lutar, guarda as armas nas costas sozinho. Ao montar, também vão para as costas.
+- Fora de combate o escudo fica nas costas e a espada na cintura, do lado esquerdo.
+- Parado, andando e correndo sem armas usam as animações da Synty (Base Locomotion): feminina para a heroína,
+  masculina para o herói. As telas de seleção e criação também mostram esse parado.
+- Apertar atacar (ou defender) saca as armas: a mão direita vai até a cintura, puxa a espada, o escudo vai para o
+  braço, e o primeiro golpe sai logo em seguida.
+- Depois de 20 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
+- Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
 ## 22/11
 

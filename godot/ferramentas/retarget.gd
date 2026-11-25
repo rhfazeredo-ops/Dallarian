@@ -3,7 +3,7 @@
 # res://assets/animacoes/heroi.res. Para cada quadro: a rotação de cada osso no mundo, relativa à pose T do pacote,
 # é convertida de eixo (pacote: esquerda +X, frente +Z → nosso: frente +X, direita +Z) e aplicada sobre a pose de
 # repouso do herói já "alinhada" com a pose T (cada osso de braço/perna gira até a direção do mesmo osso na pose T).
-# Uso: godot --headless --path godot --script res://ferramentas/retarget.gd
+# Uso: godot --headless --path godot --script res://ferramentas/retarget.gd [-- --masc]
 extends SceneTree
 
 const MAPA := {"pelvis": "Hip", "spine_01": "Waist", "spine_02": "Spine01", "spine_03": "Spine02", "neck_01": "NeckTwist01",
@@ -30,27 +30,64 @@ const ANIMS := {      # nome no jogo → arquivo, laço?
 	"rolar": ["Evade_Roll_Forward", false], "sacar": ["Idle_Equip_Sword", false], "guardar": ["Idle_Unequip_Sword", false],
 	"parado_calmo": ["Idle_LookingAround", true], "frear": ["Run_Stop", false]}
 # eixos no espaço da raiz do pacote: cima +Z, esquerda +X, frente −Y → nosso: cima +Y, frente +X, direita +Z
-const C := Basis(Vector3(0, 0, -1), Vector3(-1, 0, 0), Vector3(0, 1, 0))
+const C_SS := Basis(Vector3(0, 0, -1), Vector3(-1, 0, 0), Vector3(0, 1, 0))
+
+# Synty "Base Locomotion" (andar sem armas, fora de combate): esqueleto Polygon, cima +Y, esquerda +X, frente +Z.
+# A pose de referência é o próprio repouso do esqueleto (braços para baixo), não uma pose T.
+const MAPA_SY := {"Hips": "Hip", "Spine_01": "Waist", "Spine_02": "Spine01", "Spine_03": "Spine02", "Neck": "NeckTwist01",
+	"Head": "Head", "Clavicle_L": "L_Clavicle", "Shoulder_L": "L_Upperarm", "Elbow_L": "L_Forearm", "Hand_L": "L_Hand",
+	"Clavicle_R": "R_Clavicle", "Shoulder_R": "R_Upperarm", "Elbow_R": "R_Forearm", "Hand_R": "R_Hand",
+	"UpperLeg_L": "L_Thigh", "LowerLeg_L": "L_Calf", "Ankle_L": "L_Foot", "Ball_L": "L_ToeBase",
+	"UpperLeg_R": "R_Thigh", "LowerLeg_R": "R_Calf", "Ankle_R": "R_Foot", "Ball_R": "R_ToeBase"}
+const DIR_SY := {"Shoulder_L": "Elbow_L", "Elbow_L": "Hand_L", "Hand_L": "Finger_01", "Shoulder_R": "Elbow_R",
+	"Elbow_R": "Hand_R", "Hand_R": "Finger_01_1", "UpperLeg_L": "LowerLeg_L", "LowerLeg_L": "Ankle_L", "Ankle_L": "Ball_L",
+	"UpperLeg_R": "LowerLeg_R", "LowerLeg_R": "Ankle_R", "Ankle_R": "Ball_R", "Clavicle_L": "Shoulder_L", "Clavicle_R": "Shoulder_R"}
+const ANIMS_SY := {"calmo_parado": ["A_Idle_Standing", true], "calmo_andar": ["A_Walk_F", true], "calmo_correr": ["A_Run_F", true],
+	"calmo_disparada": ["A_Sprint_F", true], "calmo_andar_tras": ["A_Walk_BckStrafeB", true], "calmo_correr_tras": ["A_Run_BckStrafeB", true],
+	"calmo_no_ar": ["A_InAir_FallShort", true]}
+const C_SY := Basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(1, 0, 0))
+var C := C_SS
 
 var tgt: Skeleton3D
 var t_rest := {}           # osso alvo → global rest
 var ordem_t: Array[String] = []
 
+var MAPA_A: Dictionary
+var DIR_A: Dictionary
 func _initialize() -> void:
-	var herói: Node3D = load("res://assets/modelos/humana.glb").instantiate(); root.add_child(herói)
+	# --masc: o herói (humano.glb, animações "Masc" da Synty) → heroi_m.res; sem: a heroína → heroi.res
+	var masc := "--masc" in OS.get_cmdline_user_args()
+	var lib := AnimationLibrary.new()
+	_converter(lib, "res://assets/modelos/%s.glb" % ("humano" if masc else "humana"), MAPA, DIR_S, ANIMS, C_SS, "SwordAndShield_%s", "")
+	_converter(lib, "res://assets/modelos/%s.glb" % ("humano" if masc else "humana"), MAPA_SY, DIR_SY, ANIMS_SY, C_SY,
+		"synty/%s_" + ("Masc" if masc else "Femn"), "repouso")
+	DirAccess.make_dir_recursive_absolute("res://assets/animacoes")
+	var saida := "res://assets/animacoes/heroi_m.res" if masc else "res://assets/animacoes/heroi.res"
+	print("SALVO ", saida, " ", ResourceSaver.save(lib, saida))
+	quit()
+
+func _converter(lib: AnimationLibrary, modelo: String, mapa: Dictionary, dirs: Dictionary, anims: Dictionary, c: Basis, molde: String, ref: String) -> void:
+	C = c; MAPA_A = mapa; DIR_A = dirs; t_rest.clear(); ordem_t.clear()
+	var herói: Node3D = load(modelo).instantiate(); root.add_child(herói)
 	tgt = herói.find_children("*", "Skeleton3D", true, false)[0]
 	var caminho := String(herói.get_path_to(tgt))
 	for i in tgt.get_bone_count(): t_rest[tgt.get_bone_name(i)] = tgt.get_bone_global_rest(i)
 	# ordem pai → filho dos ossos mapeados
 	for i in tgt.get_bone_count():
 		var n := tgt.get_bone_name(i)
-		if n in MAPA.values(): ordem_t.append(n)
+		if n in mapa.values(): ordem_t.append(n)
 	var inv := {}
-	for k in MAPA.keys(): inv[MAPA[k]] = k
-	# pose T do pacote
-	var tp := _fonte("T_pose"); var sk_tp: Skeleton3D = tp[0]
-	var s_tp := _poses(sk_tp)
-	var tp_raiz: Transform3D = (s_tp["root"] as Transform3D).affine_inverse()
+	for k in mapa.keys(): inv[mapa[k]] = k
+	var raiz_s := "root" if ref == "" else "Root"
+	# pose de referência do pacote: a pose T (Sword and Shield) ou o repouso do esqueleto (Synty)
+	var s_tp := {}
+	if ref == "":
+		var tp := _fonte("T_pose"); s_tp = _poses(tp[0])
+	else:
+		var f0 := _fonte(molde % anims.values()[0][0]); var sk0: Skeleton3D = f0[0]
+		for i in sk0.get_bone_count(): s_tp[sk0.get_bone_name(i)] = sk0.get_bone_global_rest(i)
+		f0[2].queue_free()
+	var tp_raiz: Transform3D = (s_tp[raiz_s] as Transform3D).affine_inverse()
 	for k in s_tp.keys(): s_tp[k] = tp_raiz * s_tp[k]          # tudo relativo à raiz (a raiz deita o esqueleto)
 	# alinhamento do repouso: rotação que leva a direção do osso no nosso repouso até a da pose T (convertida)
 	var alinha := {}
@@ -59,18 +96,18 @@ func _initialize() -> void:
 		if DIR_T.has(t):
 			var s: String = inv[t]
 			var dt: Vector3 = (t_rest[DIR_T[t]].origin - t_rest[t].origin).normalized()
-			var ds: Vector3 = C * (s_tp[DIR_S[s]].origin - s_tp[s].origin).normalized()
+			var ds: Vector3 = C * (s_tp[dirs[s]].origin - s_tp[s].origin).normalized()
 			alinha[t] = Quaternion(dt, ds)
-	var lib := AnimationLibrary.new()
-	var alt_s: float = s_tp["pelvis"].origin.z; var alt_t: float = t_rest["Hip"].origin.y
-	for nome in ANIMS.keys():
-		var arq: String = ANIMS[nome][0]
-		var f := _fonte("SwordAndShield_" + arq)
+	var pelvis: String = inv["Hip"]
+	var alt_s: float = (C * (s_tp[pelvis] as Transform3D).origin).y; var alt_t: float = t_rest["Hip"].origin.y
+	for nome in anims.keys():
+		var arq: String = anims[nome][0]
+		var f := _fonte(molde % arq)
 		var sk: Skeleton3D = f[0]; var ap: AnimationPlayer = f[1]
 		var fonte: Animation = ap.get_animation(ap.get_animation_list()[0])
 		var dur := fonte.length
 		var anim := Animation.new(); anim.length = dur
-		anim.loop_mode = Animation.LOOP_LINEAR if ANIMS[nome][1] else Animation.LOOP_NONE
+		anim.loop_mode = Animation.LOOP_LINEAR if anims[nome][1] else Animation.LOOP_NONE
 		var faixas := {}
 		for t in ordem_t:
 			var tr := anim.add_track(Animation.TYPE_ROTATION_3D); anim.track_set_path(tr, caminho + ":" + t); faixas[t] = tr
@@ -81,7 +118,7 @@ func _initialize() -> void:
 			var tempo := minf(q / 30.0, dur)
 			ap.seek(tempo, true); ap.advance(0.0)
 			var s_pose := _poses(sk)
-			var raiz_inv: Transform3D = (s_pose["root"] as Transform3D).affine_inverse()     # tira o giro da raiz
+			var raiz_inv: Transform3D = (s_pose[raiz_s] as Transform3D).affine_inverse()     # tira o giro da raiz
 			var g_t := {}
 			for t in ordem_t:
 				var s: String = inv[t]
@@ -107,18 +144,17 @@ func _initialize() -> void:
 				var loc: Basis = pai_g.inverse() * b
 				anim.rotation_track_insert_key(faixas[t], tempo, loc.get_rotation_quaternion())
 			# quadril: sobe/desce e se mexe junto (em escala do herói)
-			var hp: Vector3 = C * ((raiz_inv * s_pose["pelvis"]).origin - (s_tp["pelvis"] as Transform3D).origin) * (alt_t / alt_s)
+			var hp: Vector3 = C * ((raiz_inv * s_pose[pelvis]).origin - (s_tp[pelvis] as Transform3D).origin) * (alt_t / alt_s)
 			var hip_rest := tgt.get_bone_rest(tgt.find_bone("Hip")).origin
 			anim.position_track_insert_key(tr_hip, tempo, hip_rest + hp)
 		lib.add_animation(nome, anim)
 		print("ANIM ", nome, " ", dur, " s, ", n, " quadros")
 		f[2].queue_free()
-	DirAccess.make_dir_recursive_absolute("res://assets/animacoes")
-	print("SALVO ", ResourceSaver.save(lib, "res://assets/animacoes/heroi.res"))
-	quit()
+	herói.queue_free()
 
 func _fonte(nome: String) -> Array:
 	var s: Node3D = load("res://_anim_src/%s.fbx" % nome).instantiate(); root.add_child(s)
+	if not s.find_children("*", "AnimationPlayer", true, false): push_error("sem animação: " + nome)
 	var sk: Skeleton3D = s.find_children("*", "Skeleton3D", true, false)[0]
 	var ap: AnimationPlayer = s.find_children("*", "AnimationPlayer", true, false)[0]
 	ap.play(ap.get_animation_list()[0]); ap.seek(0.0, true)

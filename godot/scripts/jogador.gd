@@ -202,11 +202,11 @@ func trocar_equip(lugar: String, id: String) -> void:
 	if corpo: _montar_equip(corpo.mao_d if lugar == "arma" else corpo.mao_e, lugar, id); corpo.armas_na_mao(armado)
 
 # ---------- sacar e guardar as armas ----------
-# Fora de combate a espada e o escudo ficam nas costas. Atacar ou bloquear saca (animação "sacar") e, se foi um
+# Fora de combate o escudo fica nas costas e a espada na cintura (lado esquerdo). Atacar ou bloquear saca (animação "sacar") e, se foi um
 # ataque, o primeiro golpe sai sozinho no fim. Depois de CALMO_T segundos sem lutar, guarda as armas.
 const SACAR_T := 0.95          # o clipe de 2 s acelerado; a mão pega a espada em 40%
 const GUARDAR_T := 0.85        # a mão solta a espada nas costas em ~50%
-const CALMO_T := 8.0
+const CALMO_T := 20.0         # sem apertar atacar nem defender por 20 s: sai do modo de combate
 var armado := false
 var _sacando := 0.0
 var _guardando := 0.0
@@ -238,7 +238,7 @@ func _filtrar_armas(atacar: bool, bloquear: bool, delta: float) -> Array:
 			if armado and _guardando <= GUARDAR_T * 0.5: armado = false; if corpo: corpo.armas_na_mao(false)
 			if _guardando <= 0.0: _guardando = 0.0
 		return [false, false]
-	if atacar or bloquear or _acao != "" or alvo != null: _calmo = 0.0
+	if atacar or bloquear or _acao != "": _calmo = 0.0
 	else:
 		_calmo += delta
 		if _calmo > CALMO_T: _guardando = GUARDAR_T
@@ -563,7 +563,7 @@ func _physics_process(delta: float) -> void:
 	bloqueando = bloquear
 	correr = correr and dir.length() > 0.4 and dir.y < 0.3 and not bloquear      # corre para qualquer lado (menos para trás)
 	var vel := VEL_CORRER if correr else (VEL * 0.55 if bloquear else VEL)
-	if GOLPES.has(_acao): vel *= 0.45                # atacando: o corpo pesa, anda devagar
+	if GOLPES.has(_acao) or _acao == "bash" or _sacando > 0.0 or _guardando > 0.0: vel = 0.0   # atacando (ou sacando/guardando) fica no lugar
 	if montado: vel *= VEL_MONTARIA
 	correr = correr and not GOLPES.has(_acao)
 	# pulo: funciona parado, andando ou correndo. Tolerâncias: o toque vale por 0,2 s e dá para pular até
