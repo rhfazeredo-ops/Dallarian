@@ -316,3 +316,4 @@
   **NOVO JOGO** (abre a criação de herói) e SAIR. O jogo só começa com INICIAR JOGO na seleção.
 - Corrigido de novo o jogo abrindo direto no gameplay no APK antigo: o menu novo agora fica num arquivo com outro
   nome (o APK antigo guardava a tela de início velha na memória e voltava para ela).
+- Câmera em terceira pessoa mais perto do herói (4,2 m → 2,9 m; montado 6 m → 4,6 m).

@@ -17,8 +17,8 @@ const SEGURAR_FORTE := 0.3     # segurar o ataque por mais que isso = golpe fort
 var controles: Controles
 var corpo: CorpoHeroi
 var braco_cam: SpringArm3D
-const DIST_CAM := 4.2
-const DIST_CAM_MONTADA := 6.0
+const DIST_CAM := 2.9
+const DIST_CAM_MONTADA := 4.6
 var pescoco: Node3D            # gira para cima/baixo (olhar)
 var cam: Camera3D              # recebe balanço e trancos
 var mao: Node3D                # espaço dos braços (preso à câmera)
