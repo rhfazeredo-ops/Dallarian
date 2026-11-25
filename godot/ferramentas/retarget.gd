@@ -27,8 +27,7 @@ const ANIMS := {      # nome no jogo → arquivo, laço?
 	"golpe1": ["Attack_InPlace_Slash_Diagonal", false], "golpe2": ["Attack_InPlace_Slash_Vertical", false],
 	"golpe3": ["Attack_InPlace_Slash_Horizontal", false], "golpe_forte": ["Attack_Forward_PowerSlash01", false],
 	"escudada": ["Shield_InPlace_QuickBash", false], "morte": ["Idle_Death01", false], "dano": ["Stagger_Back01", false],
-	"rolar": ["Evade_Roll_Forward", false], "sacar": ["Idle_Equip_Sword", false], "guardar": ["Idle_Unequip_Sword", false],
-	"parado_calmo": ["Idle_LookingAround", true], "frear": ["Run_Stop", false]}
+	"rolar": ["Evade_Roll_Forward", false]}
 # eixos no espaço da raiz do pacote: cima +Z, esquerda +X, frente −Y → nosso: cima +Y, frente +X, direita +Z
 const C_SS := Basis(Vector3(0, 0, -1), Vector3(-1, 0, 0), Vector3(0, 1, 0))
 
@@ -44,7 +43,16 @@ const DIR_SY := {"Shoulder_L": "Elbow_L", "Elbow_L": "Hand_L", "Hand_L": "Finger
 	"UpperLeg_R": "LowerLeg_R", "LowerLeg_R": "Ankle_R", "Ankle_R": "Ball_R", "Clavicle_L": "Shoulder_L", "Clavicle_R": "Shoulder_R"}
 const ANIMS_SY := {"calmo_parado": ["A_Idle_Standing", true], "calmo_andar": ["A_Walk_F", true], "calmo_correr": ["A_Run_F", true],
 	"calmo_disparada": ["A_Sprint_F", true], "calmo_andar_tras": ["A_Walk_BckStrafeB", true], "calmo_correr_tras": ["A_Run_BckStrafeB", true],
-	"calmo_no_ar": ["A_InAir_FallShort", true]}
+	"calmo_no_ar": ["A_InAir_FallShort", true], "calmo_queda": ["A_InAir_FallLarge", true],
+	"calmo_pulo": ["A_Jump_Idle", false], "calmo_pulo_andando": ["A_Jump_Walking", false],
+	"calmo_pulo_correndo": ["A_Jump_Running", false], "calmo_pulo_disparada": ["A_Jump_Sprinting", false],
+	"calmo_aterrissa_leve": ["A_Land_IdleSoft", false], "calmo_aterrissa_media": ["A_Land_IdleMedium", false],
+	"calmo_aterrissa_forte": ["A_Land_IdleHard", false],
+	"calmo_comecar_andar": ["A_Idle_ToWalkF", false], "calmo_comecar_correr": ["A_Idle_ToRunF", false],
+	"calmo_parar_andando": ["A_Walk_ToIdleF_RFoot", false], "calmo_parar_correndo": ["A_Run_ToIdleF_RFoot", false],
+	"calmo_andar_sobe": ["A_Walk_Up25F", true], "calmo_andar_desce": ["A_Walk_Down25F", true],
+	"calmo_correr_sobe": ["A_Run_Up25F", true], "calmo_correr_desce": ["A_Run_Down25F", true],
+	"calmo_disparada_sobe": ["A_Sprint_Up25F", true], "calmo_disparada_desce": ["A_Sprint_Down25F", true]}
 const C_SY := Basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(1, 0, 0))
 var C := C_SS
 

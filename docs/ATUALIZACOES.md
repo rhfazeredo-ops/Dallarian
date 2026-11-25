@@ -19,6 +19,14 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Movimento fora de combate só com a Synty**
+- Pulo de verdade (parado, andando, correndo e em disparada), acompanhando a subida e a descida do pulo.
+- Queda longa quando cai de muito alto; aterrissagem leve, média ou forte conforme a altura.
+- Começar a andar/correr e parar (freada) com animação própria.
+- Andar, correr e disparada subindo e descendo morro.
+- Tiradas as animações que não eram da Synty fora do combate (parado olhando em volta, sacar pelo ombro, freada).
+  Em combate continuam as do Sword and Shield. Montado continua a pose por código.
+
 ## 22/11
 
 **Mundo e cidade**

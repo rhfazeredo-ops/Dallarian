@@ -84,7 +84,7 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 	# lâmina para trás e para baixo, face para fora; escudo no meio das costas, frente para trás
 	var lam := Vector3(-0.8, -0.6, 0.0).normalized(); var face := Vector3(0, 0, -1)
 	costas_d = _no_osso("Hip", Vector3(0.03, -0.01, -0.115), Basis(lam.cross(face), lam, face), 0.85)
-	costas_e = _no_osso("Spine02", Vector3(-0.12, 0.0, 0.0), Basis(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
+	costas_e = _no_osso("Spine02", Vector3(-0.075, 0.0, 0.0), Basis(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
 	_braco = BracoSacar.new(); _braco.c = self; esq.add_child(_braco)
 
 var costas_d: Node3D               # espada guardada (na cintura)
@@ -305,19 +305,101 @@ func _clipes(vel: float, vh: Vector2, no_chao: bool, para_tras: bool, luta: bool
 	_acao_ant = acao
 	if acao == "bash": _tocar("escudada", 1.6, 0.08); return
 	if j.bloqueando: _tocar("bloqueio", 1.0, 0.12); return
-	# fora de combate (armas guardadas): andar/correr/parado sem armas, do pacote da Synty
-	var cm := "" if j.armado else "calmo_"
-	if not no_chao: _tocar(cm + "no_ar", 1.0, 0.15); return
-	if vel < 0.4: _tocar(cm + "parado", 1.0, 0.3); return
-	# para onde anda em relação ao corpo: frente, trás ou de lado (de lado só lutando, quando o corpo olha a câmera)
-	var local := vh.rotated(j.rotation.y + rotation.y)               # no espaço do corpo (−y = frente)
-	var lado := ""
-	if luta and absf(local.x) > absf(local.y): lado = "_dir" if local.x > 0.0 else "_esq"
-	elif para_tras or local.y > 0.3 * vel: lado = "_tras"
-	if cm != "" and lado != "_tras": lado = ""          # sem armas não anda de lado (o corpo vira para onde anda)
-	if vel < 2.4: _tocar(cm + "andar" + lado, clampf(vel / 1.5, 0.6, 1.6))
-	elif vel < 6.5 or lado != "": _tocar(cm + "correr" + lado, clampf(vel / 4.6, 0.7, 1.6))
-	else: _tocar(cm + "disparada", clampf(vel / 7.0, 0.8, 1.5))
+	# lutando (armas na mão): os movimentos do pacote Sword and Shield
+	if j.armado:
+		_ar_estado(no_chao)
+		if not no_chao: _tocar("no_ar", 1.0, 0.15); return
+		if vel < 0.4: _tocar("parado", 1.0, 0.3); return
+		var local := vh.rotated(j.rotation.y + rotation.y)               # no espaço do corpo (−y = frente)
+		var lado := ""
+		if luta and absf(local.x) > absf(local.y): lado = "_dir" if local.x > 0.0 else "_esq"
+		elif para_tras or local.y > 0.3 * vel: lado = "_tras"
+		if vel < 2.4: _tocar("andar" + lado, clampf(vel / 1.5, 0.6, 1.6))
+		elif vel < 6.5 or lado != "": _tocar("correr" + lado, clampf(vel / 4.6, 0.7, 1.6))
+		else: _tocar("disparada", clampf(vel / 7.0, 0.8, 1.5))
+		return
+	_calmo(vel, vh, no_chao, para_tras)
+
+# ---------- fora de combate: só animações da Synty (Base Locomotion) ----------
+# Pulo: os clipes da Synty são o pulo inteiro (agacha, sobe, cai, aterrissa) e duram 2–3 s; o nosso fica ~0,75 s no
+# ar. Então o clipe começa no instante em que os pés saem do chão e o trecho no ar acompanha a velocidade vertical.
+# [clipe, saída do chão (s), chegada ao chão (s)] — medidos na altura do quadril de cada clipe
+const PULOS := {"parado": ["calmo_pulo", 0.6, 1.35], "andando": ["calmo_pulo_andando", 1.05, 1.75],
+	"correndo": ["calmo_pulo_correndo", 0.5, 1.25], "disparada": ["calmo_pulo_disparada", 0.45, 1.0]}
+var _pulo := ""                  # pulo em andamento (chave de PULOS) ou "" (caindo sem ter pulado)
+var _no_ar := 0.0                # tempo no ar
+var _vy_min := 0.0               # a maior velocidade de queda (para a força da aterrissagem)
+var _aterr := 0.0                # tempo que falta da aterrissagem
+var _transicao := 0.0            # começar a andar/correr ou parar: tempo que falta
+var _vel_ant := 0.0
+var _chao_ant := true
+func _ar_estado(no_chao: bool) -> void:
+	if not no_chao: _no_ar += get_physics_process_delta_time(); _vy_min = minf(_vy_min, j.velocity.y)
+	else: _no_ar = 0.0
+	_chao_ant = no_chao
+
+func _calmo(vel: float, vh: Vector2, no_chao: bool, para_tras: bool) -> void:
+	var dt := get_physics_process_delta_time()
+	_aterr = maxf(_aterr - dt, 0.0); _transicao = maxf(_transicao - dt, 0.0)
+	# --- no ar ---
+	if not no_chao:
+		if _chao_ant:                                   # acabou de sair do chão
+			_vy_min = 0.0; _no_ar = 0.0
+			_pulo = ""
+			if j.velocity.y > 2.0:                      # foi pulo (não só escorregou de um degrau)
+				_pulo = "parado" if _vel_ant < 0.8 else ("andando" if _vel_ant < 2.4 else ("correndo" if _vel_ant < 6.5 else "disparada"))
+		_no_ar += dt; _vy_min = minf(_vy_min, j.velocity.y); _chao_ant = false
+		if _pulo != "":
+			var p: Array = PULOS[_pulo]
+			var subida := 4.8                           # a velocidade do pulo (jogador.PULO)
+			var u := clampf((subida - j.velocity.y) / (2.0 * subida), 0.0, 1.0)
+			if j.velocity.y < -subida * 1.4: _tocar("calmo_queda", 1.0, 0.3); return    # caiu de muito alto
+			_tocar(p[0], 1.0, 0.06, _no_ar <= dt * 1.5)
+			_ap.seek(lerpf(float(p[1]), float(p[2]) - 0.05, u), true)
+			return
+		_tocar("calmo_queda" if _no_ar > 0.6 else "calmo_no_ar", 1.0, 0.25); return
+	# --- chegou no chão ---
+	if not _chao_ant:
+		_chao_ant = true
+		if _pulo != "" and vel >= 0.4 and _vy_min > -7.0:   # pulo correndo: o fim do próprio clipe emenda na corrida
+			_pulo = ""
+		elif _no_ar > 0.25:
+			var forca := "leve" if _vy_min > -6.0 else ("media" if _vy_min > -10.0 else "forte")
+			var nome := "calmo_aterrissa_" + forca
+			if vel < 0.4 or forca == "forte":
+				_tocar(nome, 1.2, 0.08, true); _aterr = _ap.get_animation(nome).length / 1.2 * (0.6 if forca == "leve" else 0.8)
+		_pulo = ""
+	_vel_ant = vel
+	if _aterr > 0.0 and vel < 0.4: return
+	# --- parado / parando ---
+	if vel < 0.4:
+		if _atual in ["calmo_correr", "calmo_disparada", "calmo_correr_sobe", "calmo_correr_desce", "calmo_disparada_sobe", "calmo_disparada_desce"]:
+			_tocar("calmo_parar_correndo", 1.3, 0.12, true); _transicao = 0.9 / 1.3; return
+		if _atual in ["calmo_andar", "calmo_andar_sobe", "calmo_andar_desce"]:
+			_tocar("calmo_parar_andando", 1.4, 0.15, true); _transicao = 0.9 / 1.4; return
+		if _transicao > 0.0 and _atual.begins_with("calmo_parar"): return
+		_tocar("calmo_parado", 1.0, 0.3); return
+	# --- começando a andar/correr (do parado) ---
+	if _atual in ["calmo_parado", "calmo_parar_andando", "calmo_parar_correndo"] or _atual.begins_with("calmo_aterrissa"):
+		_tocar("calmo_comecar_correr" if j.velocity.length() > 3.0 or vel > 1.0 else "calmo_comecar_andar", 1.6, 0.1, true); _transicao = 0.3
+		return
+	if _transicao > 0.0 and _atual.begins_with("calmo_comecar"): return
+	# --- andando / correndo, de frente ou para trás, subindo ou descendo morro ---
+	var local := vh.rotated(j.rotation.y + rotation.y)
+	if para_tras or local.y > 0.3 * vel:
+		if vel < 2.4: _tocar("calmo_andar_tras", clampf(vel / 1.5, 0.6, 1.6))
+		else: _tocar("calmo_correr_tras", clampf(vel / 4.6, 0.7, 1.6))
+		return
+	var rampa := ""
+	var n: Vector3 = j.get_floor_normal() if j is Node else Vector3.UP
+	if n.y > 0.3:
+		var d := vh.normalized()
+		var incl := -(n.x * d.x + n.z * d.y) / n.y     # quanto sobe por metro andado
+		if incl > 0.22: rampa = "_sobe"
+		elif incl < -0.22: rampa = "_desce"
+	if vel < 2.4: _tocar("calmo_andar" + rampa, clampf(vel / 1.5, 0.6, 1.6))
+	elif vel < 6.5: _tocar("calmo_correr" + rampa, clampf(vel / 4.6, 0.7, 1.6))
+	else: _tocar("calmo_disparada" + rampa, clampf(vel / 7.0, 0.8, 1.5))
 
 # Sacar/guardar da cintura: depois das animações, leva a mão direita até o lado esquerdo do quadril (onde está a
 # espada) e devolve; "peso" 0..1 vem do tempo do sacar/guardar. Direções no espaço do esqueleto (+X frente, +Z direita).

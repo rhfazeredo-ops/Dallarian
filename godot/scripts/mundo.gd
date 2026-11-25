@@ -3249,7 +3249,7 @@ func _modo_teste() -> void:
 	if args.has("empunhar"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("arma", String(args.empunhar)))   # teste: --empunhar=presa_da_mare
 	if args.has("escudo"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("escudo", String(args.escudo)))
 	if args.has("montada"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.montar_em("cavalo_preto", cavalo("cavalo_preto")))
-	if args.has("ver_corpo"):        # teste: --ver_corpo=graus [--corpo_pose=leve1:1:0.5 | bloquear | correr | armado | sacar | ar]
+	if args.has("ver_corpo"):        # teste: --ver_corpo=graus [--corpo_pose=leve1:1:0.5 | bloquear | correr | armado | sacar | pular | pular_correndo | parar | ar]
 		jogador.corpo.giro_teste = deg_to_rad(float(args.ver_corpo))
 		var ps := String(args.get("corpo_pose", "")).split(":")
 		get_tree().create_timer(0.3).timeout.connect(func():
@@ -3259,7 +3259,11 @@ func _modo_teste() -> void:
 				jogador.iniciar(ps[0]); jogador._fase = int(ps[1]); jogador.congelar = float(ps[2])
 			elif ps[0] == "bloquear": controles.bloqueio_mouse = true
 			elif ps[0] == "correr": controles.auto = true
-			elif ps[0] == "andar": controles.dir = Vector2(0, -0.6))
+			elif ps[0] == "andar": controles.dir = Vector2(0, -0.6)
+			elif ps[0] == "pular": jogador._pulo_pedido = 0.2
+			elif ps[0] == "pular_correndo":
+				controles.auto = true; get_tree().create_timer(0.8).timeout.connect(func(): jogador._pulo_pedido = 0.2)
+			elif ps[0] == "parar": controles.auto = true; get_tree().create_timer(0.8).timeout.connect(func(): controles.auto = false))
 	if args.has("dar_cavalos"):    # teste: dá as três montarias (e dinheiro)
 		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
 		bolsa.montaria_sel = String(args.get("cavalo", "cavalo_preto")) if String(args.get("cavalo", "")) != "" else bolsa.montarias[0]
