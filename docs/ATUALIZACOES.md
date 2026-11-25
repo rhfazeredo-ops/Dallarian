@@ -293,3 +293,5 @@
 - Herói **maior na tela** na criação (câmera mais perto) e na seleção.
 - **Criação de herói com o fundo pintado do campo** (arte enviada): a heroína em pé na grama, com uma sombra
   suave nos pés, entre as montanhas e as árvores.
+- **Música da seleção e da criação de heróis**: "Dawn Over the Vale" (enviada pelo dono), em loop só nessas telas;
+  some em 1,5 s ao tocar em INICIAR JOGO.
