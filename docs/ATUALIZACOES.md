@@ -314,3 +314,5 @@
   com ele escolhido (antes entrava direto no mundo).
 - Menu de início com **CONTINUAR** (para quem já tem herói: abre a seleção com o último herói jogado escolhido),
   **NOVO JOGO** (abre a criação de herói) e SAIR. O jogo só começa com INICIAR JOGO na seleção.
+- Corrigido de novo o jogo abrindo direto no gameplay no APK antigo: o menu novo agora fica num arquivo com outro
+  nome (o APK antigo guardava a tela de início velha na memória e voltava para ela).

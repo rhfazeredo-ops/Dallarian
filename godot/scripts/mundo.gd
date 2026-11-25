@@ -38,8 +38,8 @@ func _ready() -> void:
 	# aberto direto, sem passar pelo menu (APK antigo: a tela de início que vem dentro do APK é a velha e vai direto
 	# para o mundo depois de baixar a atualização) → volta para o menu de início novo
 	if args.is_empty() and not Herois.menu_ok:
-		Herois.menu_ok = true; Herois.pular_atualizacao = true
-		get_tree().change_scene_to_file.call_deferred("res://cenas/inicio.tscn"); return
+		Herois.pular_atualizacao = true          # (menu.tscn usa o script novo: o inicio.tscn do APK velho fica na memória)
+		get_tree().change_scene_to_file.call_deferred("res://cenas/menu.tscn"); return
 	var _tc := Time.get_ticks_msec()
 	if args.has("masculino"): Herois.teste_masculino()          # teste: herói masculino
 	reg = Regiao.new(); estrada = reg.estradas[0]
