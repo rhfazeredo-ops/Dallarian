@@ -310,3 +310,5 @@
   da versão). JOGAR leva à seleção de heróis; de lá, CRIAR NOVO HERÓI abre a criação. A música do menu já toca aqui.
 - Corrigido: o jogo abria direto no gameplay no APK antigo (a tela de início que vem dentro do APK é a velha); agora
   o mundo percebe que não passou pelo menu e volta para o menu de início novo.
+- O jogo só começa com **INICIAR JOGO** na seleção de heróis: depois de criar o primeiro herói, volta para a seleção
+  com ele escolhido (antes entrava direto no mundo).

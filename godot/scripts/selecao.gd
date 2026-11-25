@@ -33,7 +33,7 @@ func _abrir_criacao(primeira := false) -> void:
 	cr.voltar.connect(func(): cr.queue_free())
 	cr.pronto.connect(func(h: Dictionary):
 		cr.queue_free(); _montar_lista(Herois.lista().size() - 1)
-		if primeira: Herois.ativo = h; iniciar.emit())                  # primeira vez: já entra no jogo
+		pass)                   # volta para a seleção com o herói novo escolhido: só entra no jogo com INICIAR JOGO
 
 func _ready() -> void:
 	call_deferred("_primeira_vez")
