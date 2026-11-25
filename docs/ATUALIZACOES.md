@@ -306,3 +306,5 @@
   com o escudo, montado no cavalo (câmera mais alta e longe) e caindo de costas ao morrer. A espada e o escudo
   equipados ficam nas mãos do herói. O corpo vira para onde anda; atacando, bloqueando ou de mira travada, vira
   para onde a câmera olha.
+- **Menu de início** ao abrir o jogo: arte de Altamar, DALLARIAN / Vale de Aldren, **JOGAR** e **SAIR** (e o número
+  da versão). JOGAR leva à seleção de heróis; de lá, CRIAR NOVO HERÓI abre a criação. A música do menu já toca aqui.
