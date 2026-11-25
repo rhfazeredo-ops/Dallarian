@@ -27,7 +27,8 @@ const ANIMS := {      # nome no jogo → arquivo, laço?
 	"golpe1": ["Attack_InPlace_Slash_Diagonal", false], "golpe2": ["Attack_InPlace_Slash_Vertical", false],
 	"golpe3": ["Attack_InPlace_Slash_Horizontal", false], "golpe_forte": ["Attack_Forward_PowerSlash01", false],
 	"escudada": ["Shield_InPlace_QuickBash", false], "morte": ["Idle_Death01", false], "dano": ["Stagger_Back01", false],
-	"rolar": ["Evade_Roll_Forward", false]}
+	"rolar": ["Evade_Roll_Forward", false], "sacar": ["Idle_Equip_Sword", false], "guardar": ["Idle_Unequip_Sword", false],
+	"parado_calmo": ["Idle_LookingAround", true], "frear": ["Run_Stop", false]}
 # eixos no espaço da raiz do pacote: cima +Z, esquerda +X, frente −Y → nosso: cima +Y, frente +X, direita +Z
 const C := Basis(Vector3(0, 0, -1), Vector3(-1, 0, 0), Vector3(0, 1, 0))
 

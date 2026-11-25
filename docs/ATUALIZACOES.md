@@ -10,6 +10,11 @@
 - Montado continua com a pose feita por código.
 - Os arquivos originais do pacote não vão para o repositório (são pagos); só as animações já convertidas.
 
+**Sacar e guardar as armas**
+- Fora de combate a espada e o escudo ficam nas costas e o herói fica parado relaxado, olhando em volta.
+- Apertar atacar (ou bloquear) saca as armas com animação e o primeiro golpe sai logo em seguida.
+- Depois de 8 segundos sem lutar, guarda as armas nas costas sozinho. Ao montar, também vão para as costas.
+
 ## 22/11
 
 **Mundo e cidade**

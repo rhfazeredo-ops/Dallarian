@@ -296,4 +296,5 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 ## Câmera e heróis
 - Terceira pessoa (câmera atrás do herói). Animações do pacote Sword and Shield (comprado) convertidas para o
   esqueleto do NPC base (assets/animacoes/heroi.res); montado usa a pose por código (scripts/corpo.gd).
+- Armas nas costas fora de combate; atacar/bloquear saca (e o golpe sai em seguida); 8 s sem lutar guarda.
 - Heróis-base: Humana (a Rachel) e Humano, com roupa de nível 1; outros equipamentos vêm depois.

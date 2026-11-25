@@ -45,6 +45,7 @@ class Manequim:
 	var velocity := Vector3.ZERO; var rotation := Vector3.ZERO; var _acao := ""; var bloqueando := false; var alvo = null
 	var montado := false; var morta := false; var _t_morte := 0.0; var _tempo := 0.0; var congelar := -1.0
 	var _fase := 0; var _t_acao := 0.0; var _passo_acao := 0; var GOLPES := {}
+	var armado := false; var _sacando := 0.0; var _guardando := 0.0; const SACAR_T := 1.0; const GUARDAR_T := 1.0
 	func is_on_floor() -> bool: return true
 
 func montar(jogador, arq: String, no_mundo := true) -> void:
@@ -78,6 +79,28 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 	mao_d = _presa("R_Hand", "R_Mid1", Basis(Vector3(0, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, 1)), 0.85)
 	# escudo no antebraço esquerdo: frente para fora (-Z)
 	mao_e = _presa("L_Hand", "L_Mid1", Basis(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0)), 1.0)
+	# nas costas (fora de combate): espada na diagonal com o cabo atrás do ombro direito (de onde o "sacar" puxa),
+	# lâmina para baixo e para a esquerda, deitada nas costas; escudo no meio das costas, frente para trás
+	var lam := Vector3(0.0, -1.0, -0.5).normalized(); var face := Vector3(-1, 0, 0)
+	costas_d = _nas_costas(Vector3(-0.1, 0.19, 0.1), Basis(lam.cross(face), lam, face), 0.85)
+	costas_e = _nas_costas(Vector3(-0.12, -0.06, 0.03), Basis(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
+
+var costas_d: Node3D
+var costas_e: Node3D
+func _nas_costas(desvio: Vector3, b: Basis, esc: float) -> Node3D:
+	var i := esq.find_bone("Spine02")
+	var at := BoneAttachment3D.new(); at.bone_name = "Spine02"; esq.add_child(at)
+	var r := esq.get_bone_global_rest(i)
+	var no := Node3D.new(); no.transform = r.affine_inverse() * Transform3D(b.orthonormalized(), r.origin + desvio); at.add_child(no)
+	var h := Node3D.new(); h.scale = Vector3.ONE * esc / k; no.add_child(h)
+	return h
+
+# passa os modelos da espada e do escudo entre as mãos e as costas
+func armas_na_mao(sim: bool) -> void:
+	for par in [[mao_d, costas_d], [mao_e, costas_e]]:
+		var de: Node3D = par[1] if sim else par[0]; var para: Node3D = par[0] if sim else par[1]
+		if de == null or para == null: continue
+		for c in de.get_children(): c.reparent(para, false)
 
 func _presa(osso: String, dedo: String, b: Basis, esc: float) -> Node3D:
 	var i := esq.find_bone(osso)
@@ -247,6 +270,10 @@ func _tocar(nome: String, velo := 1.0, mistura := 0.18, do_comeco := false) -> v
 
 func _clipes(vel: float, vh: Vector2, no_chao: bool, para_tras: bool, luta: bool) -> void:
 	if j.morta: _tocar("morte", 1.0, 0.25); return
+	if j._sacando > 0.0:
+		_tocar("sacar", _ap.get_animation("sacar").length / j.SACAR_T, 0.1, _atual != "sacar"); return
+	if j._guardando > 0.0:
+		_tocar("guardar", _ap.get_animation("guardar").length / j.GUARDAR_T, 0.15, _atual != "guardar"); return
 	var acao: String = j._acao
 	if GOLPE_CLIPE.has(acao):
 		var clipe: String = GOLPE_CLIPE[acao]
@@ -268,7 +295,7 @@ func _clipes(vel: float, vh: Vector2, no_chao: bool, para_tras: bool, luta: bool
 	if acao == "bash": _tocar("escudada", 1.6, 0.08); return
 	if j.bloqueando: _tocar("bloqueio", 1.0, 0.12); return
 	if not no_chao: _tocar("no_ar", 1.0, 0.15); return
-	if vel < 0.4: _tocar("parado", 1.0, 0.2); return
+	if vel < 0.4: _tocar("parado" if j.armado else "parado_calmo", 1.0, 0.3); return
 	# para onde anda em relação ao corpo: frente, trás ou de lado (de lado só lutando, quando o corpo olha a câmera)
 	var local := vh.rotated(j.rotation.y + rotation.y)               # no espaço do corpo (−y = frente)
 	var lado := ""

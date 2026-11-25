@@ -110,7 +110,7 @@ func morrer() -> void:
 	desmontar(); morta = true; _t_morte = 0.0; _bateu = false; alvo = null
 	velocity.x = 0.0; velocity.z = 0.0; _acao = ""
 func reviver() -> void:
-	morta = false; _t_morte = 0.0
+	morta = false; _t_morte = 0.0; _por_armas(false)
 	pescoco.position.y = ALTURA_OLHOS; pescoco.rotation = Vector3(-0.25, 0, 0)
 func _cair_morta(delta: float) -> void:            # terceira pessoa: o corpo cai (corpo.gd) e a câmera se afasta
 	_t_morte += delta
@@ -123,6 +123,7 @@ func _cair_morta(delta: float) -> void:            # terceira pessoa: o corpo ca
 
 func montar_em(id: String, modelo: Node3D) -> void:
 	if montado: desmontar()
+	_por_armas(false)                                  # a cavalo as armas vão para as costas
 	montado = true; montaria_id = id; cavalo = modelo
 	add_child(cavalo); cavalo.position = Vector3(0, 0, -float(cavalo.get_meta("sela_z", 0.1)))       # a sela fica embaixo da câmera
 	_corpo_cavalo = CollisionShape3D.new(); var bx := BoxShape3D.new(); bx.size = Vector3(0.9, 1.3, 2.6)
@@ -198,7 +199,50 @@ var _esp: Node3D
 var _esc: Node3D
 func trocar_equip(lugar: String, id: String) -> void:
 	_montar_equip(_esp if lugar == "arma" else _esc, lugar, id)
-	if corpo: _montar_equip(corpo.mao_d if lugar == "arma" else corpo.mao_e, lugar, id)
+	if corpo: _montar_equip(corpo.mao_d if lugar == "arma" else corpo.mao_e, lugar, id); corpo.armas_na_mao(armado)
+
+# ---------- sacar e guardar as armas ----------
+# Fora de combate a espada e o escudo ficam nas costas. Atacar ou bloquear saca (animação "sacar") e, se foi um
+# ataque, o primeiro golpe sai sozinho no fim. Depois de CALMO_T segundos sem lutar, guarda as armas.
+const SACAR_T := 0.95          # o clipe de 2 s acelerado; a mão pega a espada em 40%
+const GUARDAR_T := 0.85        # a mão solta a espada nas costas em ~50%
+const CALMO_T := 8.0
+var armado := false
+var _sacando := 0.0
+var _guardando := 0.0
+var _calmo := 0.0
+var _golpe_apos := false
+var _esperar_soltar := false
+func _por_armas(sim: bool) -> void:
+	armado = sim; _sacando = 0.0; _guardando = 0.0; _calmo = 0.0
+	if corpo: corpo.armas_na_mao(sim)
+func _filtrar_armas(atacar: bool, bloquear: bool, delta: float) -> Array:
+	if montado: return [atacar, bloquear]
+	if _esperar_soltar:                       # segurou o ataque durante o sacar: só vale depois de soltar
+		if not atacar: _esperar_soltar = false
+		atacar = false
+	if _sacando > 0.0:
+		_sacando -= delta
+		if atacar: _golpe_apos = true
+		if not armado and _sacando <= SACAR_T * 0.6: armado = true; if corpo: corpo.armas_na_mao(true)
+		if _sacando <= 0.0:
+			_sacando = 0.0; _calmo = 0.0
+			if _golpe_apos: _golpe_apos = false; _esperar_soltar = atacar; _golpe_leve()
+		return [false, false]
+	if not armado or _guardando > 0.0:
+		if atacar or bloquear:                # quer lutar: saca (ou interrompe o guardar)
+			if armado: _guardando = 0.0; _calmo = 0.0; return [atacar, bloquear]
+			_guardando = 0.0; _sacando = SACAR_T; _golpe_apos = atacar; return [false, false]
+		if _guardando > 0.0:
+			_guardando -= delta
+			if armado and _guardando <= GUARDAR_T * 0.5: armado = false; if corpo: corpo.armas_na_mao(false)
+			if _guardando <= 0.0: _guardando = 0.0
+		return [false, false]
+	if atacar or bloquear or _acao != "" or alvo != null: _calmo = 0.0
+	else:
+		_calmo += delta
+		if _calmo > CALMO_T: _guardando = GUARDAR_T
+	return [atacar, bloquear]
 
 func _montar_equip(no: Node3D, lugar: String, id: String) -> void:
 	var m: Node = get_tree().current_scene
@@ -514,6 +558,7 @@ func _physics_process(delta: float) -> void:
 		atacar = false; bloquear = false
 	pescoco.position.y = move_toward(pescoco.position.y, ALTURA_MONTADA if montado else ALTURA_OLHOS, delta * 3.0)
 	braco_cam.spring_length = move_toward(braco_cam.spring_length, DIST_CAM_MONTADA if montado else DIST_CAM, delta * 4.0)
+	var ab := _filtrar_armas(atacar, bloquear, delta); atacar = ab[0]; bloquear = ab[1]    # sem armas: primeiro saca
 	if bloquear and not bloqueando: bloqueios_desde_erguer = 0        # levantou o escudo agora
 	bloqueando = bloquear
 	correr = correr and dir.length() > 0.4 and dir.y < 0.3 and not bloquear      # corre para qualquer lado (menos para trás)
