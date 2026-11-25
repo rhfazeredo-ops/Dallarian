@@ -10,7 +10,7 @@ const MAX_VISTA := 270.0
 var m
 var aberto := false
 var distancia := 270.0
-var nitidez := 3              # a imagem 3D é desenhada em 1/nitidez da tela: 4 = leve, 3 = média, 2 = alta
+var nitidez := 2              # a imagem 3D é desenhada em 1/nitidez da tela: 3 = leve, 2 = média, 1 = alta (tela cheia)
 var pontilhado := false       # filtro retrô (paleta curta + pontilhado Bayer): desligado por padrão
 var tremido := false          # vértices presos à grade de tela baixa (tremor do PS1): desligado por padrão
 var _botao: BotaoAcao
@@ -27,13 +27,14 @@ func montar(mundo) -> void:
 	_botao.process_mode = Node.PROCESS_MODE_ALWAYS
 	_botao.apertou.connect(alternar); add_child(_botao)
 	distancia = 180.0 if m.celular else MAX_VISTA
-	nitidez = 3 if m.celular else 2
+	nitidez = 2 if m.celular else 1
 	_carregar()
 	if m.args.has("nitidez"): nitidez = int(m.args.nitidez)
 	if m.args.has("pontilhado"): pontilhado = true
 	aplicar_distancia(distancia)
 	m.aplicar_imagem(nitidez, pontilhado)
-	RenderingServer.global_shader_parameter_set("tremor_ps1", 1.0 if tremido else 0.0)
+	pontilhado = false; tremido = false
+	RenderingServer.global_shader_parameter_set("tremor_ps1", 0.0)
 
 func _process(_d: float) -> void:
 	var t := Input.is_key_pressed(KEY_ESCAPE)
@@ -97,12 +98,8 @@ func _abrir_config() -> void:
 	var dica := UI.rotulo("Menos distância = jogo mais leve (o resto fica na névoa).", 22, Color(0.8, 0.78, 0.7))
 	_conteudo.add_child(dica)
 	# nitidez da imagem e filtro retrô
-	_opcoes("Nitidez", [["LEVE", 4], ["MÉDIA", 3], ["ALTA", 2]], nitidez, func(v):
+	_opcoes("Nitidez", [["LEVE", 3], ["MÉDIA", 2], ["ALTA", 1]], nitidez, func(v):
 		nitidez = v; m.aplicar_imagem(nitidez, pontilhado); _salvar(); _abrir_config())
-	_opcoes("Pontilhado retrô", [["DESLIGADO", 0], ["LIGADO", 1]], 1 if pontilhado else 0, func(v):
-		pontilhado = v == 1; m.aplicar_imagem(nitidez, pontilhado); _salvar(); _abrir_config())
-	_opcoes("Tremido PS1", [["DESLIGADO", 0], ["LIGADO", 1]], 1 if tremido else 0, func(v):
-		tremido = v == 1; RenderingServer.global_shader_parameter_set("tremor_ps1", 1.0 if tremido else 0.0); _salvar(); _abrir_config())
 	_conteudo.add_child(UI.rotulo("Nitidez alta = imagem mais limpa, mas pesa mais no celular.", 22, Color(0.8, 0.78, 0.7)))
 	var b := UI.botao("VOLTAR", _abrir_principal, true, 26, 220.0); _conteudo.add_child(b)
 	_centralizar()
@@ -137,7 +134,7 @@ func aplicar_distancia(d: float) -> void:
 
 func _salvar() -> void:
 	var f := FileAccess.open(ARQUIVO, FileAccess.WRITE)
-	if f: f.store_string(JSON.stringify({"distancia": distancia, "nitidez": nitidez, "pontilhado": pontilhado, "tremido": tremido}))
+	if f: f.store_string(JSON.stringify({"distancia": distancia, "nitidez_v2": nitidez, "pontilhado": pontilhado, "tremido": tremido}))
 
 func _carregar() -> void:
 	if m.args.has("shot") and not m.args.has("vista"): return
@@ -145,5 +142,5 @@ func _carregar() -> void:
 		var d = JSON.parse_string(FileAccess.get_file_as_string(ARQUIVO))
 		if typeof(d) == TYPE_DICTIONARY:
 			distancia = clampf(float(d.get("distancia", distancia)), MIN_VISTA, MAX_VISTA)
-			nitidez = clampi(int(d.get("nitidez", nitidez)), 2, 4); pontilhado = bool(d.get("pontilhado", pontilhado))
+			nitidez = clampi(int(d.get("nitidez_v2", nitidez)), 1, 3)   # (o filtro PS1 saiu: pontilhado e tremido sempre desligados)
 			tremido = bool(d.get("tremido", tremido))

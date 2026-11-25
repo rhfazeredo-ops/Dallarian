@@ -1139,7 +1139,7 @@ func _nitidez_auto(delta: float) -> void:
 	if _auto_t < 4.0: return
 	var fps := _auto_q / _auto_t
 	_auto_t = 0.0; _auto_q = 0
-	if fps < 48.0 and menu.nitidez < 4:
+	if fps < 48.0 and menu.nitidez < 3:
 		menu.nitidez += 1; aplicar_imagem(menu.nitidez, menu.pontilhado)
 		_auto_espera = 6.0
 
@@ -1249,17 +1249,17 @@ var _tela_cont: SubViewportContainer
 func aplicar_imagem(n: int, pont: bool) -> void:
 	_tela_cont.stretch_shrink = n
 	if hud: hud.escala_3d = n
-	var sm: ShaderMaterial = _tela_cont.material
-	sm.set_shader_parameter("forca_pontilhado", 0.7 if pont else 0.0)
-	sm.set_shader_parameter("niveis", 9.0 if pont else 32.0)
+	var sm := _tela_cont.material as ShaderMaterial          # (sem filtro de paleta: visual limpo da Synty)
+	if sm:
+		sm.set_shader_parameter("forca_pontilhado", 0.7 if pont else 0.0)
+		sm.set_shader_parameter("niveis", 9.0 if pont else 32.0)
 
 func _tela() -> void:
 	var cont := SubViewportContainer.new()
 	cont.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	cont.stretch = true; cont.stretch_shrink = REDUCAO
-	cont.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	cont.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR      # sem o filtro PS1: imagem suavizada, sem paleta curta
 	cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/tela.gdshader"); cont.material = sm
 	add_child(cont); _tela_cont = cont
 	vp = SubViewport.new(); vp.msaa_3d = Viewport.MSAA_DISABLED
 	vp.audio_listener_enable_3d = true         # a câmera desta tela é o "ouvido" dos sons 3D (sem isso ficam mudos)

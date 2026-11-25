@@ -5,7 +5,7 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 #include "res://shaders/noite.gdshaderinc"
-uniform sampler2D tex : source_color, filter_nearest_mipmap, repeat_enable;   // mipmap: longe não cintila
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;   // mipmap: longe não cintila
 uniform bool usa_tex = true;
 uniform vec4 cor : source_color = vec4(1.0);
 uniform vec2 grade = vec2(320.0, 180.0);          // resolução da "grade" dos vértices
@@ -16,7 +16,7 @@ uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
 global uniform float neb_ini;
 global uniform float neb_fim;
 uniform float escala_uv = 1.0;
-uniform sampler2D tex_rocha : source_color, filter_nearest_mipmap, repeat_enable;
+uniform sampler2D tex_rocha : source_color, filter_linear_mipmap, repeat_enable;
 uniform float tam_rocha = 7.0;                    // metros por repetição da rocha
 varying vec3 luz0;                                // luz sem a cor do vértice (a rocha usa a cor da textura)
 varying vec3 pmundo;

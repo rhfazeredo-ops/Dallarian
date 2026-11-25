@@ -3,7 +3,7 @@
 #endif
 global uniform float tremor_ps1;
 #include "res://shaders/noite.gdshaderinc"
-uniform sampler2D tex : source_color, filter_nearest_mipmap;
+uniform sampler2D tex : source_color, filter_linear_mipmap;
 uniform vec3 cor_pele : source_color = vec3(0.93, 0.62, 0.42);
 uniform vec3 cor_tunica : source_color = vec3(0.86, 0.72, 0.52);
 uniform vec3 cor_calca : source_color = vec3(0.45, 0.44, 0.47);

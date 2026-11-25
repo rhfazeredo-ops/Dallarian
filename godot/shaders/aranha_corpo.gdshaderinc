@@ -2,7 +2,7 @@
 #include "res://shaders/contorno.gdshaderinc"
 #endif
 #include "res://shaders/noite.gdshaderinc"
-uniform sampler2D tex : source_color, filter_nearest;
+uniform sampler2D tex : source_color, filter_linear_mipmap;
 uniform vec3 neblina : source_color = vec3(0.74, 0.83, 0.94);
 uniform vec2 grade = vec2(320.0, 180.0);
 uniform vec3 sol = vec3(0.45, 0.6, 0.35);

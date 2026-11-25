@@ -19,6 +19,12 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Sem o filtro PS1**
+- Saíram o filtro de paleta, o pontilhado, o tremido dos vértices e as texturas pixeladas: imagem limpa e suave,
+  preparando o mapa novo no visual original da Synty.
+- Nitidez nas configurações: LEVE, MÉDIA (padrão no celular) e ALTA (tela cheia). Se o celular ficar lento, o
+  jogo baixa a nitidez sozinho.
+
 **Escudada no lugar do bloqueio**
 - Saiu o bloqueio segurando o escudo. O botão do escudo agora dá uma ESCUDADA a cada toque: o herói empurra o
   escudo para a frente (animação do pacote), fere com metade do dano da espada e empurra o inimigo.
