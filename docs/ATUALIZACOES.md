@@ -19,6 +19,12 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Escudada no lugar do bloqueio**
+- Saiu o bloqueio segurando o escudo. O botão do escudo agora dá uma ESCUDADA a cada toque: o herói empurra o
+  escudo para a frente (animação do pacote), fere com metade do dano da espada e empurra o inimigo.
+- O escudo ainda segura um pouco de dano sozinho (o valor de bloqueio passivo); a Cusparada Ácida do Glorgo não
+  pode mais ser bloqueada.
+
 **Movimento fora de combate só com a Synty**
 - Pulo de verdade (parado, andando, correndo e em disparada), acompanhando a subida e a descida do pulo.
 - Queda longa quando cai de muito alto; aterrissagem leve, média ou forte conforme a altura.

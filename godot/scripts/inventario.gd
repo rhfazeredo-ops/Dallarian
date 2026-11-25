@@ -192,7 +192,6 @@ func _mostrar_dica(id: String, qtd: int, alvo: Control, botoes: Array, equipada 
 		v.add_child(_linha_dupla("Mão secundária", info.subtipo))
 		v.add_child(UI.rotulo("%d de armadura" % info.armadura, 21))
 		v.add_child(UI.rotulo("%d de bloqueio" % info.bloqueio, 21))
-		v.add_child(UI.rotulo("Equipar: segurando o escudo, bloqueia %d%% do dano." % int(info.bloqueio_ativo * 100), 20, Color(0.12, 1.0, 0.0)))
 	if info.has("nivel") and int(info.nivel) > 1:
 		v.add_child(UI.rotulo("Requer nível %d" % info.nivel, 21, Color(1, 1, 1) if m.hud.nivel >= int(info.nivel) else Color(1, 0.3, 0.3)))
 	if equipada and info.has("tipo"): v.add_child(UI.rotulo("(equipado)", 20, Color(0.7, 0.7, 0.7)))

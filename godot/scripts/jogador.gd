@@ -69,7 +69,8 @@ const PE := {
 	"bash_fim": [Vector3(-0.06, -0.14, -0.78), Vector3(92, -5, 0)],
 }
 # escudada: [duração, pose da esquerda (ou "" = volta), tranco]
-const BASH := [[0.08, "bash_prep", Vector3.ZERO], [0.1, "bash_fim", Vector3(-2, 0, 0.12)], [0.28, "", Vector3.ZERO]]
+const BASH := [[0.16, "bash_prep", Vector3.ZERO], [0.12, "bash_fim", Vector3(-2, 0, 0.12)], [0.42, "", Vector3.ZERO]]   # ~0,7 s (o clipe "escudada" acompanha)
+const ESCUDADA_DANO := 0.5     # a escudada fere menos que a espada, mas empurra
 
 # estado da mão direita (sempre: a espada é montada daqui)
 var _hp := Vector3(0.34, -0.44, -0.56); var _hd := Vector3(-0.02, 1.0, -0.1).normalized(); var _hn := Vector3(0.35, 0, 1).normalized()
@@ -85,7 +86,8 @@ var _parado := 0.0               # 0..1: quanto está parado (idle)
 var _giro := 0.0                 # câmera: vira um pouco junto com o golpe (graus)
 var _queda := 0.0; var _no_chao := true
 var _pulo_pedido := 0.0; var _coyote := 0.0
-var bloqueando := false
+var bloqueando := false          # (o bloqueio segurando o escudo saiu do jogo: fica sempre falso)
+var _escudada_seg := false
 var alvo: Node3D = null            # mira travada (Tab / botão ALVO): a câmera segue esse inimigo
 var bloqueios_desde_erguer := 0    # o 1º ataque depois de levantar o escudo é bloqueado inteiro
 var congelar := -1.0             # teste: para a ação nesse ponto (0..1)
@@ -211,7 +213,7 @@ var armado := false
 var _sacando := 0.0
 var _guardando := 0.0
 var _calmo := 0.0
-var _golpe_apos := false
+var _golpe_apos := ""          # o que sai quando o sacar termina: "leve" (atacou) ou "bash" (escudada)
 var _esperar_soltar := false
 func _por_armas(sim: bool) -> void:
 	armado = sim; _sacando = 0.0; _guardando = 0.0; _calmo = 0.0
@@ -223,16 +225,19 @@ func _filtrar_armas(atacar: bool, bloquear: bool, delta: float) -> Array:
 		atacar = false
 	if _sacando > 0.0:
 		_sacando -= delta
-		if atacar: _golpe_apos = true
+		if atacar: _golpe_apos = "leve"
+		elif bloquear and _golpe_apos == "": _golpe_apos = "bash"
 		if not armado and _sacando <= SACAR_T * 0.6: armado = true; if corpo: corpo.armas_na_mao(true)
 		if _sacando <= 0.0:
 			_sacando = 0.0; _calmo = 0.0
-			if _golpe_apos: _golpe_apos = false; _esperar_soltar = atacar; _golpe_leve()
+			if _golpe_apos == "leve": _esperar_soltar = atacar; _golpe_leve()
+			elif _golpe_apos == "bash": iniciar("bash")
+			_golpe_apos = ""
 		return [false, false]
 	if not armado or _guardando > 0.0:
 		if atacar or bloquear:                # quer lutar: saca (ou interrompe o guardar)
 			if armado: _guardando = 0.0; _calmo = 0.0; return [atacar, bloquear]
-			_guardando = 0.0; _sacando = SACAR_T; _golpe_apos = atacar; return [false, false]
+			_guardando = 0.0; _sacando = SACAR_T; _golpe_apos = "leve" if atacar else "bash"; return [false, false]
 		if _guardando > 0.0:
 			_guardando -= delta
 			if armado and _guardando <= GUARDAR_T * 0.5: armado = false; if corpo: corpo.armas_na_mao(false)
@@ -538,6 +543,8 @@ func _tocar_bash(delta: float, base_e: Transform3D) -> void:
 	if _passo_acao == 1 and u > 0.25: _tranco = _tranco.lerp(k[2], 0.5)
 	if _t_acao >= dur:
 		_passo_acao += 1; _t_acao = 0.0; _ini_e = piv_e.transform
+		if _passo_acao == 1:                       # o escudo bate: acerta quem está na frente
+			get_tree().call_group("lobos", "golpe_da_heroina", global_position, -global_transform.basis.z, ESCUDADA_DANO)
 		if _passo_acao >= BASH.size(): _acao = ""
 
 # ---------- movimento e animação ----------
@@ -558,9 +565,11 @@ func _physics_process(delta: float) -> void:
 		atacar = false; bloquear = false
 	pescoco.position.y = move_toward(pescoco.position.y, ALTURA_MONTADA if montado else ALTURA_OLHOS, delta * 3.0)
 	braco_cam.spring_length = move_toward(braco_cam.spring_length, DIST_CAM_MONTADA if montado else DIST_CAM, delta * 4.0)
-	var ab := _filtrar_armas(atacar, bloquear, delta); atacar = ab[0]; bloquear = ab[1]    # sem armas: primeiro saca
-	if bloquear and not bloqueando: bloqueios_desde_erguer = 0        # levantou o escudo agora
-	bloqueando = bloquear
+	var ab := _filtrar_armas(atacar, bloquear, delta); atacar = ab[0]    # sem armas: primeiro saca
+	# o botão do escudo não defende mais: cada toque dá uma ESCUDADA (empurrão com o escudo)
+	if ab[1] and not _escudada_seg and _acao == "" and not montado: iniciar("bash")
+	_escudada_seg = ab[1]
+	bloquear = false; bloqueando = false
 	correr = correr and dir.length() > 0.4 and dir.y < 0.3 and not bloquear      # corre para qualquer lado (menos para trás)
 	var vel := VEL_CORRER if correr else (VEL * 0.55 if bloquear else VEL)
 	if GOLPES.has(_acao) or _acao == "bash" or _sacando > 0.0 or _guardando > 0.0: vel = 0.0   # atacando (ou sacando/guardando) fica no lugar

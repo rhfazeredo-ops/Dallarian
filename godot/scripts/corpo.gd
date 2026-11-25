@@ -302,8 +302,9 @@ func _clipes(vel: float, vh: Vector2, no_chao: bool, para_tras: bool, luta: bool
 		_tocar(clipe, 1.0, 0.08, nova); _ap.seek(minf(pos, len), true)   # velocidade 1: a mistura com o clipe anterior anda
 		_acao_ant = acao
 		return
+	var bash_nova: bool = acao == "bash" and _acao_ant != "bash"
 	_acao_ant = acao
-	if acao == "bash": _tocar("escudada", 1.6, 0.08); return
+	if acao == "bash": _tocar("escudada", 1.5 / 0.7, 0.06, bash_nova); return
 	if j.bloqueando: _tocar("bloqueio", 1.0, 0.12); return
 	# lutando (armas na mão): os movimentos do pacote Sword and Shield
 	if j.armado:

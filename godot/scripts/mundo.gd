@@ -3254,10 +3254,10 @@ func _modo_teste() -> void:
 		var ps := String(args.get("corpo_pose", "")).split(":")
 		get_tree().create_timer(0.3).timeout.connect(func():
 			if ps[0] in ["leve1", "leve2", "leve3", "forte", "bloquear", "armado"]: jogador._por_armas(true)
-			if ps[0] == "sacar": jogador._sacando = jogador.SACAR_T; jogador._golpe_apos = true
+			if ps[0] == "sacar": jogador._sacando = jogador.SACAR_T; jogador._golpe_apos = "leve"
 			if ps[0] in ["leve1", "leve2", "leve3", "forte"]:
 				jogador.iniciar(ps[0]); jogador._fase = int(ps[1]); jogador.congelar = float(ps[2])
-			elif ps[0] == "bloquear": controles.bloqueio_mouse = true
+			elif ps[0] == "bloquear" or ps[0] == "escudada": controles.bloqueio_mouse = true
 			elif ps[0] == "correr": controles.auto = true
 			elif ps[0] == "andar": controles.dir = Vector2(0, -0.6)
 			elif ps[0] == "pular": jogador._pulo_pedido = 0.2

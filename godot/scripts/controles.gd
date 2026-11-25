@@ -1,6 +1,6 @@
 # Controles: celular (joystick à esquerda, arrastar à direita para olhar, botões ATACAR, BLOQUEAR e PULAR —
 # atacar e bloquear funcionam segurando; correr é pela trava acima do joystick) e PC (WASD anda, Shift corre, espaço pula,
-# mouse olha, botão esquerdo ataca — segurar = golpe forte —, botão direito bloqueia).
+# mouse olha, botão esquerdo ataca — segurar = golpe forte —, botão direito dá escudada).
 extends Control
 class_name Controles
 
@@ -39,7 +39,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_botao("ATACAR", -320, -310, 250, "atacar")
-	_botao("BLOQUEAR", -575, -240, 180, "bloquear")
+	_botao("ESCUDADA", -575, -240, 180, "bloquear")
 	_botao("PULAR", -520, -455, 150, "pular")
 	_botao("ALVO", -190, -720, 130, "alvo")
 	_base = load("res://assets/ui/joystick_base.png"); _pino = load("res://assets/ui/joystick_pino.png")
