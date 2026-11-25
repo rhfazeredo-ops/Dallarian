@@ -1,6 +1,16 @@
 # Dallarian — Log de atualizações
 
-## 22/11 (hoje)
+## 25/11 (hoje)
+
+**Animações de verdade no herói**
+- O pacote comprado **Sword and Shield Animations** foi convertido para o esqueleto dos nossos heróis (humana e
+  humano). O herói agora usa: guarda de combate parado, andar, correr, disparada, andar/correr para trás e de lado
+  (lutando ou de mira travada), bloqueio, os 3 golpes leves, o golpe forte (corte girando), escudada, no ar e morte.
+- O golpe na animação acontece no mesmo instante do dano, então o combate continua com o mesmo tempo de antes.
+- Montado continua com a pose feita por código.
+- Os arquivos originais do pacote não vão para o repositório (são pagos); só as animações já convertidas.
+
+## 22/11
 
 **Mundo e cidade**
 - Mapa dobrado (2,4 × 2,4 km) e depois retangular, 3,8 × 2,4 km. A vila e os arredores continuam iguais.

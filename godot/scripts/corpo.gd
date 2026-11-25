@@ -49,6 +49,7 @@ class Manequim:
 
 func montar(jogador, arq: String, no_mundo := true) -> void:
 	j = jogador if jogador != null else Manequim.new()
+	_montar_ap.call_deferred()
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mod = load(arq).instantiate(); add_child(mod)
 	k = 1.68 / 0.98
@@ -109,6 +110,12 @@ func animar(delta: float) -> void:
 	if j.montado: frente = j.rotation.y
 	_yaw = lerp_angle(_yaw, frente, 1.0 - exp(-(16.0 if luta else 10.0) * delta)) if vira else _yaw
 	rotation.y = _yaw - j.rotation.y + giro_teste                       # o corpo é filho do jogador
+	# animações de verdade (pacote Sword and Shield, convertidas para o nosso esqueleto); montado: as de código
+	if _ap and not j.montado:
+		rotation.x = 0.0; position.y = 0.0
+		_clipes(vel, vh, no_chao, para_tras, luta)
+		return
+	if _ap and _ap.is_playing(): _ap.stop(); esq.reset_bone_poses()
 	var a := clampf(vel / 4.4, 0.0, 1.2) if no_chao and not j.montado else 0.0
 	_anda = lerpf(_anda, minf(a, 1.0), 1.0 - exp(-10.0 * delta))
 	_corre = lerpf(_corre, clampf((vel - 5.0) / 2.0, 0.0, 1.0) if no_chao and not j.montado else 0.0, 1.0 - exp(-8.0 * delta))
@@ -219,3 +226,54 @@ func animar(delta: float) -> void:
 	# corpo inteiro: cai de costas morta; sobe na sela montada
 	rotation.x = 1.45 * cair
 	position.y = 0.15 * cair + (0.95 if j.montado else 0.0)
+
+# ---------- animações do pacote ----------
+var _ap: AnimationPlayer
+var _atual := ""
+var _acao_ant := ""
+func _montar_ap() -> void:
+	if not ResourceLoader.exists("res://assets/animacoes/heroi.res") or mod == null: return
+	_ap = AnimationPlayer.new(); mod.add_child(_ap); _ap.root_node = NodePath("..")
+	_ap.add_animation_library("", load("res://assets/animacoes/heroi.res"))
+	_ap.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS if j is Node else AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+	_ap.play("parado")
+
+const GOLPE_CLIPE := {"leve1": "golpe1", "leve2": "golpe2", "leve3": "golpe3", "forte": "golpe_forte"}
+func _tocar(nome: String, velo := 1.0, mistura := 0.18, do_comeco := false) -> void:
+	if nome != _atual or do_comeco:
+		_ap.play(nome, mistura); _atual = nome
+		if do_comeco: _ap.seek(0.0, true)
+	_ap.speed_scale = velo
+
+func _clipes(vel: float, vh: Vector2, no_chao: bool, para_tras: bool, luta: bool) -> void:
+	if j.morta: _tocar("morte", 1.0, 0.25); return
+	var acao: String = j._acao
+	if GOLPE_CLIPE.has(acao):
+		var clipe: String = GOLPE_CLIPE[acao]
+		var nova: bool = acao != _acao_ant
+		var t: Array = j.GOLPES[acao].t
+		var len: float = _ap.get_animation(clipe).length
+		# o clipe segue o relógio do golpe do jogador: preparo+corte = 0..IMPACTO do clipe (o impacto), o resto = volta
+		var dec := 0.0
+		for k in j._fase: dec += float(t[k])
+		dec += (float(j.congelar) if j.congelar >= 0.0 else j._t_acao / maxf(float(t[j._fase]), 0.001)) * float(t[j._fase]) if j._fase < t.size() else 0.0
+		var ida := float(t[0]) + float(t[1]); var volta := 0.0
+		for k in range(2, t.size()): volta += float(t[k])
+		var im: float = 0.5 if acao == "forte" else 0.3
+		var pos := im * len * dec / ida if dec < ida else (im + (1.0 - im) * (dec - ida) / maxf(volta, 0.01)) * len
+		_tocar(clipe, 1.0, 0.08, nova); _ap.seek(minf(pos, len), true)   # velocidade 1: a mistura com o clipe anterior anda
+		_acao_ant = acao
+		return
+	_acao_ant = acao
+	if acao == "bash": _tocar("escudada", 1.6, 0.08); return
+	if j.bloqueando: _tocar("bloqueio", 1.0, 0.12); return
+	if not no_chao: _tocar("no_ar", 1.0, 0.15); return
+	if vel < 0.4: _tocar("parado", 1.0, 0.2); return
+	# para onde anda em relação ao corpo: frente, trás ou de lado (de lado só lutando, quando o corpo olha a câmera)
+	var local := vh.rotated(j.rotation.y + rotation.y)               # no espaço do corpo (−y = frente)
+	var lado := ""
+	if luta and absf(local.x) > absf(local.y): lado = "_dir" if local.x > 0.0 else "_esq"
+	elif para_tras or local.y > 0.3 * vel: lado = "_tras"
+	if vel < 2.4: _tocar("andar" + lado, clampf(vel / 1.5, 0.6, 1.6))
+	elif vel < 6.5 or lado != "": _tocar("correr" + lado, clampf(vel / 4.6, 0.7, 1.6))
+	else: _tocar("disparada", clampf(vel / 7.0, 0.8, 1.5))

@@ -3,3 +3,4 @@ dist/
 *.tmp
 node_modules/
 godot/dados/terreno_longe.bin
+godot/_anim_src/
