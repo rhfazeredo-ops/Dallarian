@@ -16,7 +16,7 @@
   masculina para o herói. As telas de seleção e criação também mostram esse parado.
 - Apertar atacar (ou defender) saca as armas: a mão direita vai até a cintura, puxa a espada, o escudo vai para o
   braço, e o primeiro golpe sai logo em seguida.
-- Depois de 20 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
+- Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
 ## 22/11

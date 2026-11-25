@@ -206,7 +206,7 @@ func trocar_equip(lugar: String, id: String) -> void:
 # ataque, o primeiro golpe sai sozinho no fim. Depois de CALMO_T segundos sem lutar, guarda as armas.
 const SACAR_T := 0.95          # o clipe de 2 s acelerado; a mão pega a espada em 40%
 const GUARDAR_T := 0.85        # a mão solta a espada nas costas em ~50%
-const CALMO_T := 20.0         # sem apertar atacar nem defender por 20 s: sai do modo de combate
+const CALMO_T := 10.0         # sem apertar atacar nem defender por 10 s: sai do modo de combate
 var armado := false
 var _sacando := 0.0
 var _guardando := 0.0
