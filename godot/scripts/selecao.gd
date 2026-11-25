@@ -64,13 +64,13 @@ func _ready() -> void:
 	# lista de heróis (direita)
 	_painel = UI.janela(); var painel := _painel; painel.anchor_left = 1; painel.anchor_right = 1
 	painel.offset_left = -470; painel.offset_right = -30; painel.offset_top = 30; add_child(painel)
-	_montar_lista()
+	_montar_lista(Herois.indice_ultimo())
 	# botões embaixo à direita
 	var b := VBoxContainer.new(); b.add_theme_constant_override("separation", 14); b.alignment = BoxContainer.ALIGNMENT_END
 	b.anchor_left = 1; b.anchor_right = 1; b.anchor_top = 1; b.anchor_bottom = 1
 	b.offset_left = -470; b.offset_right = -30; b.offset_top = -220; b.offset_bottom = -30; add_child(b)
 	b.add_child(UI.botao("CRIAR NOVO HERÓI", _abrir_criacao, true, 26, 440.0))
-	var ini := UI.botao("INICIAR JOGO", func(): (_abrir_criacao(true) if _lista.is_empty() else (func(): Herois.ativo = _lista[_sel]; iniciar.emit()).call()), true, 34, 440.0); ini.custom_minimum_size.y = 84; b.add_child(ini)
+	var ini := UI.botao("INICIAR JOGO", func(): (_abrir_criacao(true) if _lista.is_empty() else (func(): Herois.ativo = _lista[_sel]; Herois.guardar_ultimo(Herois.ativo); iniciar.emit()).call()), true, 34, 440.0); ini.custom_minimum_size.y = 84; b.add_child(ini)
 	_aviso = UI.rotulo("", 24, Color(1.0, 0.85, 0.4)); _aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_aviso.anchor_left = 0.28; _aviso.anchor_right = 0.66; _aviso.anchor_top = 0.04; _aviso.anchor_bottom = 0.1; add_child(_aviso)
 

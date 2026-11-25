@@ -312,3 +312,5 @@
   o mundo percebe que não passou pelo menu e volta para o menu de início novo.
 - O jogo só começa com **INICIAR JOGO** na seleção de heróis: depois de criar o primeiro herói, volta para a seleção
   com ele escolhido (antes entrava direto no mundo).
+- Menu de início com **CONTINUAR** (para quem já tem herói: abre a seleção com o último herói jogado escolhido),
+  **NOVO JOGO** (abre a criação de herói) e SAIR. O jogo só começa com INICIAR JOGO na seleção.

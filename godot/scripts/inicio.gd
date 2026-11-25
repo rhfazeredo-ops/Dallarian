@@ -53,15 +53,17 @@ func _ready() -> void:
 				musica = AudioStreamPlayer.new(); musica.stream = st; musica.volume_db = -6.0; add_child(musica); musica.play()
 				break
 		# menu de início (só quando o jogo abre de verdade) → seleção de heróis → criação
+		var novo_jogo := false
 		if args2.is_empty() or args2.has("--titulo"):
 			var tit = load("res://scripts/titulo.gd").new(); add_child(tit)
 			if args2.has("--titulo"):
 				for k in 8: await RenderingServer.frame_post_draw
 				for x in args2: if x.begins_with("--shot="): get_viewport().get_texture().get_image().save_png(x.trim_prefix("--shot="))
 				get_tree().quit(); return
-			await tit.jogar
+			novo_jogo = await tit.jogar
 			tit.queue_free()
 		var sel = load("res://scripts/selecao.gd").new(); add_child(sel)
+		if novo_jogo and not Herois.lista().is_empty(): sel._abrir_criacao()      # NOVO JOGO: abre a criação por cima
 		if args2.has("--criacao"): sel._abrir_criacao()
 		if args2.has("--apertar"):          # teste: aperta INICIAR JOGO e vê se entra no mundo
 			await get_tree().create_timer(1.0).timeout

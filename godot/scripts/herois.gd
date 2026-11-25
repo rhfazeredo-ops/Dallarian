@@ -44,3 +44,14 @@ static func modelo(h: Dictionary) -> String:
 	return "res://assets/modelos/humano.glb" if masculino(h) else "res://assets/modelos/humana.glb"
 static func retrato(h: Dictionary) -> String:
 	return "res://assets/ui/racas/1_m.png" if masculino(h) else "res://assets/ui/racas/1_f.png"
+
+# último herói jogado (a seleção abre com ele escolhido)
+static func guardar_ultimo(h: Dictionary) -> void:
+	var f := FileAccess.open("user://ultimo_heroi.txt", FileAccess.WRITE)
+	if f: f.store_string(String(h.get("id", "")))
+static func indice_ultimo() -> int:
+	if not FileAccess.file_exists("user://ultimo_heroi.txt"): return 0
+	var id := FileAccess.get_file_as_string("user://ultimo_heroi.txt").strip_edges()
+	var l := lista()
+	for i in l.size(): if String(l[i].id) == id: return i
+	return 0

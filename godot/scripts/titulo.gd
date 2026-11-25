@@ -1,7 +1,7 @@
 # Menu de início (tela de título): a arte de Altamar, o nome do jogo e os botões JOGAR e SAIR. JOGAR leva à seleção de
 # heróis (e de lá à criação). A música do menu já começa aqui.
 extends Control
-signal jogar
+signal jogar(novo: bool)
 
 func _ready() -> void:
 	print("MENU DE INICIO aberto")
@@ -19,7 +19,10 @@ func _ready() -> void:
 	t.add_theme_constant_override("outline_size", 16); v.add_child(t)
 	var st := UI.rotulo("Vale de Aldren", 34, Color(0.95, 0.9, 0.8)); st.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v.add_child(st)
 	var esp := Control.new(); esp.custom_minimum_size = Vector2(0, 40); v.add_child(esp)
-	var bj := UI.botao("JOGAR", func(): jogar.emit(), true, 38, 520.0); bj.custom_minimum_size.y = 90; v.add_child(bj)
+	if not Herois.lista().is_empty():                # quem já tem herói: CONTINUAR (seleção com o último herói escolhido)
+		var bc := UI.botao("CONTINUAR", func(): jogar.emit(false), true, 38, 520.0); bc.custom_minimum_size.y = 90; v.add_child(bc)
+	var bj := UI.botao("NOVO JOGO", func(): jogar.emit(true), true, 30 if not Herois.lista().is_empty() else 38, 520.0)
+	bj.custom_minimum_size.y = 70 if not Herois.lista().is_empty() else 90; v.add_child(bj)
 	if not OS.has_feature("web"):
 		v.add_child(UI.botao("SAIR", func(): get_tree().quit(), true, 28, 520.0))
 	var ver := UI.rotulo("versão %d" % _versao(), 20, Color(0.85, 0.85, 0.85)); ver.anchor_left = 1; ver.anchor_right = 1; ver.anchor_top = 1; ver.anchor_bottom = 1
