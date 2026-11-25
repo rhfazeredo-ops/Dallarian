@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://db6vlcolym423"
-path="res://.godot/imported/dallarian_Color_799f160d-f9a7-4f6f-837a-27557cb680cd.png-51090d72a65d1c04b458dfe6e5dcfef5.ctex"
+uid="uid://dnjvvtbwenctf"
+path="res://.godot/imported/1_f.png-2be04f6f97fdfb8442a6b14747f59000.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "44af19e84b8b91aefde1db5fb6c7d9bd"
 }
 
 [deps]
 
-source_file="res://assets/modelos/dallarian_Color_799f160d-f9a7-4f6f-837a-27557cb680cd.png"
-dest_files=["res://.godot/imported/dallarian_Color_799f160d-f9a7-4f6f-837a-27557cb680cd.png-51090d72a65d1c04b458dfe6e5dcfef5.ctex"]
+source_file="res://assets/ui/racas/1_f.png"
+dest_files=["res://.godot/imported/1_f.png-2be04f6f97fdfb8442a6b14747f59000.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

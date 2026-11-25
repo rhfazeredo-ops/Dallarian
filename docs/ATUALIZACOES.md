@@ -295,3 +295,14 @@
   suave nos pés, entre as montanhas e as árvores.
 - **Música da seleção e da criação de heróis**: "Dawn Over the Vale" (enviada pelo dono), em loop só nessas telas;
   some em 1,5 s ao tocar em INICIAR JOGO.
+
+## 25/11
+- **Heróis novos (modelos do dono)**: Humana e Humano com roupa de nível 1 (túnica, calça com faixas, botas e
+  cinto de couro). A Humana substitui o modelo antigo da Rachel; o Humano foi liberado na criação de herói.
+  Retratos pintados nos ícones de raça e no HUD.
+- **Terceira pessoa**: a câmera fica atrás do herói (braço de câmera que encolhe ao bater em muros e no terreno),
+  e o corpo inteiro aparece e é animado: parado em guarda respirando, andando, correndo, andando para trás, pulando,
+  bloqueando com o escudo na frente, os golpes da espada (com a mesma preparação/corte/volta de antes), empurrão
+  com o escudo, montado no cavalo (câmera mais alta e longe) e caindo de costas ao morrer. A espada e o escudo
+  equipados ficam nas mãos do herói. O corpo vira para onde anda; atacando, bloqueando ou de mira travada, vira
+  para onde a câmera olha.

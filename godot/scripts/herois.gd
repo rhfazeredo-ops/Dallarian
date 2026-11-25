@@ -5,6 +5,7 @@ class_name Herois
 const ARQ := "user://herois.json"
 const RACHEL := {"id": "rachel", "nome": "Rachel", "raca": "Humana", "classe": "Guerreira"}
 static var ativo: Dictionary = RACHEL
+static func teste_masculino() -> void: ativo = {"id": "teste", "nome": "Aldric", "raca": "Humano", "classe": "Guerreiro"}
 
 static func lista() -> Array:
 	var l: Array = [RACHEL] if FileAccess.file_exists("user://progresso.json") else []   # a Rachel só se já tem save
@@ -35,3 +36,9 @@ static func nivel(h: Dictionary) -> int:
 static func nome_existe(nome: String) -> bool:
 	for h in lista(): if String(h.nome).to_lower() == nome.to_lower(): return true
 	return false
+
+static func masculino(h: Dictionary) -> bool: return String(h.get("raca", "Humana")) == "Humano"
+static func modelo(h: Dictionary) -> String:
+	return "res://assets/modelos/humano.glb" if masculino(h) else "res://assets/modelos/humana.glb"
+static func retrato(h: Dictionary) -> String:
+	return "res://assets/ui/racas/1_m.png" if masculino(h) else "res://assets/ui/racas/1_f.png"

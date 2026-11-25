@@ -15,6 +15,10 @@ const SENS_TOQUE := 0.006
 const SEGURAR_FORTE := 0.3     # segurar o ataque por mais que isso = golpe forte
 
 var controles: Controles
+var corpo: CorpoHeroi
+var braco_cam: SpringArm3D
+const DIST_CAM := 4.2
+const DIST_CAM_MONTADA := 6.0
 var pescoco: Node3D            # gira para cima/baixo (olhar)
 var cam: Camera3D              # recebe balanço e trancos
 var mao: Node3D                # espaço dos braços (preso à câmera)
@@ -89,8 +93,8 @@ var pose_fixa := false           # teste: mãos paradas numa pose (mostrar_pose)
 # montaria: o cavalo fica preso embaixo da Rachel (a câmera sobe para a altura da sela e os braços somem;
 # vê-se o pescoço e a cabeça do cavalo balançando no galope). 60% mais rápido, como no WoW.
 const VEL_MONTARIA := 1.6
-const ALTURA_OLHOS := 1.62
-const ALTURA_MONTADA := 2.5
+const ALTURA_OLHOS := 1.7               # (terceira pessoa) altura do ponto que a câmera segue
+const ALTURA_MONTADA := 2.7
 var montado := false
 var montaria_id := ""
 var cavalo: Node3D
@@ -107,23 +111,15 @@ func morrer() -> void:
 	velocity.x = 0.0; velocity.z = 0.0; _acao = ""
 func reviver() -> void:
 	morta = false; _t_morte = 0.0
-	pescoco.position.y = ALTURA_OLHOS; pescoco.rotation = Vector3.ZERO
-	mao.visible = true; mao.position = Vector3.ZERO
-func _cair_morta(delta: float) -> void:
+	pescoco.position.y = ALTURA_OLHOS; pescoco.rotation = Vector3(-0.25, 0, 0)
+func _cair_morta(delta: float) -> void:            # terceira pessoa: o corpo cai (corpo.gd) e a câmera se afasta
 	_t_morte += delta
-	var u := clampf(_t_morte / 0.95, 0.0, 1.0); var e := u * u
-	pescoco.position.y = lerpf(ALTURA_OLHOS, 0.26, e)
-	pescoco.rotation.z = lerpf(0.0, 1.3, e)                     # tomba para o lado
-	pescoco.rotation.x = lerpf(pescoco.rotation.x, -0.12, minf(1.0, delta * 3.0))
-	mao.position = Vector3(0.0, -0.7 * e, 0.15 * e)              # braços saem pela parte de baixo da tela
-	if u >= 1.0 and not _bateu:
-		_bateu = true; _tremor = 0.7; mao.visible = false
-	_tremor = maxf(0.0, _tremor - delta * 2.5)
-	var tr := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * _tremor * _tremor * 0.03
-	cam.position = tr; cam.rotation = Vector3.ZERO
+	braco_cam.spring_length = lerpf(braco_cam.spring_length, 5.5, 1.0 - exp(-1.5 * delta))
+	pescoco.rotation.x = lerpf(pescoco.rotation.x, -0.6, 1.0 - exp(-1.5 * delta))
 	velocity.x = 0.0; velocity.z = 0.0
 	if not is_on_floor(): velocity.y -= GRAV * delta
 	move_and_slide()
+	if corpo: corpo.animar(delta)
 
 func montar_em(id: String, modelo: Node3D) -> void:
 	if montado: desmontar()
@@ -133,8 +129,7 @@ func montar_em(id: String, modelo: Node3D) -> void:
 	_corpo_cavalo.shape = bx; _corpo_cavalo.position = Vector3(0, 1.4, -0.35); add_child(_corpo_cavalo)
 	for c in cavalo.get_children():
 		if c.get_script() != null: _anim_cavalo = c; c.inclinar = -0.6
-	mao.visible = false; alvo = null
-	pescoco.position.y = ALTURA_MONTADA - 0.5          # "sobe" na sela (termina de subir no _physics_process)
+	alvo = null
 
 func desmontar() -> void:
 	if not montado: return
@@ -142,16 +137,22 @@ func desmontar() -> void:
 	if cavalo: cavalo.queue_free()
 	if _corpo_cavalo: _corpo_cavalo.queue_free(); _corpo_cavalo = null
 	cavalo = null; _anim_cavalo = null
-	mao.visible = true
 
 func _ready() -> void:
 	var cs := CollisionShape3D.new(); var cap := CapsuleShape3D.new(); cap.radius = 0.35; cap.height = 1.75
 	cs.shape = cap; cs.position = Vector3(0, 0.875, 0); add_child(cs)
 	floor_snap_length = 0.4; floor_max_angle = deg_to_rad(48)
-	pescoco = Node3D.new(); pescoco.position = Vector3(0, 1.62, 0); add_child(pescoco)
-	cam = Camera3D.new(); cam.fov = 70; cam.near = 0.04; cam.far = 900
-	pescoco.add_child(cam); cam.current = true
-	mao = Node3D.new(); cam.add_child(mao)
+	# TERCEIRA PESSOA: o "pescoço" (gira para cima/baixo) fica na altura dos ombros; um braço de mola leva a câmera
+	# para trás do herói e encurta quando bate num muro ou no terreno
+	pescoco = Node3D.new(); pescoco.position = Vector3(0, ALTURA_OLHOS, 0); add_child(pescoco)
+	braco_cam = SpringArm3D.new(); braco_cam.spring_length = DIST_CAM; braco_cam.margin = 0.25
+	var esf := SphereShape3D.new(); esf.radius = 0.25; braco_cam.shape = esf; braco_cam.add_excluded_object(get_rid())
+	braco_cam.position = Vector3(0.35, 0, 0); pescoco.add_child(braco_cam)
+	cam = Camera3D.new(); cam.fov = 70; cam.near = 0.08; cam.far = 900
+	braco_cam.add_child(cam); cam.current = true
+	mao = Node3D.new(); cam.add_child(mao); mao.visible = false          # braços de primeira pessoa (não aparecem mais)
+	corpo = CorpoHeroi.new(); add_child(corpo)
+	corpo.montar(self, Herois.modelo(Herois.ativo))
 	_armas()
 	piv_d.transform = _mao_t(_hp, _hd, _hn); piv_e.transform = _pose("e_repouso")
 
@@ -196,8 +197,11 @@ func _armas() -> void:
 var _esp: Node3D
 var _esc: Node3D
 func trocar_equip(lugar: String, id: String) -> void:
+	_montar_equip(_esp if lugar == "arma" else _esc, lugar, id)
+	if corpo: _montar_equip(corpo.mao_d if lugar == "arma" else corpo.mao_e, lugar, id)
+
+func _montar_equip(no: Node3D, lugar: String, id: String) -> void:
 	var m: Node = get_tree().current_scene
-	var no := _esp if lugar == "arma" else _esc
 	if no == null: return
 	for c in no.get_children(): c.queue_free()
 	if id == "": return
@@ -393,7 +397,7 @@ func _seguir_alvo(delta: float) -> void:
 
 func _girar(d: Vector2) -> void:
 	rotation.y -= d.x
-	pescoco.rotation.x = clamp(pescoco.rotation.x - d.y, deg_to_rad(-85), deg_to_rad(85))
+	pescoco.rotation.x = clamp(pescoco.rotation.x - d.y, deg_to_rad(-75), deg_to_rad(35))
 	_balanco += Vector2(-d.x, d.y) * 0.6
 
 # ---------- ações ----------
@@ -509,9 +513,10 @@ func _physics_process(delta: float) -> void:
 		if atacar: desmontar(); controles._seg["atacar"] = false; controles.ataque_mouse = false   # atacar desmonta (como no WoW)
 		atacar = false; bloquear = false
 	pescoco.position.y = move_toward(pescoco.position.y, ALTURA_MONTADA if montado else ALTURA_OLHOS, delta * 3.0)
+	braco_cam.spring_length = move_toward(braco_cam.spring_length, DIST_CAM_MONTADA if montado else DIST_CAM, delta * 4.0)
 	if bloquear and not bloqueando: bloqueios_desde_erguer = 0        # levantou o escudo agora
 	bloqueando = bloquear
-	correr = correr and dir.y < -0.3 and not bloquear
+	correr = correr and dir.length() > 0.4 and dir.y < 0.3 and not bloquear      # corre para qualquer lado (menos para trás)
 	var vel := VEL_CORRER if correr else (VEL * 0.55 if bloquear else VEL)
 	if GOLPES.has(_acao): vel *= 0.45                # atacando: o corpo pesa, anda devagar
 	if montado: vel *= VEL_MONTARIA
@@ -579,8 +584,9 @@ func _physics_process(delta: float) -> void:
 	_giro = lerp(_giro, 0.0, 1.0 - exp(-6.0 * delta))
 	_tremor = max(0.0, _tremor - delta * 6.0)
 	var tr := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * _tremor * _tremor * 0.012
-	cam.position = Vector3(0, -abs(sin(_passo * 0.5)) * amp * 0.9 - _queda, -_tranco.z) + tr
-	cam.rotation = Vector3(deg_to_rad(_tranco.x), deg_to_rad(_giro), deg_to_rad(_tranco.y) + cos(_passo * 0.5) * amp * 0.25)
+	cam.position = tr * 3.0
+	cam.rotation = Vector3.ZERO
+	if corpo: corpo.animar(delta)
 	_rastro_atualizar(delta)
 	# braços: da mão até o ombro, fora da tela
 	_ajustar_braco(braco_d, piv_d.position, Vector3(0.32, -0.62, 0.15))

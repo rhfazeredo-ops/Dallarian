@@ -36,6 +36,7 @@ func _ready() -> void:
 		var p := a.trim_prefix("--").split("=", true, 1)
 		args[p[0]] = p[1] if p.size() > 1 else "1"
 	var _tc := Time.get_ticks_msec()
+	if args.has("masculino"): Herois.teste_masculino()          # teste: herói masculino
 	reg = Regiao.new(); estrada = reg.estradas[0]
 	if args.has("carga"): print("CARGA regiao ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_tela()
@@ -3242,6 +3243,16 @@ func _modo_teste() -> void:
 		if args.has("subir"): jogador.global_position.y += float(args.subir); jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.6"))
 	if args.has("empunhar"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("arma", String(args.empunhar)))   # teste: --empunhar=presa_da_mare
 	if args.has("escudo"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("escudo", String(args.escudo)))
+	if args.has("montada"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.montar_em("cavalo_preto", cavalo("cavalo_preto")))
+	if args.has("ver_corpo"):        # teste: --ver_corpo=graus [--corpo_pose=leve1:1:0.5 | bloquear | correr | ar]
+		jogador.corpo.giro_teste = deg_to_rad(float(args.ver_corpo))
+		var ps := String(args.get("corpo_pose", "")).split(":")
+		get_tree().create_timer(0.3).timeout.connect(func():
+			if ps[0] in ["leve1", "leve2", "leve3", "forte"]:
+				jogador.iniciar(ps[0]); jogador._fase = int(ps[1]); jogador.congelar = float(ps[2])
+			elif ps[0] == "bloquear": controles.bloqueio_mouse = true
+			elif ps[0] == "correr": controles.auto = true
+			elif ps[0] == "andar": controles.dir = Vector2(0, -0.6))
 	if args.has("dar_cavalos"):    # teste: dá as três montarias (e dinheiro)
 		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
 		bolsa.montaria_sel = String(args.get("cavalo", "cavalo_preto")) if String(args.get("cavalo", "")) != "" else bolsa.montarias[0]

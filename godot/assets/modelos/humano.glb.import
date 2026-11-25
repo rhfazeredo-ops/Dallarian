@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://242qdnb7vt64"
-path="res://.godot/imported/dallarian.glb-586878c4de70b3a411d4446ba31b0cfe.scn"
+uid="uid://dmmmnwo565cqq"
+path="res://.godot/imported/humano.glb-38e7b8e1f44258b518f8a09e0cb36530.scn"
 
 [deps]
 
-source_file="res://assets/modelos/dallarian.glb"
-dest_files=["res://.godot/imported/dallarian.glb-586878c4de70b3a411d4446ba31b0cfe.scn"]
+source_file="res://assets/modelos/humano.glb"
+dest_files=["res://.godot/imported/humano.glb-38e7b8e1f44258b518f8a09e0cb36530.scn"]
 
 [params]
 

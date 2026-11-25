@@ -9,17 +9,18 @@ signal voltar
 
 # [nome da raça, lore, [masculino disponível?, feminino disponível?]]
 const RACAS := [
-	["Humanos", "Os humanos do Vale de Aldren ergueram Altamar entre a montanha e o mar. Teimosos e corajosos, vivem de lavrar a terra, forjar o ferro e defender as muralhas contra o que desce das montanhas e sobe dos rios. Suas cavaleiras juram proteger o vale aos pés das Estátuas da Guardiã.", [false, true]],
+	["Humanos", "Os humanos do Vale de Aldren ergueram Altamar entre a montanha e o mar. Teimosos e corajosos, vivem de lavrar a terra, forjar o ferro e defender as muralhas contra o que desce das montanhas e sobe dos rios. Suas cavaleiras juram proteger o vale aos pés das Estátuas da Guardiã.", [true, true]],
 	["Raça 2", "Em breve.", [false, false]],
 	["Raça 3", "Em breve.", [false, false]],
 	["Raça 4", "Em breve.", [false, false]],
 ]
+const NOMES_M := ["Aldric", "Bram", "Cedric", "Doran", "Edmund", "Garrick", "Hadrian", "Leoric", "Osric", "Roderic", "Tristan", "Wulfric"]
 const NOMES := ["Aldra", "Brienne", "Cerys", "Elowen", "Isolde", "Maelis", "Rowena", "Sabine", "Tamsin", "Wren", "Ysolde", "Lyra", "Morgana", "Edwina"]
 var _raca := 0
 var _sexo := 1                      # 0 masculino, 1 feminino
 var _nome: LineEdit
 var _aviso: Label
-var _modelo: Node3D
+var _modelo: CorpoHeroi
 var _lore_tit: Label
 var _lore: Label
 var _botoes := []                   # [botão, raça, sexo]
@@ -60,7 +61,7 @@ func _ready() -> void:
 	_nome.add_theme_stylebox_override("normal", UI.estilo(Color(0.05, 0.04, 0.03, 0.92), UI.DOURADO, 8, 12, 3))
 	_nome.add_theme_stylebox_override("focus", UI.estilo(Color(0.08, 0.06, 0.04, 0.95), Color(1.0, 0.82, 0.3), 8, 12, 3))
 	nb.add_child(_nome)
-	var ale := UI.botao("ALEATÓRIO", func(): _nome.text = NOMES[randi() % NOMES.size()], true, 22, 460.0); ale.custom_minimum_size.y = 50; nb.add_child(ale)
+	var ale := UI.botao("ALEATÓRIO", func(): _nome.text = (NOMES_M if _sexo == 0 else NOMES)[randi() % 12], true, 22, 460.0); ale.custom_minimum_size.y = 50; nb.add_child(ale)
 	_aviso = UI.rotulo("", 24, Color(1.0, 0.5, 0.4)); _aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_aviso.anchor_left = 0.3; _aviso.anchor_right = 0.7; _aviso.anchor_top = 1; _aviso.anchor_bottom = 1; _aviso.offset_top = -215; _aviso.offset_bottom = -180; add_child(_aviso)
 	# ----- ACEITAR / VOLTAR
@@ -85,7 +86,7 @@ func _retrato(r: int, sx: int, livre: bool) -> Control:
 	if livre and r == 0 and sx == 1:                       # Rachel: rosto renderizado do modelo
 		var cont := SubViewportContainer.new(); cont.stretch = true
 		var vp := SubViewport.new(); vp.own_world_3d = true; cont.add_child(vp)
-		var mod: Node3D = load("res://assets/modelos/dallarian.glb").instantiate(); mod.rotation_degrees.y = -90; vp.add_child(mod)
+		var mod: Node3D = load("res://assets/modelos/humana.glb").instantiate(); mod.rotation_degrees.y = -90; vp.add_child(mod)
 		_nitido(mod)
 		var luz := DirectionalLight3D.new(); luz.rotation_degrees = Vector3(-20, 25, 0); vp.add_child(luz)
 		var we := WorldEnvironment.new(); var env := Environment.new(); env.background_mode = Environment.BG_COLOR; env.background_color = Color(0.25, 0.32, 0.22)
@@ -154,14 +155,18 @@ func _cena_campo() -> void:
 		var gr := Gradient.new(); gr.set_color(0, Color(0.05, 0.1, 0.02, 0.55)); gr.set_color(1, Color(0.05, 0.1, 0.02, 0.0)); gt.gradient = gr
 		ms.albedo_texture = gt; dm.material = ms; somb.position = Vector3(0.08, 0.01, 0.05); vp.add_child(somb)
 	# o herói em pé na grama (no arquivo o modelo tem 0,98 de altura, de -0,49 a 0,49)
-	_modelo = load("res://assets/modelos/dallarian.glb").instantiate(); vp.add_child(_modelo)
-	_nitido(_modelo)
-	var k := 1.65 / 0.98; _modelo.scale = Vector3.ONE * k; _modelo.position = Vector3(0, 0.49 * k, 0)
+	_vp = vp; _por_modelo("res://assets/modelos/humana.glb")
 	var cam := Camera3D.new(); cam.fov = 40.0; cam.position = Vector3(0.0, 1.25, 3.3); vp.add_child(cam); cam.look_at(Vector3(0.0, 0.92, 0)); cam.current = true   # perto: herói grande
+
+var _vp: Node
+func _por_modelo(arq: String) -> void:
+	if _modelo: _modelo.queue_free()
+	var c := CorpoHeroi.new(); _vp.add_child(c); c.montar(null, arq, false); _modelo = c
 
 func _escolher(r: int, sx: int) -> void:
 	if not RACAS[r][2][sx]: return
 	_raca = r; _sexo = sx
+	if _vp: _por_modelo("res://assets/modelos/humano.glb" if sx == 0 else "res://assets/modelos/humana.glb")
 	_lore_tit.text = RACAS[r][0]; _lore.text = RACAS[r][1]
 	for bt in _botoes:
 		var sel: bool = bt[1] == r and bt[2] == sx
@@ -170,7 +175,9 @@ func _escolher(r: int, sx: int) -> void:
 			bt[0].add_theme_stylebox_override(st, UI.estilo(Color(0.1, 0.08, 0.06, 0.9), Color(1.0, 0.82, 0.3) if sel else (UI.DOURADO if livre else Color(0.3, 0.3, 0.3)), 8, 4, 4 if sel else 2))
 
 func _process(_d: float) -> void:
-	if _modelo: _modelo.rotation.y = -PI * 0.5 + sin(Time.get_ticks_msec() / 1000.0 * 0.5) * 0.25
+	if _modelo:
+		_modelo.giro_teste = PI + sin(Time.get_ticks_msec() / 1000.0 * 0.5) * 0.25
+		_modelo.j._tempo = Time.get_ticks_msec() / 1000.0; _modelo.animar(get_process_delta_time())
 
 func _aceitar() -> void:
 	var n := _nome.text.strip_edges()

@@ -5,7 +5,7 @@ extends Control
 signal iniciar
 
 const FUNDO := "res://assets/ui/selecao_fundo.png"
-var _modelo: Node3D
+var _modelo: CorpoHeroi
 var _sel := 0
 var _cartoes: Array[PanelContainer] = []
 var _aviso: Label
@@ -51,19 +51,13 @@ func _ready() -> void:
 	var cont := SubViewportContainer.new(); cont.stretch = true; cont.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cont.anchor_left = 0.26; cont.anchor_right = 0.74; cont.anchor_top = 0.08; cont.anchor_bottom = 0.98; add_child(cont)
 	var vp := SubViewport.new(); vp.transparent_bg = true; vp.own_world_3d = true; cont.add_child(vp)
-	_modelo = load("res://assets/modelos/dallarian.glb").instantiate(); vp.add_child(_modelo)
-	_modelo.rotation_degrees.y = -90
-	for n in _modelo.find_children("*", "MeshInstance3D", true, false):
-		var mi: MeshInstance3D = n
-		var orig: BaseMaterial3D = mi.mesh.surface_get_material(0)
-		if orig:
-			var mt := orig.duplicate() as BaseMaterial3D; mt.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST; mi.material_override = mt
+	_modelo_pai = vp; _trocar_modelo(Herois.lista()[0] if not Herois.lista().is_empty() else Herois.RACHEL)
 	var luz := DirectionalLight3D.new(); luz.rotation_degrees = Vector3(-25, 30, 0); luz.light_energy = 1.2; luz.light_color = Color(1.0, 0.9, 0.78); vp.add_child(luz)
 	var amb := WorldEnvironment.new(); var env := Environment.new(); env.background_mode = Environment.BG_CLEAR_COLOR
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; env.ambient_light_color = Color(0.72, 0.68, 0.8); env.ambient_light_energy = 0.85
 	amb.environment = env; vp.add_child(amb)
-	var cam := Camera3D.new(); cam.projection = Camera3D.PROJECTION_ORTHOGONAL; cam.size = 1.12
-	cam.position = Vector3(0.0, 0.02, 2.0); vp.add_child(cam); cam.current = true
+	var cam := Camera3D.new(); cam.projection = Camera3D.PROJECTION_ORTHOGONAL; cam.size = 1.95
+	cam.position = Vector3(0.0, 0.86, 3.0); vp.add_child(cam); cam.current = true
 	# nome embaixo da heroína
 	_nome = UI.rotulo("Rachel", 34, Color(1.0, 0.82, 0.3)); _nome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_nome.anchor_left = 0.28; _nome.anchor_right = 0.66; _nome.anchor_top = 0.9; _nome.anchor_bottom = 0.96; add_child(_nome)
@@ -80,8 +74,18 @@ func _ready() -> void:
 	_aviso = UI.rotulo("", 24, Color(1.0, 0.85, 0.4)); _aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_aviso.anchor_left = 0.28; _aviso.anchor_right = 0.66; _aviso.anchor_top = 0.04; _aviso.anchor_bottom = 0.1; add_child(_aviso)
 
+var _modelo_pai: Node
+var _modelo_arq := ""
+func _trocar_modelo(h: Dictionary) -> void:
+	var arq := Herois.modelo(h)
+	if arq == _modelo_arq or _modelo_pai == null: return
+	_modelo_arq = arq
+	if _modelo: _modelo.queue_free()
+	var c := CorpoHeroi.new(); _modelo_pai.add_child(c); c.montar(null, arq, false); _modelo = c
+
 func _escolher(i: int) -> void:
 	_sel = i
+	if i < _lista.size(): _trocar_modelo(_lista[i])
 	if _nome and i < _lista.size(): _nome.text = String(_lista[i].nome)
 	for k in _cartoes.size():
 		var sel := k == i
@@ -89,7 +93,9 @@ func _escolher(i: int) -> void:
 			Color(1.0, 0.82, 0.3) if sel else UI.DOURADO, 8, 14, 3 if sel else 2))
 
 func _process(delta: float) -> void:
-	if _modelo: _modelo.rotation.y = -PI * 0.5 + sin(Time.get_ticks_msec() / 1000.0 * 0.6) * 0.35     # vira devagar de um lado para o outro
+	if _modelo:                                     # de frente, virando devagar de um lado para o outro, respirando
+		_modelo.giro_teste = PI + sin(Time.get_ticks_msec() / 1000.0 * 0.6) * 0.35
+		_modelo.j._tempo = Time.get_ticks_msec() / 1000.0; _modelo.animar(get_process_delta_time())
 
 # sem nenhum herói salvo (jogo novo): abre direto a criação, que é obrigatória
 func _primeira_vez() -> void:

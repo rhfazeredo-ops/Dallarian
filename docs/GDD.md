@@ -292,3 +292,7 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 ## Início do jogo
 - A Rachel nasce no portão oeste de Altamar, virada para a Ponte dos Guardiões (morrendo, volta na Estátua da
   Guardiã mais perto).
+
+## Câmera e heróis
+- Terceira pessoa (câmera atrás do herói, corpo animado por código no esqueleto do NPC base — scripts/corpo.gd).
+- Heróis-base: Humana (a Rachel) e Humano, com roupa de nível 1; outros equipamentos vêm depois.
