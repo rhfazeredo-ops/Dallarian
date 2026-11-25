@@ -5,6 +5,8 @@ class_name Herois
 const ARQ := "user://herois.json"
 const RACHEL := {"id": "rachel", "nome": "Rachel", "raca": "Humana", "classe": "Guerreira"}
 static var ativo: Dictionary = RACHEL
+static var menu_ok := false              # já passou pelo menu de início (inicio.gd)
+static var pular_atualizacao := false
 static func teste_masculino() -> void: ativo = {"id": "teste", "nome": "Aldric", "raca": "Humano", "classe": "Guerreiro"}
 
 static func lista() -> Array:

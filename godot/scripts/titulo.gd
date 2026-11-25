@@ -4,6 +4,7 @@ extends Control
 signal jogar
 
 func _ready() -> void:
+	print("MENU DE INICIO aberto")
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var fundo := ColorRect.new(); fundo.color = Color(0.06, 0.05, 0.05); fundo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(fundo)
 	if ResourceLoader.exists("res://assets/ui/tela_inicio.png"):

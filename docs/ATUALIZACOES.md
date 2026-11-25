@@ -308,3 +308,5 @@
   para onde a câmera olha.
 - **Menu de início** ao abrir o jogo: arte de Altamar, DALLARIAN / Vale de Aldren, **JOGAR** e **SAIR** (e o número
   da versão). JOGAR leva à seleção de heróis; de lá, CRIAR NOVO HERÓI abre a criação. A música do menu já toca aqui.
+- Corrigido: o jogo abria direto no gameplay no APK antigo (a tela de início que vem dentro do APK é a velha); agora
+  o mundo percebe que não passou pelo menu e volta para o menu de início novo.

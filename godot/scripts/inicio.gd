@@ -32,9 +32,10 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var embutida := _versao(("res://versao.json"))
 	var args := OS.get_cmdline_user_args()
-	if OS.has_feature("android") or args.has("--atualizar"):
+	Herois.menu_ok = true
+	if (OS.has_feature("android") or args.has("--atualizar")) and not Herois.pular_atualizacao:
 		await _procurar(embutida)
-	_usar_pacote(embutida)
+	if not Herois.pular_atualizacao: _usar_pacote(embutida)          # (vindo do mundo, o pacote novo já está carregado)
 	if OS.get_cmdline_user_args().has("--parar_inicio"):                 # teste: print da tela de início e sai
 		_texto.text = "Baixando atualização (versão 97)..."; _barra.visible = true; _barra.value = 42
 		for k in 6: await RenderingServer.frame_post_draw
