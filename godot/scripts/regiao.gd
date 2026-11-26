@@ -141,9 +141,9 @@ func dist_rio2(x: float, z: float) -> float: return _amostra(d_rio2, x, z)
 func dist_rios(x: float, z: float) -> float: return minf(dist_rio(x, z), dist_rio2(x, z))
 
 # ---------- rio do leste: nasce nas montanhas do norte, passa na frente do portão oeste da cidade e deságua no mar ----------
-var rio2 := PackedVector2Array([Vector2(1500, -1190), Vector2(1530, -950), Vector2(1560, -700), Vector2(1580, -450),
-	Vector2(1640, -250), Vector2(1700, -60), Vector2(1715, 75), Vector2(1712, 200), Vector2(1730, 380), Vector2(1800, 520),
-	Vector2(1950, 600), Vector2(2150, 640), Vector2(2330, 660)])
+# (longe de Altamar: desce das montanhas e vai para o mar bem ao norte da cidade — a frente do reino fica livre)
+var rio2 := PackedVector2Array([Vector2(1480, -1190), Vector2(1540, -1020), Vector2(1640, -880), Vector2(1790, -760),
+	Vector2(1960, -680), Vector2(2120, -640), Vector2(2330, -620)])
 var d_rio2 := PackedFloat32Array()
 var t_rio2 := PackedFloat32Array()
 var _rio2_comp := PackedFloat32Array()

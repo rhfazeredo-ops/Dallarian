@@ -102,9 +102,10 @@ func _ready() -> void:
 		["Ferraria do Bram", ferraria_pos, "ferraria", 12.0],
 		["Píer do Rio", pier_pos, "agua", 14.0],
 		["Lago do Planalto", Vector2(Regiao.LAGO.x, Regiao.LAGO.y), "agua", 60.0],
-		["Estábulo de Altamar", estabulo_pos, "ferradura", 20.0],
+		["Estábulo de Altamar", estabulo_pos, "vila", 20.0],
 		["Porto de Altamar", porto_pos, "farol", 30.0],
 		["Altamar", cidade_pos, "castelo", 200.0],
+	] + (reino.lugares_bussola if reino else []) + [
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	fauna.montar(self)
 	praia.montar(self)
@@ -2426,9 +2427,10 @@ func _faixa_rio(linha: PackedVector2Array, largura: Callable, nivel: Callable, a
 	_peca(st, am, Vector3.ZERO)
 
 # ---------- lugares da região ----------
+var reino: Reino
 func _lugares() -> void:
 	# mapa novo (docs/MAPA_NOVO.md): Altamar, a Vila do Vale, o estábulo e os campos — scripts/reino.gd
-	Reino.new().construir(self)
+	reino = Reino.new(); reino.construir(self)
 	_pontes()
 	_estatuas_guardia()
 	_barracas()

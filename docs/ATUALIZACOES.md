@@ -19,6 +19,20 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Tudo do pacote e sem o rio na frente de Altamar**
+- O rio do leste saiu da frente do reino: agora desce das montanhas e vai ao mar bem ao norte da cidade.
+- Pacote Fantasy Kingdom inteiro no jogo (mais de 2.200 peças) e espalhado pelo mundo:
+  - cidade: floreiras, barris, caixotes, sacos, vasos e bancos nas portas, varais nos quintais, bandeirolas sobre a
+    avenida e a rua do mercado, estandartes na muralha, bandeiras nas torres, palco e quadro de missões na praça,
+    carroça de mercador, carroças, praça dos nobres (árvore grande, cercas-vivas), praça da justiça (forca e
+    guilhotina), porto com remos, baldes de peixe e caixotes, postes de amarrar cavalos e placa no portão;
+  - vila e campos: quadro de missões, placa de direção, carroças, carrinhos de mão, colmeias, girassóis, feno, roda
+    d'água no rio, canteiros com abóboras e repolhos, espantalhos;
+  - natureza: paredões de pedra nas encostas, pedras, samambaias na mata, flores nos campos, juncos e lírios no lago;
+  - lugares novos: Campo de Batalha (trabuco, catapulta, torre de cerco caída, mortos), Acampamento Militar (tendas,
+    armas, bonecos de treino, alvos, soldados), Cemitério atrás da igreja da vila, Bosque das Fadas (árvore enorme,
+    casinhas de fada), Ruínas do Norte e três Torres de Vigia.
+
 **Mundo vivo com o pacote**
 - Cidadãos do pacote Fantasy Kingdom (camponeses, mercadores, soldados, freira, padre, monge, ferreiros, taverneiro,
   rei, rainha, príncipe, princesa, bobo da corte, cartomante, maga) andando e parados com as animações da Synty:
