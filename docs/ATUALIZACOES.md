@@ -2,6 +2,12 @@
 
 ## 26/11
 
+**Atualização automática consertada (precisa instalar o APK novo UMA vez)**
+- Achado: a tela inicial que vem dentro do APK carregava o código dos heróis (e outros) ANTES de aplicar o pacote
+  baixado; esse código velho ficava na memória e as mudanças de heróis e menus não apareciam (o mapa aparecia).
+- Agora a primeira tela é a "partida" (scripts/partida.gd): procura a versão, baixa, aplica o pacote e só então abre
+  o menu — tudo do pacote novo. Não cita nenhuma classe do jogo de propósito.
+
 **Altamar arrumada: ruas retas, calçadas, casas enfileiradas, mercado, taverna, catedral e pontes**
 - Planta nova em grade: 10 ruas retas (Avenida Real, Porto, Norte, Mercado, Castelo, Magos, Ofícios, Lojas, Velha,
   Leste). A ilha da catedral foi para o eixo da avenida do portão.

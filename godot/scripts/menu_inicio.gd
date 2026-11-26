@@ -33,9 +33,10 @@ func _ready() -> void:
 	var embutida := _versao(("res://versao.json"))
 	var args := OS.get_cmdline_user_args()
 	Herois.menu_ok = true
-	if (OS.has_feature("android") or args.has("--atualizar")) and not Herois.pular_atualizacao:
+	var ja := Herois.pular_atualizacao or Engine.has_meta("partida_ok")     # (a tela de partida já aplicou o pacote)
+	if (OS.has_feature("android") or args.has("--atualizar")) and not ja:
 		await _procurar(embutida)
-	if not Herois.pular_atualizacao: _usar_pacote(embutida)          # (vindo do mundo, o pacote novo já está carregado)
+	if not ja: _usar_pacote(embutida)          # (vindo do mundo, o pacote novo já está carregado)
 	var falta := _classes_faltando()
 	if not falta.is_empty():                # o APK instalado é velho demais para este pacote: pedir o APK novo
 		print("ATUALIZACAO: o APK não conhece as classes ", falta)

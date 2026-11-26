@@ -7,7 +7,7 @@ run/max_fps=60
 
 config/icon="res://assets/ui/icone.png"
 config/name="Dallarian"
-run/main_scene="res://cenas/inicio.tscn"
+run/main_scene="res://cenas/partida.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 
 [display]
