@@ -42,6 +42,7 @@ static func W(p: Vector2) -> Vector2:
 
 var ruido := FastNoiseLite.new()
 var ruido_grande := FastNoiseLite.new()
+var ruido_relevo := FastNoiseLite.new()       # mapa novo: colinas, planaltos e vales
 
 # estradas (linhas) — a primeira sai da vila para o sul (onde o jogador começa)
 var estradas := [
@@ -100,6 +101,7 @@ func _init() -> void:
 	morros.append_array([Vector4(1150, 380, 130, 14), Vector4(1480, -140, 110, 11), Vector4(1100, -560, 120, 15), Vector4(1700, 520, 140, 10)])
 	ruido.seed = 11; ruido.frequency = 0.018; ruido.fractal_octaves = 3
 	ruido_grande.seed = 4; ruido_grande.frequency = 0.004; ruido_grande.fractal_octaves = 2
+	ruido_relevo.seed = 27; ruido_relevo.frequency = 0.0022; ruido_relevo.fractal_octaves = 4; ruido_relevo.fractal_gain = 0.45
 	# ESTRADA REAL: direto da saída leste da vila até a Ponte dos Guardiões (portão oeste de Altamar), em curvas
 	# suaves passando ao lado do morro de (1100, -560); continua como rua principal da cidade até o porto
 	var porta := CIDADE_C + Vector2(-CIDADE_R, 0)
@@ -209,6 +211,9 @@ func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a mo
 	for m in morros:
 		var dm := Vector2(x - m.x, z - m.y).length()
 		h += m.w * exp(-dm * dm / (m.z * m.z * 0.5))
+	# RELEVO (mapa novo): colinas, planalto a oeste e o norte subindo para as montanhas. Some perto das estradas,
+	# do rio, do lago, da vila e da cidade (os caminhos correm pelos vales e sobem aos poucos)
+	h += relevo(x, z) * _calma_relevo(x, z, dr, dl)
 	# vila plana
 	var dv := Vector2(x, z).length()
 	h = lerp(base(0.0) + 0.3, h, smoothstep(22.0, 48.0, dv))
@@ -291,6 +296,26 @@ func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a mo
 		# logo na borda, a encosta atravessava para dentro da gruta)
 		if dg < 9.0: h = lerpf(gruta_piso(x, z), h, smoothstep(3.0, 9.0, dg))
 	return h
+
+func relevo(x: float, z: float) -> float:
+	var n := ruido_relevo.get_noise_2d(x, z) * 0.5 + 0.5                   # 0..1
+	var colinas := pow(n, 1.7) * 30.0 - 4.0                                 # morros de até ~26 m e baixadas
+	var borda := ruido_grande.get_noise_2d(x * 2.5, z * 2.5) * 70.0
+	var planalto := 22.0 * smoothstep(-330.0, -470.0, x + borda)            # planalto do Bosque Sombrio (oeste)
+	var norte := 12.0 * smoothstep(-250.0, -800.0, z + borda)               # sobe para as montanhas do norte
+	var sul := -3.0 * smoothstep(500.0, 850.0, z)                           # desce para o pântano
+	return colinas + planalto + norte + sul
+
+func _calma_relevo(x: float, z: float, dr: float, dl: float) -> float:
+	var c := smoothstep(6.0, 70.0, dist_estrada(x, z))
+	c *= smoothstep(14.0, 90.0, dr) * smoothstep(LAGO.z, LAGO.z + 90.0, dl)
+	c *= smoothstep(60.0, 160.0, Vector2(x, z).length())                   # vila
+	c *= smoothstep(30.0, 160.0, _dist_cidade(x, z))
+	c *= smoothstep(10.0, 60.0, dist_rio2(x, z))
+	for cp in campos:
+		var dc := Vector2(x - cp[0], z - cp[1]).length()
+		if dc < 140.0: c *= smoothstep(cp[2] * 0.6, cp[2] * 0.6 + 70.0, dc)
+	return c
 
 # altura de uma serra a "d" metros da borda: sobe rápido no pé e para em "alto"
 # distância até a cidade (0 dentro das muralhas)
@@ -515,7 +540,7 @@ func em_construcao(x: float, z: float) -> bool:
 func grama(x: float, z: float, h: float, ny: float) -> float:
 	if em_construcao(x, z): return 0.0
 	if dist_trilha(x, z) < 1.2: return 0.0
-	if x < X0 + 20 or x > X1 - 20 or abs(z) > LIM - 20 or ny < 0.8 or h > 30.0: return 0.0
+	if x < X0 + 20 or x > X1 - 20 or abs(z) > LIM - 20 or ny < 0.8 or h > 58.0: return 0.0
 	if Vector2(x, z).length() < 18.0: return 0.0
 	if h < agua(x, z) + 0.15: return 0.0
 	if x > COSTA - 120.0 and h < 2.0: return 0.0
