@@ -195,12 +195,6 @@ func _simples_bloco_de(b: Vector2i, arrays: Array) -> void:
 	mi.visibility_range_begin = LONGE - 35.0
 	add_child(mi)
 
-func _simples(k: Vector2i) -> void:
-	var mi := MeshInstance3D.new(); mi.mesh = _malha(k, 8, true); mi.material_override = m.mat("terreno")
-	mi.position = Vector3(_origem(k).x + PED * 0.5, 0, _origem(k).y + PED * 0.5)
-	mi.visibility_range_begin = LONGE
-	add_child(mi)
-
 var obras := Obras.new()
 func _detalhado(k: Vector2i) -> Node3D: return _detalhado_de(k, _malha_arrays(k, CEL, false))
 func _detalhado_de(k: Vector2i, arrays: Array) -> Node3D:

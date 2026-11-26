@@ -80,7 +80,6 @@ func _rua_perto(q: Vector2) -> Array:
 			var c := Geometry2D.get_closest_point_to_segment(q, r[i], r[i + 1])
 			if q.distance_to(c) < md: md = q.distance_to(c); mp = c
 	return [md, mp]
-func _rumo_rua(q: Vector2) -> float: return _virado(q, _rua_perto(q)[1])
 
 func _altamar() -> void:
 	var y0 := Regiao.ALTURA_CIDADE
@@ -750,7 +749,6 @@ func _natureza() -> void:
 
 # ---------- lugares para explorar ----------
 var lugares_bussola := []
-var lugares_bussola_extra := false
 func _achar(p: Vector2, raio: float) -> Vector2:               # um lugar livre e plano perto de p
 	for t in 60:
 		var a := t * 2.4; var q := p + Vector2(cos(a), sin(a)) * (t * 1.5)
@@ -826,7 +824,6 @@ func _lugares_novos() -> void:
 # INTERIORES: salas montadas com as paredes e os pisos modulares do pacote, embaixo do mapa (y = -300), com os
 # móveis do pacote e gente dentro. Perto da porta aparece ENTRAR (lá dentro, SAIR): m.portas
 # ======================================================================================================
-const ESCADA_GIRO := PI
 const T := 2.5                     # módulo das peças (m)
 func _peca_int(nome: String, p: Vector3, ang := 0.0, esc := 1.0, col := false) -> void:
 	Synty.por(m, nome, p, ang, esc, col)

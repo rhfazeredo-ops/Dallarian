@@ -1,16 +1,9 @@
-# Converte animações do pacote "Sword and Shield Animations" (esqueleto do manequim do Unreal, FBX em _anim_src/,
-# fora do git) para o esqueleto dos nossos heróis (o do NPC base do Tripo) e grava uma AnimationLibrary em
-# res://arte/animacoes/heroi.res. Para cada quadro: a rotação de cada osso no mundo, relativa à pose T do pacote,
-# é convertida de eixo (pacote: esquerda +X, frente +Z → nosso: frente +X, direita +Z) e aplicada sobre a pose de
-# repouso do herói já "alinhada" com a pose T (cada osso de braço/perna gira até a direção do mesmo osso na pose T).
-# Uso: godot --headless --path godot --script res://ferramentas/retarget.gd [-- --masc]
+# Converte animações do pacote "Sword and Shield Animations" (manequim do Unreal, FBX em _anim_src/, fora do git) e
+# da Synty (Base Locomotion) para o esqueleto dos personagens do Fantasy Kingdom: heróis (heroi_fk_Masc/Femn.res)
+# e cidadãos (--cidadao → cidadao_Masc/Femn.res). Cada osso recebe a direção do osso equivalente, quadro a quadro.
+# Uso: godot --headless --path godot --script res://ferramentas/retarget.gd [-- --cidadao]
 extends SceneTree
 
-const MAPA := {"pelvis": "Hip", "spine_01": "Waist", "spine_02": "Spine01", "spine_03": "Spine02", "neck_01": "NeckTwist01",
-	"head": "Head", "clavicle_l": "L_Clavicle", "upperarm_l": "L_Upperarm", "lowerarm_l": "L_Forearm", "hand_l": "L_Hand",
-	"clavicle_r": "R_Clavicle", "upperarm_r": "R_Upperarm", "lowerarm_r": "R_Forearm", "hand_r": "R_Hand",
-	"thigh_l": "L_Thigh", "calf_l": "L_Calf", "foot_l": "L_Foot", "ball_l": "L_ToeBase",
-	"thigh_r": "R_Thigh", "calf_r": "R_Calf", "foot_r": "R_Foot", "ball_r": "R_ToeBase"}
 # osso → filho que dá a direção (para alinhar a pose de repouso com a pose T)
 const DIR_S := {"upperarm_l": "lowerarm_l", "lowerarm_l": "hand_l", "hand_l": "middle_01_l", "upperarm_r": "lowerarm_r",
 	"lowerarm_r": "hand_r", "hand_r": "middle_01_r", "thigh_l": "calf_l", "calf_l": "foot_l", "foot_l": "ball_l",
@@ -53,7 +46,6 @@ const ANIMS_SY := {"calmo_parado": ["A_Idle_Standing", true], "calmo_andar": ["A
 	"calmo_andar_sobe": ["A_Walk_Up25F", true], "calmo_andar_desce": ["A_Walk_Down25F", true],
 	"calmo_correr_sobe": ["A_Run_Up25F", true], "calmo_correr_desce": ["A_Run_Down25F", true],
 	"calmo_disparada_sobe": ["A_Sprint_Up25F", true], "calmo_disparada_desce": ["A_Sprint_Down25F", true]}
-const C_SY := Basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(1, 0, 0))
 var C := C_SS
 
 var tgt: Skeleton3D
@@ -76,34 +68,21 @@ func _initialize() -> void:
 			_converter(lc, PERSONAGENS, id, DIR_SY, ANIMS_CID, Basis.IDENTITY, "synty/%s_" + gen, "repouso")
 			print("SALVO cidadao ", gen, " ", ResourceSaver.save(lc, "res://arte/animacoes/cidadao_%s.res" % gen))
 		quit(); return
-	# --heroi_mh: os heróis novos (Modular Fantasy Hero, esqueleto da Synty) → heroi_mh_Masc/Femn.res:
+	# --heroi_fk (padrão): os heróis (Cavaleira e Príncipe, personagens do Fantasy Kingdom) → heroi_fk_Masc/Femn.res:
 	# espada e escudo (pacote RamsterZ, manequim do Unreal) convertidos + o andar da Synty direto (mesmo esqueleto)
-	var fk := "--heroi_fk" in OS.get_cmdline_user_args()      # o mesmo para os personagens do Fantasy Kingdom → heroi_fk_*.res
-	if "--heroi_mh" in OS.get_cmdline_user_args() or fk:
-		var mapa_ss := {"pelvis": "Hips", "spine_01": "Spine_01", "spine_02": "Spine_02", "spine_03": "Spine_03", "neck_01": "Neck",
-			"head": "Head", "clavicle_l": "Clavicle_L", "upperarm_l": "Shoulder_L", "lowerarm_l": "Elbow_L", "hand_l": "Hand_L",
-			"clavicle_r": "Clavicle_R", "upperarm_r": "Shoulder_R", "lowerarm_r": "Elbow_R", "hand_r": "Hand_R",
-			"thigh_l": "UpperLeg_L", "calf_l": "LowerLeg_L", "foot_l": "Ankle_L", "ball_l": "Ball_L",
-			"thigh_r": "UpperLeg_R", "calf_r": "LowerLeg_R", "foot_r": "Ankle_R", "ball_r": "Ball_R"}
-		var id := {}
-		for k in MAPA_SY.keys(): id[k] = k
-		DIR_TA = DIR_SY.duplicate(); DIR_TA["Hand_R"] = "Finger_01_2"
-		for gen in ["Masc", "Femn"]:
-			var lh := AnimationLibrary.new()
-			var alvo := PERSONAGENS if fk else "res://arte/mh/ModularCharacters.fbx"
-			_converter(lh, alvo, mapa_ss, DIR_S, ANIMS, C_SS, "SwordAndShield_%s", "")
-			_converter(lh, alvo, id, DIR_SY, ANIMS_SY, Basis.IDENTITY, "synty/%s_" + gen, "repouso")
-			print("SALVO heroi ", gen, " ", ResourceSaver.save(lh, "res://arte/animacoes/heroi_%s_%s.res" % ["fk" if fk else "mh", gen]))
-		quit(); return
-	# --masc: o herói (humano.glb, animações "Masc" da Synty) → heroi_m.res; sem: a heroína → heroi.res
-	var masc := "--masc" in OS.get_cmdline_user_args()
-	var lib := AnimationLibrary.new()
-	_converter(lib, "res://assets/modelos/%s.glb" % ("humano" if masc else "humana"), MAPA, DIR_S, ANIMS, C_SS, "SwordAndShield_%s", "")
-	_converter(lib, "res://assets/modelos/%s.glb" % ("humano" if masc else "humana"), MAPA_SY, DIR_SY, ANIMS_SY, C_SY,
-		"synty/%s_" + ("Masc" if masc else "Femn"), "repouso")
-	DirAccess.make_dir_recursive_absolute("res://arte/animacoes")
-	var saida := "res://arte/animacoes/heroi_m.res" if masc else "res://arte/animacoes/heroi.res"
-	print("SALVO ", saida, " ", ResourceSaver.save(lib, saida))
+	var mapa_ss := {"pelvis": "Hips", "spine_01": "Spine_01", "spine_02": "Spine_02", "spine_03": "Spine_03", "neck_01": "Neck",
+		"head": "Head", "clavicle_l": "Clavicle_L", "upperarm_l": "Shoulder_L", "lowerarm_l": "Elbow_L", "hand_l": "Hand_L",
+		"clavicle_r": "Clavicle_R", "upperarm_r": "Shoulder_R", "lowerarm_r": "Elbow_R", "hand_r": "Hand_R",
+		"thigh_l": "UpperLeg_L", "calf_l": "LowerLeg_L", "foot_l": "Ankle_L", "ball_l": "Ball_L",
+		"thigh_r": "UpperLeg_R", "calf_r": "LowerLeg_R", "foot_r": "Ankle_R", "ball_r": "Ball_R"}
+	var id := {}
+	for k in MAPA_SY.keys(): id[k] = k
+	DIR_TA = DIR_SY.duplicate(); DIR_TA["Hand_R"] = "Finger_01_2"
+	for gen in ["Masc", "Femn"]:
+		var lh := AnimationLibrary.new()
+		_converter(lh, PERSONAGENS, mapa_ss, DIR_S, ANIMS, C_SS, "SwordAndShield_%s", "")
+		_converter(lh, PERSONAGENS, id, DIR_SY, ANIMS_SY, Basis.IDENTITY, "synty/%s_" + gen, "repouso")
+		print("SALVO heroi ", gen, " ", ResourceSaver.save(lh, "res://arte/animacoes/heroi_fk_%s.res" % gen))
 	quit()
 
 func _converter(lib: AnimationLibrary, modelo: String, mapa: Dictionary, dirs: Dictionary, anims: Dictionary, c: Basis, molde: String, ref: String) -> void:

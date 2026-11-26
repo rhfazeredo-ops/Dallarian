@@ -149,26 +149,7 @@ func vender(k: int, i: int) -> void:
 		var fv: Array = cfg.get("falas_venda", FALAS_VENDA)
 		m.interacao._fala_npc(cfg.get("nome", "Bram"), fv[randi() % fv.size()])
 
-# retrato do vendedor tirado do modelo dele (como o da Rachel no HUD)
-func _tirar_retrato() -> void:
-	var vp := SubViewport.new(); vp.size = Vector2i(160, 160); vp.transparent_bg = true
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS; vp.own_world_3d = true; add_child(vp)
-	var mod: Node3D = load("res://assets/modelos/ferreiro.glb").instantiate(); vp.add_child(mod)
-	mod.rotation_degrees.y = -90
-	var luz := DirectionalLight3D.new(); luz.rotation_degrees = Vector3(-25, 35, 0); luz.light_energy = 1.1; vp.add_child(luz)
-	var amb := WorldEnvironment.new(); var env := Environment.new(); env.background_mode = Environment.BG_CLEAR_COLOR
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; env.ambient_light_color = Color(0.75, 0.72, 0.8); env.ambient_light_energy = 0.8
-	amb.environment = env; vp.add_child(amb)
-	var cam := Camera3D.new(); cam.projection = Camera3D.PROJECTION_ORTHOGONAL; cam.size = 0.24
-	cam.position = Vector3(0.0, 0.875, 1.0); vp.add_child(cam); cam.current = true
-	for n in mod.find_children("*", "MeshInstance3D", true, false):
-		var mi: MeshInstance3D = n
-		var orig: BaseMaterial3D = mi.mesh.surface_get_material(0)
-		if orig:
-			var mt := orig.duplicate() as BaseMaterial3D; mt.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-			mi.material_override = mt
-	for k in 4: await RenderingServer.frame_post_draw
-	_retrato_bram = ImageTexture.create_from_image(vp.get_texture().get_image())
+func _tirar_retrato() -> void:             # Bram: o ícone da bigorna (o retrato do modelo antigo saiu)
+	_retrato_bram = load("res://assets/ui/itens/marreta_bigorna.png")
 	if cfg.is_empty(): _retrato = _retrato_bram
-	vp.queue_free()
 	if _foto: _foto.queue_redraw()

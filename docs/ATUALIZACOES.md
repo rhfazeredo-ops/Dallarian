@@ -2,6 +2,15 @@
 
 ## 26/11
 
+**Faxina no projeto (o que foi substituído saiu de vez)**
+- Saíram os modelos antigos do Tripo que não aparecem mais: Rachel e herói antigos, os 10 moradores antigos, ferreiro,
+  lenhador, fazendeiro e freira antigos, estátua antiga, poste, martelo e machado (e o código que os animava osso a
+  osso — os moradores e os heróis agora são só do pacote, com as animações da Synty).
+- Saíram ~600 linhas de funções que ninguém chamava mais (cidade redonda antiga, fazendas, mosteiro, ruínas,
+  serraria, bandidos, caverna, barricada, gruta), retratos pintados antigos, dois shaders e a tela de início velha.
+- Repositório da arte: saiu o Modular Fantasy Hero e as animações dos heróis antigos.
+- Regra daqui para frente: trocou, apaga o antigo.
+
 **Atualização automática consertada (precisa instalar o APK novo UMA vez)**
 - Achado: a tela inicial que vem dentro do APK carregava o código dos heróis (e outros) ANTES de aplicar o pacote
   baixado; esse código velho ficava na memória e as mudanças de heróis e menus não apareciam (o mapa aparecia).

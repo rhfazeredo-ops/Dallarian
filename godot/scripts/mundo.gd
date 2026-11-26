@@ -24,7 +24,6 @@ var casas := [] # [pos, ang, w, d]
 var lugares := []                    # [centro Vector2, raio] — as árvores não nascem aqui
 var moinhos := []
 var porto_pos := Vector2.ZERO
-var caverna_pos := Vector2.ZERO
 var pier_pos := Vector2.ZERO
 var _depois: Array[Callable] = []    # peças montadas depois do terreno (precisam da altura exata da malha)
 var args := {}
@@ -170,10 +169,6 @@ var hud: Hud
 var heroina_desmaiada := false
 # medição de "trancos": quanto cada sistema gasta montando pedaços do mundo (só com --picos)
 var _picos := {}
-func pico(nome: String, t0: int) -> void:
-	if not args.has("picos"): return
-	var dt := (Time.get_ticks_usec() - t0) / 1000.0
-	var p: Array = _picos.get(nome, [0, 0.0, 0.0]); p[0] += 1; p[1] += dt; p[2] = maxf(p[2], dt); _picos[nome] = p
 var estatuas := []                # Estátuas da Guardiã (onde a Rachel renasce): [posição, direção da frente]
 var morte_pos := Vector2.ZERO     # onde a Rachel morreu por último (caveirinha no mapa e na bússola por 5 min)
 var morte_ate := -1.0
@@ -537,138 +532,6 @@ func _peca_lodoso(nome: String, p: Vector2, giro: float) -> void:
 var _gruta_tarefa := -1
 var _gruta_caixa := [null]
 var gruta_dentro := 0.0                # 0 fora, 1 dentro do trecho com teto (suave)
-func _gruta_iniciar() -> void:
-	var r := reg
-	_gruta_tarefa = WorkerThreadPool.add_task(func(): _gruta_caixa[0] = _gruta_malhas(r), false, "gruta")
-	_gruta_monstros()
-
-func _gruta_malhas(r: Regiao) -> Dictionary:
-	var bb: Rect2 = Regiao.GRUTA_BB.grow(8.0); var s := 1.0
-	var nx := int(bb.size.x / s) + 1; var nz := int(bb.size.y / s) + 1
-	var v := PackedFloat32Array(); v.resize(nx * nz)
-	for j in nz:
-		for i in nx: v[j * nx + i] = r.gruta_d(bb.position.x + i * s, bb.position.y + j * s)
-	var paredes := SurfaceTool.new(); paredes.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var faces := PackedVector3Array()
-	var ponto := func(i0: int, j0: int, i1: int, j1: int) -> Vector2:
-		var a := v[j0 * nx + i0]; var b := v[j1 * nx + i1]; var t := clampf(a / (a - b), 0.0, 1.0)
-		return bb.position + Vector2(lerpf(i0, i1, t), lerpf(j0, j1, t)) * s
-	for j in nz - 1:
-		for i in nx - 1:
-			var c := 0
-			if v[j * nx + i] < 0.0: c |= 1
-			if v[j * nx + i + 1] < 0.0: c |= 2
-			if v[(j + 1) * nx + i + 1] < 0.0: c |= 4
-			if v[(j + 1) * nx + i] < 0.0: c |= 8
-			if c == 0 or c == 15: continue
-			var e := [ponto.call(i, j, i + 1, j), ponto.call(i + 1, j, i + 1, j + 1), ponto.call(i, j + 1, i + 1, j + 1), ponto.call(i, j, i, j + 1)]  # cima, dir, baixo, esq
-			var segs := []
-			match c:
-				1, 14: segs = [[e[3], e[0]]]
-				2, 13: segs = [[e[0], e[1]]]
-				3, 12: segs = [[e[3], e[1]]]
-				4, 11: segs = [[e[1], e[2]]]
-				5: segs = [[e[3], e[0]], [e[1], e[2]]]
-				6, 9: segs = [[e[0], e[2]]]
-				7, 8: segs = [[e[3], e[2]]]
-				10: segs = [[e[0], e[1]], [e[2], e[3]]]
-			for sg in segs:
-				if (sg[0] as Vector2).y > Regiao.GRUTA_COBERTA_Z + 0.5 and (sg[1] as Vector2).y > Regiao.GRUTA_COBERTA_Z + 0.5: continue   # entrada aberta: sem muro
-				_gruta_parede(r, paredes, faces, sg[0], sg[1])
-	paredes.generate_normals()
-	# teto: quadrados de 2 m onde tem gruta coberta (passando um pouco da parede)
-	var teto := SurfaceTool.new(); teto.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var t := 2.0; var x := bb.position.x
-	while x < bb.end.x:
-		var z := bb.position.y
-		while z < bb.end.y:
-			var zc := z + t * 0.5
-			if zc < Regiao.GRUTA_COBERTA_Z and r.gruta_d(x + t * 0.5, zc) < 4.5:
-				var q := [Vector2(x, z), Vector2(x + t, z), Vector2(x + t, z + t), Vector2(x, z + t)]
-				var pts := []
-				for k in 4: pts.append(Vector3(q[k].x, r.gruta_teto(q[k].x, q[k].y), q[k].y))
-				var cor := Color(0.42, 0.4, 0.38) * (0.85 + r.ruido.get_noise_2d(x * 3.0, z * 3.0) * 0.2)
-				for tri in [[0, 2, 1], [0, 3, 2]]:
-					for k in tri:
-						teto.set_color(cor * (0.8 + r.ruido.get_noise_2d(pts[k].x * 9.0, pts[k].z * 9.0) * 0.3)); teto.set_normal(Vector3.DOWN); teto.set_uv(Vector2(pts[k].x, pts[k].z) * 0.25); teto.add_vertex(pts[k])
-			z += t
-		x += t
-	# CAPA DA MONTANHA: por cima da parte coberta, a encosta volta na altura original (sem a gruta), com as cores do
-	# terreno — de fora a gruta fica escondida dentro da montanha; só a boca aparece. Tem colisão (dá para andar por
-	# cima). Fica sempre acima do teto.
-	var capa := SurfaceTool.new(); capa.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var cf := PackedVector3Array()
-	var cs := 2.0
-	var alt_capa := func(px: float, pz: float) -> float:
-		var h0 := r.altura(px, pz, false)
-		var dg := r.gruta_d(px, pz)
-		if dg < 9.5: h0 = maxf(h0, r.gruta_teto(px, pz) + 1.2 * (1.0 - smoothstep(4.0, 9.5, dg)))
-		return h0
-	x = bb.position.x
-	while x < bb.end.x:
-		var z := bb.position.y
-		while z < minf(bb.end.y, Regiao.GRUTA_COBERTA_Z):
-			var usa := false
-			for o in [Vector2(0, 0), Vector2(cs, 0), Vector2(0, cs), Vector2(cs, cs)]:
-				if r.gruta_d(x + o.x, z + o.y) < 9.5: usa = true
-			if usa:
-				var q := [Vector2(x, z), Vector2(x + cs, z), Vector2(x + cs, minf(z + cs, Regiao.GRUTA_COBERTA_Z)), Vector2(x, minf(z + cs, Regiao.GRUTA_COBERTA_Z))]
-				var pts := []
-				for k in 4: pts.append(Vector3(q[k].x, alt_capa.call(q[k].x, q[k].y), q[k].y))
-				var nrm: Vector3 = (pts[3] - pts[0]).cross(pts[1] - pts[0]).normalized()
-				if nrm.y < 0.0: nrm = -nrm
-				for tri in [[0, 3, 2], [0, 2, 1]]:
-					for k in tri:
-						var pp: Vector3 = pts[k]
-						capa.set_color(r.cor(pp.x, pp.z, pp.y, nrm.y, false)); capa.set_normal(nrm); capa.set_uv(Vector2(pp.x, pp.z) * 0.25)
-						capa.add_vertex(pp); cf.append(pp)
-			z += cs
-		x += cs
-	# ENCOSTA NA BOCA: na linha onde a capa termina, a parede de pedra desce da montanha até o teto da entrada (a
-	# abertura) e, dos lados da boca, até o chão
-	var bz := Regiao.GRUTA_COBERTA_Z
-	var meia_boca := 0.0
-	for k in 60:
-		var xk := Regiao.GRUTA_ENTRADA.x - 15.0 + k * 0.5
-		if r.gruta_d(xk, bz) < 0.0: meia_boca = maxf(meia_boca, absf(xk - Regiao.GRUTA_ENTRADA.x))
-	x = bb.position.x
-	while x < bb.end.x:
-		var x1 := x + 1.0
-		if r.gruta_d(x, bz) < 9.5 or r.gruta_d(x1, bz) < 9.5:
-			var base := func(px: float) -> float:          # a abertura é um arco redondo (alto no meio)
-				if r.gruta_d(px, bz) < 0.3: return r.gruta_piso(px, bz) + maxf(r.arco_boca(px, meia_boca), 0.0) - 0.3
-				return r.altura(px, bz) - 0.5
-			var quad := [Vector3(x, base.call(x), bz), Vector3(x1, base.call(x1), bz), Vector3(x1, alt_capa.call(x1, bz), bz), Vector3(x, alt_capa.call(x, bz), bz)]
-			for tri in [[0, 1, 2], [0, 2, 3]]:
-				for k in tri:
-					var pp: Vector3 = quad[k]
-					var mch := 0.75 + r.ruido.get_noise_2d(pp.x * 7.0, pp.y * 7.0) * 0.3
-					capa.set_color(Color(0.46, 0.5, 0.6) * mch); capa.set_normal(Vector3(0, 0.2, 1).normalized())
-					capa.set_uv(Vector2(pp.x, pp.y) * 0.25); capa.add_vertex(pp); cf.append(pp)
-		x = x1
-	return {"paredes": paredes.commit_to_arrays(), "teto": teto.commit_to_arrays(), "faces": faces, "capa": capa.commit_to_arrays(), "capa_faces": cf}
-
-# um pedaço de parede de pedra de a até b (3 faixas na altura, a do meio estufada para dentro)
-func _gruta_parede(r: Regiao, st: SurfaceTool, faces: PackedVector3Array, a: Vector2, b: Vector2) -> void:
-	var m := (a + b) * 0.5; var n := (b - a).normalized().orthogonal()
-	if r.gruta_d(m.x + n.x * 0.4, m.y + n.y * 0.4) > r.gruta_d(m.x - n.x * 0.4, m.y - n.y * 0.4): n = -n   # n aponta para dentro
-	var linha := []
-	for p: Vector2 in [a, b]:
-		var piso := r.gruta_piso(p.x, p.y)
-		var coberta := p.y < Regiao.GRUTA_COBERTA_Z + 1.0
-		var topo := r.gruta_teto(p.x, p.y) + 0.8 if coberta else piso + 4.5 + r.ruido.get_noise_2d(p.x * 7.0, p.y * 7.0) * 1.5
-		var estufa := 0.35 + 0.45 * (0.5 + 0.5 * r.ruido.get_noise_2d(p.x * 9.0, p.y * 9.0))
-		var meio := lerpf(piso, topo, 0.45 + 0.15 * r.ruido.get_noise_2d(p.x * 11.0, p.y * 11.0))
-		linha.append([Vector3(p.x, piso - 1.0, p.y), Vector3(p.x + n.x * estufa, meio, p.y + n.y * estufa), Vector3(p.x + n.x * 0.25, topo, p.y + n.y * 0.25)])
-	var cor := Color(0.52, 0.49, 0.45) * (0.85 + r.ruido.get_noise_2d(m.x * 2.0, m.y * 2.0) * 0.25)
-	for k in 2:
-		var p00: Vector3 = linha[0][k]; var p01: Vector3 = linha[0][k + 1]; var p10: Vector3 = linha[1][k]; var p11: Vector3 = linha[1][k + 1]
-		for tri in [[p00, p10, p11], [p00, p11, p01]]:
-			for q: Vector3 in tri:
-				var mancha := 0.78 + r.ruido.get_noise_2d(q.x * 9.0 + q.y * 5.0, q.z * 9.0 - q.y * 4.0) * 0.32   # rocha manchada
-				var umido := (1.0 - smoothstep(r.gruta_piso(q.x, q.z), r.gruta_piso(q.x, q.z) + 2.2, q.y)) * (0.5 + 0.5 * r.ruido.get_noise_2d(q.x * 3.0, q.z * 3.0))
-				st.set_color((cor * mancha).lerp(Color(0.3, 0.4, 0.26) * mancha, clampf(umido, 0.0, 0.85))); st.set_uv(Vector2(q.x + q.z, q.y) * 0.25); st.add_vertex(q)
-				faces.append(q)
 
 func _gruta_pronta() -> void:
 	if _gruta_tarefa < 0 or not WorkerThreadPool.is_task_completed(_gruta_tarefa): return
@@ -730,34 +593,6 @@ func _fogueira_gruta(p: Vector2) -> void:
 	var y := reg.gruta_piso(p.x, p.y)
 	_fogo(Vector3(p.x, y + 0.05, p.y), 0.5, 0.7, 2)
 	luzes.append(Vector3(p.x, y + 0.5, p.y))
-
-# Lodosos da gruta: grupos pelos túneis e salas (nível 4–6) e o Grão-Lodoso sozinho na câmara do fundo
-func _gruta_monstros() -> void:
-	var rng := RandomNumberGenerator.new(); rng.seed = 5150
-	var salas: Array = Regiao.GRUTA_SALAS
-	var grupos := [
-		[salas[0][0], ["lodoso_g", "lodoso_j", "lodoso_j"]],
-		[salas[1][0], ["lodoso_x", "lodoso_j"]],
-		[Vector2(1491, -994), ["lodoso_g", "lodoso_j"]],
-		[salas[2][0], ["lodoso_g", "lodoso_x", "lodoso_j"]],
-		[Vector2(1516, -1040), ["lodoso_j", "lodoso_j"]],
-		[salas[3][0], ["lodoso_c"]]]
-	for gr in grupos:
-		var q: Vector2 = gr[0]; var tipos: Array = gr[1]
-		var g := {"casa": q, "membros": [], "alerta": false, "tipo": "lodoso", "gruta": true}
-		for j in tipos.size():
-			var p := q + Vector2(cos(TAU * j / 3.0), sin(TAU * j / 3.0)) * (0.0 if j == 0 else 2.5)
-			var tp: String = tipos[j]
-			var nv := 10 if tp == "lodoso_c" else (rng.randi_range(5, 6) if tp != "lodoso_j" else rng.randi_range(4, 5))
-			var semente := rng.randi(); var giro := rng.randf() * TAU
-			_criar_depois(p, func():
-				var mo := Monstro.new(); mo.grupo = g
-				if tp == "lodoso_c": mo.nome = NOME_CHEFE_LODOSO; chefe_lodoso = mo
-				raiz.add_child(mo); mo.position = Vector3(p.x, altura_malha(p.x, p.y), p.y)
-				mo.montar(self, tp, nv, semente)
-				mo.rotation.y = giro; mo.reset_physics_interpolation()
-				g.membros.append(mo))
-		matilhas.append(g)
 
 # dentro da gruta: escurece (as tochas e fogueiras acendem como de noite) e não chove
 func _gruta_luz(delta: float) -> void:
@@ -1977,240 +1812,6 @@ func _mat_tex(arq: String) -> ShaderMaterial:
 	sm.set_shader_parameter("tex", load(arq)); sm.set_shader_parameter("neblina", NEBLINA)
 	_mats[k] = sm; return sm
 
-func _cidade() -> void:
-	var c: Vector2 = Regiao.CIDADE_C; cidade_pos = c
-	var RR: float = Regiao.CIDADE_R
-	var y := Regiao.ALTURA_CIDADE; cidade_y = y
-	var rng := RandomNumberGenerator.new(); rng.seed = 1234
-	var pedra := mat("pedra", 1.0, Color(1.15, 1.12, 1.05))
-	var pedra_esc := mat("pedra", 1.0, Color(0.85, 0.85, 0.9))
-	var azul := mat("telha", 1.4)            # telhado de ardósia azul (textura pintada pelo dono)
-	var dirv := func(a: float) -> Vector2: return Vector2(cos(a), sin(a))
-	var portoes := [PI, PI * 0.5, 0.0]
-	var meia_porta := 8.0 / RR
-	var em_porta := func(a: float) -> bool:
-		for pa in portoes: if absf(wrapf(a - pa, -PI, PI)) < meia_porta: return true
-		return false
-	# ---- muralha redonda (peças de muralha de castelo da Synty, 2× o tamanho), torres e portões
-	var n_seg := 56; var alt := 10.0; var esp := 3.5
-	for k in n_seg:
-		var a0 := TAU * k / n_seg; var a1 := TAU * (k + 1) / n_seg
-		if em_porta.call((a0 + a1) * 0.5) or em_porta.call(a0 + 0.001) or em_porta.call(a1 - 0.001): continue   # qualquer pedaço que toque o vão sai (antes o vão caía na junta e o portão ficava fechado)
-		var p0: Vector2 = c + dirv.call(a0) * RR; var p1: Vector2 = c + dirv.call(a1) * RR
-		var meio := (p0 + p1) * 0.5; var comp := p0.distance_to(p1) + 0.6; var ang := atan2(p1.x - p0.x, p1.y - p0.y)
-		var dl := (p1 - p0).normalized(); var giro := atan2(-dl.y, dl.x)        # a peça da Synty é comprida em X
-		var n_p := 3; var lp := comp / n_p
-		for i in n_p:
-			var q: Vector2 = p0 + dl * (lp * (i + 0.5))
-			Synty.por3(self, "SM_Bld_Castle_Wall_04", Vector3(q.x, y - 1.0, q.y), giro, Vector3(lp / 5.0, 2.2, 3.0), false)
-		_colisor_caixa(Vector3(meio.x, y - 1.0, meio.y), Vector3(esp, alt + 2.0, comp), ang)
-	var torres := []
-	for k in range(0, n_seg, 7):
-		var a := TAU * k / n_seg
-		if not em_porta.call(a): torres.append([a, 4.6, 16.0, false])
-	for pa in portoes:
-		torres.append([pa + meia_porta * 1.3, 5.6, 21.0, true]); torres.append([pa - meia_porta * 1.3, 5.6, 21.0, true])
-	for t in torres:
-		var tp: Vector2 = c + dirv.call(t[0]) * RR
-		var olha := atan2(tp.x - c.x, tp.y - c.y)
-		if t[3]: Synty.por(self, "SM_Bld_Preset_Tower_01_Optimized", Vector3(tp.x, y - 1.0, tp.y), olha, 1.25, false)
-		else: Synty.por(self, "SM_Bld_Castle_Wall_Tower_L_01", Vector3(tp.x, y - 1.0, tp.y), olha, 2.6, false)
-		_colisor_cilindro(Vector3(tp.x, y - 1.0, tp.y), t[1], t[2])
-	for pa in portoes:                                     # arco do portão (passagem livre embaixo)
-		var pp: Vector2 = c + dirv.call(pa) * RR
-		var tg := Vector2(-sin(pa), cos(pa))
-		Synty.por3(self, "SM_Bld_Castle_Wall_Archway_01", Vector3(pp.x, y - 1.0, pp.y), atan2(-tg.y, tg.x), Vector3(3.4, 2.6, 6.0), false)
-	# ---- Ponte dos Guardiões sobre o rio do leste (portão oeste)
-	var fx := Regiao.FOSSO_X
-	var agua_m := ShaderMaterial.new(); agua_m.shader = load("res://shaders/agua.gdshader"); agua_m.set_shader_parameter("neblina", NEBLINA)
-	var x_ponte0 := fx - 19.0; var x_ponte1 := fx + 19.0
-	# ponte da Synty: tábuas de pedra em 7 pedaços, pilares embaixo e guarda-corpo dos dois lados
-	var n_t := 7; var lt := (x_ponte1 - x_ponte0) / n_t
-	for i in n_t:
-		var xx := x_ponte0 + lt * (i + 0.5)
-		Synty.por3(self, "SM_Bld_Bridge_01", Vector3(xx, y + 0.1, c.y), 0.0, Vector3(lt / 5.6, 1.5, 16.0 / 5.5), false)
-		for lado in [-1.0, 1.0]:
-			Synty.por3(self, "SM_Bld_Bridge_Railing_01", Vector3(xx, y + 0.3, c.y + lado * 7.6), PI * 0.5, Vector3(1.2, 1.0, lt / 5.0), false)
-	for xx in [fx - 9.0, fx, fx + 9.0]: Synty.por(self, "SM_Bld_Bridge_Pillars_01", Vector3(xx, y, c.y), PI * 0.5, 1.0, false, false)
-	_colisor_caixa(Vector3((x_ponte0 + x_ponte1) * 0.5, y - 0.2, c.y), Vector3(16.0, 0.6, x_ponte1 - x_ponte0), PI * 0.5)
-	var x_est := [c.x - RR - 12.0, c.x - RR - 26.0]
-	var tipos := [["martelo", "cajado"], ["arco", "espada"]]
-	for i in 2:
-		for j in 2:
-			var lado := -1.0 if j == 0 else 1.0
-			var sp := Vector2(x_est[i], c.y + lado * 12.0)
-			var olha := Vector2(sp.x - 10.0, c.y)
-			_estatua(sp, atan2(olha.x - sp.x, olha.y - sp.y), tipos[i][j], y)
-			_poste_em(Vector2(sp.x - 6.0, c.y + lado * 7.0), Vector2(sp.x - 6.0, c.y))
-	# ---- castelo (norte) com escadaria, portão entre torres e estandartes
-	var cas := c + Vector2(0, -RR + 52.0)
-	estabulo_pos = Regiao.ESTABULO; taverna_pos = c + Vector2(-180.0, 34.0)   # antes das casas
-	# castelo: o casarão grande da Synty no meio, torres prontas nos cantos e muralha de castelo entre elas
-	Synty.por(self, "SM_Bld_Preset_Tower_01_Optimized", Vector3(cas.x, y - 1.0, cas.y - 4.0), 0.0, 2.7, false)   # torre de menagem
-	Synty.por3(self, "SM_Bld_Castle_Wall_Archway_01", Vector3(cas.x, y - 1.0, cas.y + 24.0), 0.0, Vector3(3.0, 2.6, 3.0), false)   # portão do castelo
-	for q in [Vector2(-32, -20), Vector2(32, -20), Vector2(-32, 20), Vector2(32, 20), Vector2(-9, 24), Vector2(9, 24)]:
-		var big := absf(q.x) > 20.0
-		Synty.por(self, "SM_Bld_Preset_Tower_01_Optimized", Vector3(cas.x + q.x, y - 1.0, cas.y + q.y), 0.0, 1.45 if big else 1.15, false)
-	for lado in [[Vector2(-32, -20), Vector2(32, -20)], [Vector2(-32, -20), Vector2(-32, 20)], [Vector2(32, -20), Vector2(32, 20)], [Vector2(-32, 20), Vector2(-9, 24)], [Vector2(32, 20), Vector2(9, 24)]]:
-		var q0: Vector2 = cas + lado[0]; var q1: Vector2 = cas + lado[1]; var dl := (q1 - q0).normalized(); var cp := q0.distance_to(q1)
-		var n_p := int(ceil(cp / 10.0)); var lp := cp / n_p
-		for i in n_p:
-			var q: Vector2 = q0 + dl * (lp * (i + 0.5))
-			Synty.por3(self, "SM_Bld_Castle_Wall_04", Vector3(q.x, y - 1.0, q.y), atan2(-dl.y, dl.x), Vector3(lp / 5.0, 2.6, 3.0), false)
-	_colisor_caixa(Vector3(cas.x, y - 1.0, cas.y), Vector3(66.0, 38.0, 42.0), 0.0)
-	# ---- catedral (noroeste) com praça aberta e flecha alta
-	var cat: Vector2 = c + dirv.call(-PI * 0.83) * 155.0
-	var ang_cat := atan2(c.x - cat.x, c.y - cat.y)
-	_casa(Vector3(cat.x, y, cat.y), ang_cat, 20.0, 38.0, 15.0, null, null, true, "SM_Bld_Preset_Church_01_B_Optimized", 3.0)   # igreja da Synty, 3×
-	var tc: Vector2 = cat - (c - cat).normalized() * 21.0
-	var dc := (c - cat).normalized()
-	_freira("Irmã Odília", cat + dc * 22.5, dc, y, 4343)                       # na escadaria da catedral
-	# ---- torre dos magos (sudoeste)
-	var tm: Vector2 = c + dirv.call(PI * 0.78) * 168.0
-	Synty.por(self, "SM_Bld_Preset_Tower_01_Optimized", Vector3(tm.x, y - 1.0, tm.y), atan2(c.x - tm.x, c.y - tm.y), 2.0, true)   # torre pronta, 2×
-	_particulas_magia(Vector3(tm.x, y + 46.0, tm.y))
-	# ---- praça central com o chafariz da Synty (4,5×)
-	Synty.por(self, "SM_Env_Fountain_01", Vector3(c.x, y - 0.1, c.y), 0.0, 4.5, false)
-	_colisor_cilindro(Vector3(c.x, y - 0.3, c.y), 10.5, 2.0)
-	# ---- canal em anel: água, mureta baixa (muralha da Synty achatada) e quatro pontes da Synty
-	var st := _st()
-	var nc := 72
-	for k in nc:
-		var a0 := TAU * k / nc; var a1 := TAU * (k + 1) / nc
-		var d0: Vector2 = dirv.call(a0); var d1: Vector2 = dirv.call(a1)
-		var ri := Regiao.CANAL - 5.0; var re := Regiao.CANAL + 5.0; var ya := y - 0.6
-		_quad(st, Vector3(c.x + d0.x * ri, ya, c.y + d0.y * ri), Vector3(c.x + d1.x * ri, ya, c.y + d1.y * ri), Vector3(c.x + d1.x * re, ya, c.y + d1.y * re), Vector3(c.x + d0.x * re, ya, c.y + d0.y * re), 1, 1)
-		var am := (a0 + a1) * 0.5
-		var na_rua := false
-		for ra in [0.0, PI * 0.5, PI, -PI * 0.5]: if absf(wrapf(am - ra, -PI, PI)) * Regiao.CANAL < 9.0: na_rua = true
-		if na_rua: continue
-		for rb in [ri - 0.6, re + 0.6]:
-			var meio: Vector2 = c + dirv.call(am) * rb
-			var tg := Vector2(-sin(am), cos(am))
-			Synty.por3(self, "SM_Bld_Castle_Wall_01", Vector3(meio.x, y - 0.3, meio.y), atan2(-tg.y, tg.x), Vector3((TAU * rb / nc + 0.3) / 5.0, 0.24, 1.6), false)
-	var canal := MeshInstance3D.new(); canal.mesh = st.commit(); canal.material_override = agua_m; raiz.add_child(canal)
-	for ra in [PI, PI * 0.5, 0.0, -PI * 0.5]:
-		var pc: Vector2 = c + dirv.call(ra) * Regiao.CANAL
-		var dr: Vector2 = dirv.call(ra); var giro := atan2(-dr.y, dr.x)            # comprido na direção da rua
-		for i in 3:
-			var q: Vector2 = pc + dr * (i - 1) * 5.4
-			Synty.por3(self, "SM_Bld_Bridge_01", Vector3(q.x, y + 0.05, q.y), giro, Vector3(1.0, 1.5, 10.0 / 5.5), false)
-			for lado in [-1.0, 1.0]:
-				var ql: Vector2 = q + Vector2(-dr.y, dr.x) * lado * 4.8
-				Synty.por3(self, "SM_Bld_Bridge_Railing_01", Vector3(ql.x, y + 0.25, ql.y), giro + PI * 0.5, Vector3(1.0, 1.0, 1.08), false)
-	# ---- casas por bairro, em pares de anéis com uma rua entre eles (portas viradas para essa rua)
-	var parede_clara := mat("parede", 1.0, Color(1.1, 1.08, 1.02))
-	var estilos := {
-		"comercio": [[parede_clara, mat("parede"), pedra], [azul, azul, mat("telha", 1.4, Color(0.9, 0.95, 1.0))]],
-		"portao": [[parede_clara, pedra], [azul, mat("telha", 1.4, Color(0.9, 0.95, 1.0))]],
-		"velho": [[mat("parede", 1.0, Color(0.95, 0.85, 0.75)), mat("pedra", 1.0, Color(0.9, 0.8, 0.7))], [mat("madeira", 1.0, Color(0.6, 0.3, 0.2)), mat("madeira", 1.0, Color(0.5, 0.25, 0.18))]],
-		"magos": [[mat("parede", 1.0, Color(1.0, 0.95, 1.05)), mat("pedra", 1.0, Color(0.95, 0.9, 1.05))], [mat("telha", 1.4, Color(0.95, 0.6, 1.0)), mat("telha", 1.4, Color(0.85, 0.55, 0.95))]],
-		"porto": [[mat("madeira", 1.0, Color(0.8, 0.7, 0.6)), pedra_esc], [mat("madeira", 1.0, Color(0.4, 0.42, 0.5))]],
-		"catedral": [[pedra, parede_clara], [azul]],
-	}
-	var placas := ["banco", "taverna", "estalagem", "armas", "armaduras", "alquimia", "alfaiate", "joalheiro", "ferreiro"]
-	var n_placa := 0
-	var feitas := 0
-	# [raio, porta para dentro?]
-	var aneis := [[36.0, true], [56.0, false], [72.0, true], [114.0, false], [130.0, true], [150.0, false], [166.0, true], [186.0, false], [202.0, true]]
-	for anel in aneis:
-		var r: float = anel[0]; var dentro: bool = anel[1]
-		var a := rng.randf() * 0.2
-		while a < TAU:
-			var q0: Vector2 = c + dirv.call(a) * r
-			var bairro := Regiao.distrito(q0.x, q0.y)
-			var grande := bairro == "porto"
-			var w := rng.randf_range(14.0, 18.0) if grande else rng.randf_range(8.0, 11.5)
-			var d := rng.randf_range(10.0, 12.0) if grande else rng.randf_range(7.0, 9.0)
-			var hh := rng.randf_range(6.0, 8.0) if grande else rng.randf_range(5.5, 9.5)
-			if bairro == "velho": w *= 0.85; d *= 0.9
-			var passo := (w + rng.randf_range(2.0, 4.5)) / r
-			var am := a + passo * 0.5; a += passo
-			var q: Vector2 = c + dirv.call(am) * r
-			bairro = Regiao.distrito(q.x, q.y)
-			if not estilos.has(bairro): continue
-			if Regiao.rua_cidade(q.x, q.y) < 9.5 + w * 0.5: continue
-			if q.distance_to(cas) < 50.0 or q.distance_to(cat) < 46.0 or q.distance_to(tc) < 12.0 or q.distance_to(tm) < 22.0: continue
-			if q.distance_to(taverna_pos) < 22.0: continue
-			if bairro == "catedral": continue
-			var ang := atan2(c.x - q.x, c.y - q.y) + (0.0 if dentro else PI)
-			var est: Array = estilos[bairro]
-			var par: Material = est[0][rng.randi() % est[0].size()]; var tel: Material = est[1][rng.randi() % est[1].size()]
-			_casa(Vector3(q.x, y, q.y), ang, w, d, hh, par, tel, true)
-			feitas += 1
-			# lojas: as casas viradas para a praça (anel de dentro) e algumas nas ruas principais ganham placa
-			if (r < 40.0 or (bairro == "comercio" and Regiao.rua_cidade(q.x, q.y) < 18.0 + w * 0.5)) and n_placa < 30:
-				var nome: String = placas[n_placa % placas.size()]; n_placa += 1
-				_placa(Vector3(q.x, y, q.y), ang, w, d, hh, nome)
-				var frente := Vector2(sin(ang), cos(ang))
-				cidade_lojas.append([nome, q + frente * (d * 0.5 + 1.5)])
-			if grande:                                         # caixotes e barris na frente dos armazéns
-				var fr := Vector2(sin(ang), cos(ang)); var ld := Vector2(fr.y, -fr.x)
-				var cx := _st()
-				for b in 3: _caixa(cx, Vector3(q.x + fr.x * (d * 0.5 + 2.0) + ld.x * (b - 1) * 2.2, y + 0.6, q.y + fr.y * (d * 0.5 + 2.0) + ld.y * (b - 1) * 2.2), Vector3(1.2, 1.2, 1.2))
-				_peca(cx, mat("madeira"), Vector3.ZERO)
-	_estabulo_e_taverna(c, y)
-	# ---- parque: árvores, lago e bancos
-	var lp: Vector2 = Regiao.LAGO_PARQUE
-	st = _st()
-	for k in 24:
-		var a0 := TAU * k / 24.0; var a1 := TAU * (k + 1) / 24.0
-		_tri(st, Vector3(lp.x, y - 1.0, lp.y), Vector3(lp.x + cos(a1) * 15.5, y - 1.0, lp.y + sin(a1) * 15.5), Vector3(lp.x + cos(a0) * 15.5, y - 1.0, lp.y + sin(a0) * 15.5), 1, 1)
-	var lago_p := MeshInstance3D.new(); lago_p.mesh = st.commit(); lago_p.material_override = agua_m; raiz.add_child(lago_p)
-	for i in 60:
-		var a := rng.randf_range(PI * 0.32, PI * 0.6); var r := rng.randf_range(112.0, 218.0)
-		var q: Vector2 = c + dirv.call(a) * r
-		if q.distance_to(lp) < 20.0 or Regiao.rua_cidade(q.x, q.y) < 10.0: continue
-		var ok := true
-		for t in arvores_cidade: if Vector2(t[0].x, t[0].z).distance_to(q) < 9.0: ok = false
-		if not ok: continue
-		arvores_cidade.append([Vector3(q.x, y - 0.2, q.y), rng.randf_range(0.8, 1.2)])
-		_colisor_cilindro(Vector3(q.x, y, q.y), 0.35, 4.0)
-	# árvores também ao longo das ruas principais (nos dois lados), entre os postes
-	for ra in [PI, PI * 0.5, 0.0, -PI * 0.5]:
-		var dr: Vector2 = dirv.call(ra); var nr := Vector2(-dr.y, dr.x)
-		for dist in [44.0, 82.0, 140.0, 190.0]:
-			if ra == -PI * 0.5 and dist > 130.0: continue
-			for lado in [-1.0, 1.0]:
-				var q: Vector2 = c + dr * dist + nr * lado * 10.5
-				arvores_cidade.append([Vector3(q.x, y - 0.2, q.y), 0.7])
-				_colisor_cilindro(Vector3(q.x, y, q.y), 0.3, 4.0)
-	# ---- cais do porto do lado de fora do portão leste
-	var cais0 := c + Vector2(RR + 4.0, 0)
-	while cais0.x < Regiao.X1 - 60.0 and altura(cais0.x, c.y) > 1.9: cais0.x += 2.0
-	cais0.x -= 6.0
-	var xm := cais0.x + 20.0
-	while xm < Regiao.X1 - 60.0 and altura(xm, c.y) > -2.5: xm += 2.0
-	st = _st()
-	var yc := 2.1
-	for i in int((xm + 30.0 - cais0.x) / 2.0):
-		var x := cais0.x + i * 2.0
-		for dz in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(x, yc, c.y + dz), Vector3(2.0, 0.25, 6.0))
-		if i % 2 == 0:
-			for dz in [-8.5, 8.5]: _caixa(st, Vector3(x, yc - 2.5, c.y + dz), Vector3(0.4, 5.0, 0.4))
-	for braco in [-40.0, 40.0]:
-		for i in 20: _caixa(st, Vector3(xm + 10.0, yc, c.y + braco * float(i) / 20.0), Vector3(6.0, 0.25, 2.2))
-	_peca(st, mat("madeira"), Vector3.ZERO)
-	_colisor_caixa(Vector3((cais0.x + xm + 30.0) * 0.5, yc - 0.15, c.y), Vector3(18.0, 0.3, xm + 30.0 - cais0.x), PI / 2)
-	for nav in [[xm + 26.0, c.y - 24.0], [xm + 26.0, c.y + 26.0]]:
-		st = _st()
-		_caixa(st, Vector3(0, 0.8, 0), Vector3(18.0, 2.4, 5.0)); _caixa(st, Vector3(-7.0, 2.4, 0), Vector3(4.0, 1.2, 4.6))
-		_caixa(st, Vector3(9.5, 1.2, 0), Vector3(2.0, 1.6, 3.0))
-		_peca(st, mat("madeira", 1.0, Color(0.6, 0.45, 0.35)), Vector3(nav[0], 0.0, nav[1]))
-		st = _st(); _caixa(st, Vector3(0, 9.0, 0), Vector3(0.5, 16.0, 0.5)); _peca(st, mat("madeira"), Vector3(nav[0], 0.0, nav[1]))
-		st = _st(); _quad(st, Vector3(0.4, 4.5, -4.0), Vector3(0.4, 4.5, 4.0), Vector3(0.4, 15.0, 3.0), Vector3(0.4, 15.0, -3.0), 1, 1)
-		_peca(st, mat("", 1.0, Color(0.3, 0.42, 0.8)), Vector3(nav[0], 0.0, nav[1]))
-	# ---- postes de luz ao longo das quatro ruas principais
-	for ra in [PI, PI * 0.5, 0.0, -PI * 0.5]:
-		var dr: Vector2 = dirv.call(ra); var nr := Vector2(-dr.y, dr.x)
-		for dist in [28.0, 62.0, 124.0, 166.0, 208.0]:
-			if ra == -PI * 0.5 and dist > 150.0: continue
-			for lado in [-1.0, 1.0]:
-				var q: Vector2 = c + dr * dist + nr * lado * 8.0
-				_poste_em(q, c + dr * dist)
-	lugares.append([c, RR + 15.0])
-	if args.has("perf"): print("CIDADE: %d casas, %d lojas" % [feitas, cidade_lojas.size()])
-
 # freira que vende poções de vida (modelo do Tripo com o esqueleto dos moradores), parada na frente da igreja,
 # orando com as mãos juntas e olhando para a praça
 func _freira(nome: String, p: Vector2, olhar: Vector2, y: float, semente: int) -> void:
@@ -2220,20 +1821,6 @@ func _freira(nome: String, p: Vector2, olhar: Vector2, y: float, semente: int) -
 	raiz.add_child(f); f.position = Vector3(p.x, y, p.y)
 	f.montar(self, semente, p, 1.0)
 	freiras.append(f)
-
-# logo depois do portão oeste: estábulo (telheiro, cocheiras, cercado com três cavalos e o cavalariço) ao norte da
-# rua principal e a taverna "O Ferradura Dourada" ao sul
-func _estabulo_e_taverna(c: Vector2, y: float) -> void:
-	# taverna grande com placa (dentro da cidade, logo depois do portão oeste)
-	var t := taverna_pos
-	var ang_t := PI                                                        # porta virada para a rua principal (norte)
-	_casa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, mat("parede"), mat("telha", 1.4), true)
-	_placa(Vector3(t.x, y, t.y), ang_t, 16.0, 11.0, 7.0, "taverna")
-	cidade_lojas.append(["taverna", t + Vector2(0, -7.0)])
-	var b := _st()
-	for k in 4: _caixa(b, Vector3(t.x - 6.0 + k * 1.1, y + 0.5, t.y - 7.0), Vector3(0.8, 1.0, 0.8))   # barris na porta
-	_peca(b, mat("madeira", 1.0, Color(0.7, 0.5, 0.35)), Vector3.ZERO)
-	_estabulo()
 
 # estábulo fora da cidade, do outro lado do rio, ao norte da estrada que chega na ponte: a casinha do cavalariço,
 # o telheiro com as cocheiras ao lado e o cercado com os três cavalos na frente; o Edric fica parado na frente da casa
@@ -2359,43 +1946,6 @@ func _placa(pos: Vector3, ang: float, w: float, d: float, h: float, nome: String
 		_quad(st, Vector3(xx, -2.0, 0.85), Vector3(xx, -2.0, 2.15), Vector3(xx, -0.6, 2.15), Vector3(xx, -0.6, 0.85), 1, 1)
 	var pl := _peca(st, _mat_tex("res://assets/ui/placas/%s.png" % nome), base); pl.rotation.y = ang
 
-# estátua de herói (de pedra, sobre pedestal): martelo, cajado, arco ou espada
-func _estatua(p: Vector2, ang: float, tipo: String, y: float) -> void:
-	var st := _st()
-	_caixa(st, Vector3(0, 1.5, 0), Vector3(6.5, 3.0, 6.5)); _caixa(st, Vector3(0, 3.4, 0), Vector3(5.4, 0.8, 5.4))
-	if tipo == "cajado":
-		cilindro(st, Vector3(0, 3.8, 0), 2.3, 1.5, 6.4, 8, true)              # manto
-	else:
-		_caixa(st, Vector3(-0.95, 6.0, 0), Vector3(1.4, 4.4, 1.6)); _caixa(st, Vector3(0.95, 6.0, 0), Vector3(1.4, 4.4, 1.6))
-	_caixa(st, Vector3(0, 9.6, 0), Vector3(3.8, 3.6, 2.3))                     # tronco
-	_caixa(st, Vector3(-2.3, 10.9, 0), Vector3(1.6, 1.3, 2.0)); _caixa(st, Vector3(2.3, 10.9, 0), Vector3(1.6, 1.3, 2.0))   # ombreiras
-	_caixa(st, Vector3(0, 12.3, 0), Vector3(1.5, 1.8, 1.6))                    # cabeça
-	match tipo:
-		"martelo":
-			_caixa(st, Vector3(2.5, 12.6, 0), Vector3(1.0, 3.4, 1.0)); _caixa(st, Vector3(-2.4, 8.6, 0.3), Vector3(1.0, 3.0, 1.0))
-			_caixa(st, Vector3(2.5, 15.4, 0), Vector3(0.4, 4.4, 0.4)); _caixa(st, Vector3(2.5, 17.6, 0), Vector3(2.6, 1.6, 1.6))
-		"cajado":
-			_caixa(st, Vector3(2.4, 9.8, 0.6), Vector3(0.9, 2.8, 0.9)); _caixa(st, Vector3(-2.3, 9.6, 0.4), Vector3(0.9, 2.8, 0.9))
-			_caixa(st, Vector3(2.6, 10.5, 1.1), Vector3(0.4, 13.0, 0.4)); _caixa(st, Vector3(2.6, 17.4, 1.1), Vector3(1.2, 1.2, 1.2))
-		"arco":
-			_caixa(st, Vector3(-1.9, 10.9, 1.6), Vector3(0.9, 0.9, 3.0)); _caixa(st, Vector3(1.6, 10.6, 0.6), Vector3(0.9, 0.9, 2.2))
-			for k in 5: _caixa(st, Vector3(-1.9, 8.6 + k * 1.15, 3.2 + absf(k - 2) * -0.35), Vector3(0.3, 1.25, 0.3))
-		_:
-			_caixa(st, Vector3(-1.2, 8.9, 1.1), Vector3(0.9, 2.8, 0.9)); _caixa(st, Vector3(1.2, 8.9, 1.1), Vector3(0.9, 2.8, 0.9))
-			_caixa(st, Vector3(0, 5.8, 1.8), Vector3(0.6, 6.4, 0.3)); _caixa(st, Vector3(0, 9.2, 1.8), Vector3(2.4, 0.45, 0.45))
-	_peca(st, mat("pedra", 1.0, Color(1.05, 1.05, 1.1)), Vector3(p.x, y, p.y), ang)
-	_colisor_caixa(Vector3(p.x, y, p.y), Vector3(6.5, 12.0, 6.5), ang)
-
-# água caindo do chafariz
-func _jatos_chafariz(pos: Vector3) -> void:
-	var p := CPUParticles3D.new(); p.position = pos; p.amount = 70; p.lifetime = 1.3; p.preprocess = 2.0
-	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE; p.emission_sphere_radius = 0.3
-	p.direction = Vector3(0, 1, 0); p.spread = 35.0; p.initial_velocity_min = 2.5; p.initial_velocity_max = 3.5; p.gravity = Vector3(0, -9.0, 0)
-	var q := QuadMesh.new(); q.size = Vector2(0.12, 0.12)
-	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; mt.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	mt.albedo_color = Color(0.75, 0.88, 1.0); q.material = mt; p.mesh = q
-	p.visibility_aabb = AABB(Vector3(-6, -9, -6), Vector3(12, 14, 12)); raiz.add_child(p)
-
 # brilho roxo girando no alto da torre dos magos
 func _particulas_magia(pos: Vector3) -> void:
 	var p := CPUParticles3D.new(); p.position = pos; p.amount = 40; p.lifetime = 2.5; p.preprocess = 3.0
@@ -2475,41 +2025,11 @@ func _estatua_guardia(p: Vector2, fr: Vector2) -> void:
 	var ang := atan2(fr.x, fr.y)
 	var y := reg.aplanar(p, Vector2(2.4, 2.4), -ang, 3.0)
 	lugares.append([p, 5.0])
-	if Synty.existe("SM_Prop_Statue_Angel_01"):                 # mapa novo: estátua de anjo da Synty num pedestal
-		Synty.por(self, "SM_Prop_Statue_Plinth_01", Vector3(p.x, y - 0.05, p.y), ang, 1.4, true)
-		var topo := Synty.caixa("SM_Prop_Statue_Plinth_01").end.y * 1.4
-		Synty.por(self, "SM_Prop_Statue_Angel_01", Vector3(p.x, y - 0.1 + topo, p.y), ang, 1.6, false)
-		luzes.append(Vector3(p.x, y + 1.6, p.y) + Vector3(fr.x, 0, fr.y) * 1.6)
-		return
-	var arq := "res://assets/modelos/estatua_guardia.glb"
-	if ResourceLoader.exists(arq):
-		# modelo do Tripo: ~0,98 de altura, de frente para +X, base em y = -0,49 → 4,5 m, de frente para "fr"
-		var mod := modelo_ps1(arq); var k := 4.5 / 0.98
-		mod.scale = Vector3(k, k, k); mod.rotation.y = ang - PI / 2.0
-		mod.position = Vector3(p.x, y - 0.05 + 0.49 * k, p.y); raiz.add_child(mod)
-		_colisor_caixa(Vector3(p.x, y, p.y), Vector3(2.8, 4.0, 2.8), ang)
-		luzes.append(Vector3(p.x, y + 1.6, p.y) + Vector3(fr.x, 0, fr.y) * 1.2)     # chama azul do braseiro
-		return
-	var pedra := mat("pedra", 1.0, Color(1.35, 1.38, 1.32)); var musgo := mat("pedra", 1.0, Color(0.95, 1.1, 0.85))
-	var st := _st()
-	_caixa(st, Vector3(0, 0.25, 0), Vector3(3.6, 0.5, 3.6)); _caixa(st, Vector3(0, 0.75, 0), Vector3(2.8, 0.5, 2.8))
-	_peca(st, musgo, Vector3(p.x, y - 0.05, p.y), ang)
-	st = _st()
-	cilindro(st, Vector3(0, 1.0, 0), 0.95, 0.42, 2.5, 8, true)                 # manto
-	_caixa(st, Vector3(0, 3.65, 0.02), Vector3(0.5, 0.6, 0.5))                  # cabeça
-	cilindro(st, Vector3(0, 3.3, -0.05), 0.42, 0.12, 1.0, 6)                   # capuz
-	_caixa(st, Vector3(0, 2.85, 0.32), Vector3(0.36, 0.42, 0.26))               # mãos juntas no peito
-	for lado in [-1.0, 1.0]:                                                    # asas abertas para trás
-		var wg := _st()
-		_caixa(wg, Vector3(lado * 0.7, 0.0, 0.0), Vector3(1.4, 2.2, 0.16))
-		var tw := Transform3D(Basis(Vector3.UP, lado * 0.55) * Basis(Vector3(0, 0, 1), lado * 0.35), Vector3(lado * 0.3, 3.0, -0.35))
-		st.append_from(wg.commit(), 0, tw)
-	_peca(st, pedra, Vector3(p.x, y - 0.05, p.y), ang)
-	_colisor_caixa(Vector3(p.x, y, p.y), Vector3(3.6, 3.8, 3.6), ang)
-	# chama azulada aos pés (de noite ilumina como uma lanterna)
-	var fogo := Vector3(p.x, y + 1.2, p.y) + Vector3(fr.x, 0, fr.y) * 1.55
-	luzes.append(fogo)
-
+	# estátua de anjo da Synty num pedestal
+	Synty.por(self, "SM_Prop_Statue_Plinth_01", Vector3(p.x, y - 0.05, p.y), ang, 1.4, true)
+	var topo := Synty.caixa("SM_Prop_Statue_Plinth_01").end.y * 1.4
+	Synty.por(self, "SM_Prop_Statue_Angel_01", Vector3(p.x, y - 0.1 + topo, p.y), ang, 1.6, false)
+	luzes.append(Vector3(p.x, y + 1.6, p.y) + Vector3(fr.x, 0, fr.y) * 1.6)
 # pontes de madeira onde as estradas cruzam o rio (com rampas nas pontas e colisão)
 func _pontes() -> void:
 	for pt in reg.pontes:
@@ -2597,34 +2117,6 @@ func _parede_colisao(p0: Vector2, p1: Vector2, esp: float, alt: float) -> void:
 		ymin = minf(ymin, y); ymax = maxf(ymax, y)
 	_colisor_caixa(Vector3(meio.x, ymin - 0.3, meio.y), Vector3(esp, ymax - ymin + alt + 0.3, comp), atan2(d.x, d.y))
 
-func _fazendas() -> void:
-	var rng := RandomNumberGenerator.new(); rng.seed = 8
-	for cp in reg.campos:
-		var livre := _longe_da_estrada(Vector2(cp[0], cp[1]), Vector2(cp[2] + 2, cp[3] + 2) * 0.5, -deg_to_rad(cp[4]))
-		cp[0] = livre.x; cp[1] = livre.y
-	for cp in reg.campos:
-		var c := Vector2(cp[0], cp[1]); var ang := deg_to_rad(cp[4])
-		lugares.append([c, max(cp[2], cp[3]) * 0.55])
-		_cerca(c, Vector2(cp[2] + 2, cp[3] + 2), ang)
-		if cp[5] == 0 and rng.randf() < 0.75:
-			# celeiro vermelho ao lado do campo
-			var bp: Vector2 = c + Vector2(cp[2] * 0.5 + 9.0, 0).rotated(ang)
-			if reg.dist_estrada(bp.x, bp.y) > 7.0:
-				_casa(Vector3(bp.x, altura(bp.x, bp.y) - 0.2, bp.y), ang + PI / 2, 8.0, 10.0, 4.2, mat("madeira", 1.0, Color(1.25, 0.62, 0.52)), mat("madeira", 1.0, Color(0.6, 0.55, 0.5)))
-	# moinho de vento entre as fazendas
-	var mp := Regiao.W(Vector2(-244, 100)); var y := reg.aplanar(mp, Vector2(3.6, 3.6), 0.0, 4.0)
-	var st := _st(); cilindro(st, Vector3.ZERO, 3.0, 2.2, 9.0, 8, true); _peca(st, mat("pedra"), Vector3(mp.x, y - 0.3, mp.y))
-	st = _st(); cilindro(st, Vector3(0, 8.7, 0), 2.6, 0.0, 3.2, 8); _peca(st, mat("palha"), Vector3(mp.x, y - 0.3, mp.y))
-	st = _st()
-	for k in 4:
-		var b := Node3D.new()
-		_caixa(st, Vector3(0, 4.2, 0).rotated(Vector3(0, 0, 1), TAU * k / 4.0), Vector3(0.3, 8.0, 0.1).abs())
-	var pas := _peca(st, mat("madeira", 1.0, Color(0.9, 0.85, 0.75)), Vector3(mp.x + 2.6, y + 8.0, mp.y))
-	pas.rotation.y = PI / 2
-	moinhos.append(pas)
-	_colisor_cilindro(Vector3(mp.x, y - 0.3, mp.y), 3.0, 9.0)
-	lugares.append([mp, 5.0])
-
 func _porto() -> void:
 	var z := 58.0; var xc := Regiao.Ws(380.0)
 	while xc < Regiao.X1 - 40.0 and altura(xc, z) > 0.4: xc += 1.0
@@ -2648,120 +2140,6 @@ func _porto() -> void:
 	for b in [[xc - 2.0, z + 3.0], [xc - 1.0, z + 3.6], [xc - 3.0, z - 3.0]]:
 		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
 	lugares.append([Vector2(xc - 20.0, z), 45.0]); porto_pos = Vector2(xc - 10.0, z)
-
-func _mosteiro() -> void:
-	var c := Vector2(Regiao.ILHA.x, Regiao.ILHA.y); var y := reg.aplanar(c + Vector2(2.5, -1.5), Vector2(8.0, 6.0), 0.0, 3.0)
-	_casa(Vector3(c.x, y - 0.3, c.y), PI / 2, 8.0, 6.0, 4.0, mat("pedra"), mat("madeira", 1.0, Color(0.55, 0.5, 0.55)))
-	var tp := Vector3(c.x + 5.5, y - 0.6, c.y - 3.0)
-	var st := _st(); cilindro(st, Vector3.ZERO, 2.0, 1.8, 11.0, 8, true); _peca(st, mat("pedra"), tp)
-	st = _st(); cilindro(st, Vector3(0, 11.0, 0), 2.6, 0.0, 4.0, 8); _peca(st, mat("madeira", 1.0, Color(0.55, 0.5, 0.55)), tp)
-	_colisor_cilindro(tp, 2.0, 11.0)
-	# passarela da margem até a ilha
-	var a := Vector2(Regiao.LAGO.x + Regiao.LAGO.z + 1.0, Regiao.ILHA.y); var b := Vector2(Regiao.ILHA.x + Regiao.ILHA.z - 1.0, Regiao.ILHA.y)
-	var yp := reg.nivel_lago() + 0.6
-	st = _st()
-	var n := int(a.distance_to(b) / 1.5)
-	for i in n + 1:
-		var q := a.lerp(b, float(i) / n)
-		_caixa(st, Vector3(q.x, yp, q.y), Vector3(1.4, 0.15, 1.6))
-		if i % 3 == 0: _caixa(st, Vector3(q.x, yp - 1.5, q.y), Vector3(0.25, 3.0, 0.25))
-	_peca(st, mat("madeira"), Vector3.ZERO, 0.0).rotation.y = 0.0
-	var mid := (a + b) * 0.5
-	_colisor_caixa(Vector3(mid.x, yp - 0.1, mid.y), Vector3(1.6, 0.2, a.distance_to(b) + 2.0), atan2(b.x - a.x, b.y - a.y))
-	lugares.append([c, 18.0])
-
-func _ruinas() -> void:
-	var c := Regiao.W(Vector2(220, -260)); var y := reg.aplanar(c, Vector2(5.0, 5.0), 0.0, 6.0)
-	var st := _st(); var rng := RandomNumberGenerator.new(); rng.seed = 3
-	for k in 10:                                         # torre quebrada: anel de pedras com alturas diferentes
-		var a0 := TAU * k / 10.0; var a1 := TAU * (k + 1) / 10.0; var h := rng.randf_range(2.5, 9.0)
-		var p0 := Vector3(cos(a0) * 3.4, 0, sin(a0) * 3.4); var p1 := Vector3(cos(a1) * 3.4, 0, sin(a1) * 3.4)
-		_quad(st, p1, p0, p0 + Vector3(0, h, 0), p1 + Vector3(0, h, 0), 2, h / 2)
-		_quad(st, p0 * 0.8, p1 * 0.8, p1 * 0.8 + Vector3(0, h, 0), p0 * 0.8 + Vector3(0, h, 0), 2, h / 2)
-		_quad(st, p0 + Vector3(0, h, 0), p0 * 0.8 + Vector3(0, h, 0), p1 * 0.8 + Vector3(0, h, 0), p1 + Vector3(0, h, 0), 1, 0.3)
-	var blocos := []
-	for k in 9:                                          # muros caídos e blocos (assentados depois do terreno)
-		var q := Vector3(rng.randf_range(-14, 14), 0, rng.randf_range(-14, 14))
-		if q.length() < 5.0: continue
-		blocos.append([Vector2(c.x + q.x, c.y + q.z), Vector3(rng.randf_range(1, 5), rng.randf_range(0.6, 2.2), rng.randf_range(0.6, 1.2)), rng.randf() * PI])
-	_depois.append(func():
-		var sb := _st()
-		for bl in blocos:
-			var p: Vector2 = bl[0]; var t: Vector3 = bl[1]; var giro: float = bl[2]
-			var ymin := INF
-			for o in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-				var w: Vector2 = p + (o * Vector2(t.x, t.z) * 0.5).rotated(-giro); ymin = minf(ymin, terreno.altura_malha(w.x, w.y))
-			var bx := _st(); _caixa(bx, Vector3(0, t.y * 0.5 - 0.4, 0), t + Vector3(0, 0.4, 0))
-			var mi := _peca(bx, mat("pedra"), Vector3(p.x, ymin, p.y)); mi.rotation.y = giro
-			_colisor_caixa(Vector3(p.x, ymin - 0.4, p.y), t + Vector3(0, 0.4, 0), giro))
-	_peca(st, mat("pedra"), Vector3(c.x, y - 0.8, c.y))
-	_colisor_cilindro(Vector3(c.x, y - 0.8, c.y), 3.5, 6.0)
-	lugares.append([c, 18.0])
-
-func _serraria() -> void:
-	var c := Regiao.W(Vector2(286, -170)); var y := reg.aplanar(c, Vector2(14.0, 12.0), 0.0, 5.0)   # a estrada chega na beira do pátio
-	_casa(Vector3(c.x, y - 0.2, c.y), 0.4, 7.0, 5.0, 2.8, mat("madeira"), mat("madeira", 1.0, Color(0.6, 0.55, 0.5)))
-	var st := _st()
-	for pilha in [[8.0, 4.0], [9.0, -5.0], [-8.0, 6.0]]:
-		for k in 6:
-			var r := 0.35; var fila := k / 3; var col := k % 3
-			var q := Vector3(pilha[0], y + r + fila * 0.6, pilha[1] + (col - 1) * 0.72 + fila * 0.36)
-			var tmp := _st(); cilindro(tmp, Vector3(0, -2.5, 0), r, r, 5.0, 6, true)
-			var mi := _peca(tmp, mat("casca"), Vector3(c.x, 0, c.y) + q); mi.rotation = Vector3(0, 0, PI / 2)
-	for k in 5:
-		var q := Vector2(c.x + randf_range(-14, 14), c.y + randf_range(-14, 14))
-		cilindro(st, Vector3(q.x, altura(q.x, q.y) - 0.4, q.y), 0.4, 0.38, 0.8, 6, true)
-	_peca(st, mat("casca"), Vector3.ZERO)
-	lugares.append([c, 16.0])
-
-func _bandidos() -> void:
-	var c := Regiao.W(Vector2(-330, 300))
-	var yb := reg.aplanar(c, Vector2(11.0, 11.0), 0.0, 5.0)        # clareira plana do acampamento
-	var st := _st()
-	for k in 3:
-		var a := TAU * k / 3.0 + 0.4; var q := c + Vector2(cos(a), sin(a)) * 7.0; var y := yb
-		cilindro(st, Vector3(q.x, y - 0.3, q.y), 2.4, 0.0, 2.8, 4)
-		_colisor_cilindro(Vector3(q.x, y - 0.1, q.y), 1.8, 2.4)
-	_peca(st, mat("", 1.0, Color(0.55, 0.28, 0.22)), Vector3.ZERO)
-	# fogueira: pedras + lenha + chamas em splats
-	var y0 := yb
-	st = _st(); cilindro(st, Vector3(c.x, y0 - 0.1, c.y), 0.9, 0.9, 0.25, 8); _peca(st, mat("pedra"), Vector3.ZERO)
-	_fogo(Vector3(c.x, y0 + 0.1, c.y), 1.1, 1.6, 6)
-	luzes.append(Vector3(c.x, y0 + 0.9, c.y))
-	st = _st()
-	var yc := yb
-	for k in 4: _caixa(st, Vector3(c.x + 5 + k * 0.9, yc + 0.3, c.y - 6.0), Vector3(0.8, 1.0, 0.8))
-	_peca(st, mat("madeira"), Vector3.ZERO)
-	lugares.append([c, 14.0])
-
-func _caverna() -> void:
-	# boca de caverna no pé das montanhas a oeste
-	var cv := Regiao.W(Vector2(-420, -200)); var z := cv.y; var x := cv.x
-	while x > -Regiao.LIM + 40.0 and altura(x, z) < base_vale(z) + 9.0: x -= 2.0
-	var y := reg.aplanar(Vector2(x + 7.0, z), Vector2(4.0, 5.0), 0.0, 4.0)
-	var st := _st()
-	_caixa(st, Vector3(0, 1.4, -3.2), Vector3(3.0, 6.0, 2.0)); _caixa(st, Vector3(0, 1.4, 3.2), Vector3(3.0, 6.0, 2.0))
-	_caixa(st, Vector3(0, 5.0, 0), Vector3(3.4, 1.6, 8.6))
-	_peca(st, mat("pedra"), Vector3(x + 5.0, y - 0.5, z))
-	st = _st(); _quad(st, Vector3(0, 0, 2.2), Vector3(0, 0, -2.2), Vector3(0, 4.3, -2.2), Vector3(0, 4.3, 2.2), 1, 1)
-	_peca(st, mat("", 1.0, Color(0.02, 0.02, 0.03)), Vector3(x + 4.6, y - 0.5, z))
-	_colisor_caixa(Vector3(x + 4.0, y - 0.5, z), Vector3(2.0, 6.0, 9.0), 0.0)
-	lugares.append([Vector2(x + 5.0, z), 8.0]); caverna_pos = Vector2(x + 5.0, z)
-
-func base_vale(z: float) -> float: return reg.base(z)
-
-func _barricada() -> void:
-	# paliçada fechando o desfiladeiro do norte (por enquanto não se passa): estacas enterradas 1,5 m na malha
-	var z := -Regiao.Ws(468.0)
-	_depois.append(func():
-		var st := _st()
-		for i in 112:
-			var x := -45.0 + i * 0.8; var y := terreno.altura_malha(x, z)
-			cilindro(st, Vector3(x, y - 1.5, z), 0.38, 0.32, 5.6, 5)
-			cilindro(st, Vector3(x, y + 4.1, z), 0.32, 0.0, 0.7, 5)
-		_peca(st, mat("casca"), Vector3.ZERO)
-		_parede_colisao(Vector2(-45.5, z), Vector2(44.5, z), 1.2, 4.6))
-	lugares.append([Vector2(0, z), 46.0])
 
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, uw: float, vh: float) -> void:
 	var n := (b - a).cross(d - a).normalized()

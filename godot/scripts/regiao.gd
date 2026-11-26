@@ -35,9 +35,7 @@ const CIDADE_C := Vector2(2095.0, 56.3)                  # centro (a ilha da cat
 const CIDADE_R := 136.3
 const CANAL := -1000.0
 const ALTURA_CIDADE := 7.0
-const NIVEL_MERCADO := 7.0
 const NIVEL_PORTO := 3.0
-const X_MERCADO := -100000.0                              # (sem degrau no meio da cidade)
 const X_PORTO := 2196.5                                   # degrau para o porto (leste)
 const CASTELO := Vector2(2013.8, -27.8)                   # topo do morro da fortaleza
 const ALTURA_CASTELO := 16.0
@@ -124,7 +122,6 @@ var rio := PackedVector2Array([Vector2(650, -1180), Vector2(620, -900), Vector2(
 	Vector2(850, 820), Vector2(1100, 920)])
 static var LAGO := Vector3(-700.0, -300.0, 95.0)        # x, z, raio (no Planalto do Oeste)
 static var ILHA := Vector3(-696.0, -294.0, 22.0)
-const CENTRO_VILA := VILA
 # campos: [centro x, centro z, largura, comprimento, ângulo (graus), tipo]  tipo 0 = trigo, 1 = terra arada
 var campos := [
 	[120, 520, 60, 40, 10, 0], [100, 320, 50, 34, -8, 1], [370, 560, 64, 40, 20, 0], [560, 470, 50, 34, -15, 0],
@@ -393,7 +390,6 @@ const FOSSO_X := PORTAO.x - 55.0
 const ESTABULO := Vector2(FOSSO_X - 58.0, CIDADE_C.y - 42.0)
 const PATIO_NIVEL := Rect2(FOSSO_X - 112.0, CIDADE_C.y - 78.0, 96.0, 106.0)     # aplainado no nível da estrada
 # terra batida do estábulo: um quadrado certinho pegando o telheiro e o cercado (sem grama nenhuma)...
-const ESTABULO_TERRA := Rect2(ESTABULO.x - 13.5, ESTABULO.y - 12.5, 27.0, 29.0)
 static func patio_estabulo(x: float, z: float) -> float:          # 1 dentro do telheiro/cercado
 	return 1.0 if dentro_estabulo(x, z) else 0.0
 # dentro do telheiro e do cercado não nasce nada; no resto do quadrado, um pouco de grama (como em volta)
@@ -618,9 +614,3 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	return g * (1.0 - 0.25 * patio_casa(x, z))                           # em volta do estábulo: grama quase normal
 
 func dentro(x: float, z: float) -> bool: return x > X0 and x < X1 and abs(z) < LIM
-
-# altura do arco da boca (a abertura é arredondada): 0 fora da largura da boca
-func arco_boca(x: float, meia: float) -> float:
-	var u := (x - GRUTA_ENTRADA.x) / maxf(meia, 0.1)
-	if absf(u) >= 1.0: return 0.0
-	return (GRUTA_TETO + 3.0) * sqrt(1.0 - u * u)

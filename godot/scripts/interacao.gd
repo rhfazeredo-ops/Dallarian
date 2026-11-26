@@ -46,7 +46,6 @@ var painel_coletar: Control
 var _baga: Array = []
 # estábulo de Altamar: o cavalariço vende os cavalos (LOJA) e conversa
 var painel_estabulo: HBoxContainer
-const NOME_CAVALARICO := "Edric"
 const DIALOGOS_CAVALARICO := [
 	[["heroina", "Que cavalos bonitos! Eles estão à venda?", ""],
 	 ["cavalarico", "Os melhores do Vale de Aldren, moça. Oitenta de cobre cada um, com sela e tudo. Um cavalo te leva longe antes do lobo te alcançar.", ""]],
@@ -169,8 +168,6 @@ func _abrir_loja() -> void:
 		var c := LOJA_FREIRA.duplicate(); c["retrato"] = load("res://assets/ui/itens/pocao_m.png"); c["nome"] = String(npc.get_meta("nome", "Irmã"))
 		m.loja_ui.abrir(npc, c)
 	else: m.loja_ui.abrir(npc)
-
-func _fala_bram(t: String) -> void: _fala_npc("Bram", t)
 
 func _fala_npc(quem: String, t: String) -> void:
 	legenda.text = quem + ": " + t; legenda.modulate.a = 1.0; move_child(legenda, get_child_count() - 1)

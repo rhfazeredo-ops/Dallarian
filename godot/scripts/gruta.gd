@@ -11,7 +11,6 @@ var rng := RandomNumberGenerator.new()
 var _pingos := []                  # [posição do teto, próxima gota (s), CPUParticles3D]
 var _som_pingo: Array = []
 var _ambiente: AudioStreamPlayer
-var _t_som := 0.0
 
 func montar(mundo) -> void:
 	m = mundo; reg = m.reg; rng.seed = 8080
@@ -293,63 +292,6 @@ func _flor() -> ArrayMesh:                # florzinha: cabinho verde e 2 pétala
 		_tri(st, Vector3(0, 0.2, 0) - d, Vector3(0, 0.2, 0) + d, Vector3(0, 0.26, 0), Color.WHITE)
 		_tri(st, Vector3(0, 0.2, 0) - d, Vector3(0, 0.14, 0), Vector3(0, 0.2, 0) + d, Color.WHITE)
 	return st.commit()
-
-# PAREDÃO DE ROCHA da boca (como a arte): uma superfície de rocha só, facetada, em volta de um buraco em arco,
-# saltando para fora em volta da borda; do arco sai um túnel arredondado de rocha entrando na montanha.
-# Facetas viradas para cima ficam com musgo. Tem colisão.
-func _paredao_rocha(cx: float, bz: float, meia: float, piso: float, alto: float, _teto: float) -> void:
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var faces := PackedVector3Array()
-	var ra := meia + 1.8; var rb := alto + 1.6            # elipse do buraco (boca grande, como na arte)
-	var w := meia + 11.0; var passo := 2.0
-	var pos := func(u: float, v: float) -> Vector3:
-		var e := sqrt(pow(u / ra, 2.0) + pow(v / rb, 2.0))          # 1 na borda do buraco
-		var borda := exp(-pow(maxf(e - 1.0, 0.0) * 2.6, 2.0))            # a rocha salta perto da borda
-		var wl := meia + 8.0 + reg.ruido.get_noise_2d(v * 6.0, 11.0) * 3.0          # contorno irregular
-		var some := smoothstep(wl + 1.0, wl - 4.0, absf(u))                             # funde na montanha na borda
-		var d := (1.2 + reg.ruido.get_noise_2d(u * 6.0, v * 6.0) * 1.4 + reg.ruido.get_noise_2d(u * 15.0 + 40.0, v * 15.0) * 0.4) * some + borda * 2.6 - (1.0 - some) * 1.5
-		return Vector3(cx + u, piso + v, bz + d)
-	var nu := int(2.0 * w / passo)
-	for i in nu:
-		var u0 := -w + i * passo; var u1 := u0 + passo
-		var topo := maxf(reg.altura(cx + u0, bz - 3.0, false), reg.altura(cx + u1, bz - 3.0, false)) - piso
-		var nv := int((topo + 1.0) / passo) + 1
-		for j in nv:
-			var v0 := -1.0 + j * passo; var v1 := v0 + passo
-			var wl0 := meia + 8.0 + reg.ruido.get_noise_2d(v0 * 6.0, 11.0) * 3.0
-			if absf(u0) > wl0 + 1.5 and absf(u1) > wl0 + 1.5: continue
-			if v0 > topo - 1.0 - absf(reg.ruido.get_noise_2d(u0 * 5.0, 3.0)) * 4.0: continue     # topo irregular
-			var fora := true
-			for c in [Vector2(u0, v0), Vector2(u1, v0), Vector2(u0, v1), Vector2(u1, v1)]:
-				if pow(c.x / ra, 2.0) + pow(maxf(c.y, 0.0) / rb, 2.0) < 1.0: fora = false
-			if not fora: continue
-			var a: Vector3 = pos.call(u0, v0); var b: Vector3 = pos.call(u1, v0); var c2: Vector3 = pos.call(u1, v1); var d2: Vector3 = pos.call(u0, v1)
-			for tri in [[a, b, c2], [a, c2, d2]]:
-				_faceta(st, tri[0], tri[1], tri[2]); faces.append_array(PackedVector3Array(tri))
-	# túnel arredondado: anéis da elipse entrando na montanha (de onde o paredão salta até 10 m para dentro)
-	var segs := 14; var aneis := [3.4, 1.4, -1.5, -4.5, -8.0, -11.0]
-	for k in aneis.size() - 1:
-		for i in segs:
-			var a0 := PI * i / segs; var a1 := PI * (i + 1) / segs
-			var pts := []
-			for zz in [aneis[k], aneis[k + 1]]:
-				for aa in [a0, a1]:
-					var j := 1.0 + reg.ruido.get_noise_2d(aa * 20.0, float(zz) * 3.0) * 0.12
-					pts.append(Vector3(cx + cos(aa) * ra * j, piso + sin(aa) * rb * j, bz + float(zz)))
-			var esc := clampf(1.0 - (2.0 - float(aneis[k])) / 12.0, 0.25, 1.0)          # escurece para dentro
-			_faceta(st, pts[0], pts[2], pts[3], esc); _faceta(st, pts[0], pts[3], pts[1], esc)
-	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = m.mat("terreno"); add_child(mi)   # mesma textura da montanha
-	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var f := ConcavePolygonShape3D.new()
-	f.set_faces(faces); f.backface_collision = true; cs.shape = f; corpo.add_child(cs); add_child(corpo)
-
-func _faceta(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, luz := 1.0) -> void:      # triângulo de rocha com cor própria
-	var n := (b - a).cross(c - a).normalized()
-	if n.z < 0.0 and absf(n.y) < 0.6: n = -n
-	var m0 := (a + b + c) / 3.0
-	# a mesma cor que o terreno teria aqui (rocha nas faces em pé, grama nos degraus, neve no alto)
-	var cor := reg.cor(m0.x, m0.z, m0.y, absf(n.y), false)
-	if luz < 1.0: cor = Color(0.5, 0.42, 0.34).lerp(cor, 0.3) * luz                  # dentro do túnel: rocha morna e escura
-	for p in [a, b, c]: st.set_color(cor); st.set_normal(n); st.set_uv(Vector2(p.x + p.z, p.y) * 0.25); st.add_vertex(p)
 
 # entrada modelada pelo dono (Tripo): rochas com musgo e hera em volta do túnel. No arquivo a boca olha para +X,
 # a largura é o eixo Z e a altura Y; aqui a boca olha para o vale (+Z) e o fundo encosta na montanha.

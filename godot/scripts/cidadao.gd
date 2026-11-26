@@ -8,7 +8,6 @@ class_name Cidadao
 const ARQ := "res://arte/fk/personagens/FantasyKingdom_Characters.fbx"
 const MULHERES := ["SM_Chr_Rider_01", "SM_Chr_Queen_01", "SM_Chr_Princess_01", "SM_Chr_Blacksmith_Female_01", "SM_Chr_Nun_01",
 	"SM_Chr_Soldier_Female_01", "SM_Chr_Peasant_Female_01", "SM_Chr_FortuneTeller_01", "SM_Chr_Fairy_01"]
-const ANIMS := {"parado": ["A_Idle_Standing", true], "andar": ["A_Walk_F", true]}
 static var _cena: PackedScene
 static var _libs := {}             # "Masc"/"Femn" → AnimationLibrary
 

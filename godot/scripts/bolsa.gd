@@ -140,18 +140,6 @@ func equipar_item(b: int, i: int, nivel_heroi: int) -> String:
 	equipou.emit(lugar, s[0]); mudou.emit()
 	return ""
 
-func espacos_total() -> int:
-	var t := 0
-	for b in bolsas: if b: t += b.slots.size()
-	return t
-
-func espacos_livres() -> int:
-	var t := 0
-	for b in bolsas:
-		if b:
-			for s in b.slots: if s == null: t += 1
-	return t
-
 func cabe(id: String, qtd: int) -> bool:
 	var falta := qtd; var pilha: int = ITENS[id].pilha
 	for b in bolsas:

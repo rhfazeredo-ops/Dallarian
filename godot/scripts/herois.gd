@@ -44,12 +44,7 @@ static func masculino(h: Dictionary) -> bool: return String(h.get("raca", "Human
 const PADRAO_F := "fk:SM_Chr_Rider_01"
 const PADRAO_M := "fk:SM_Chr_Prince_01"
 static func modelo(h: Dictionary) -> String:
-	if Cidadao.existe(): return PADRAO_M if masculino(h) else PADRAO_F
-	return modelo_glb(h)                    # sem o repositório da arte (testes no PC): os modelos antigos
-static func modelo_glb(h: Dictionary) -> String:
-	return "res://assets/modelos/humano.glb" if masculino(h) else "res://assets/modelos/humana.glb"
-static func retrato(h: Dictionary) -> String:
-	return "res://assets/ui/racas/1_m.png" if masculino(h) else "res://assets/ui/racas/1_f.png"
+	return PADRAO_M if masculino(h) else PADRAO_F
 
 # último herói jogado (a seleção abre com ele escolhido)
 static func guardar_ultimo(h: Dictionary) -> void:

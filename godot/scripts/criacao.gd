@@ -77,40 +77,17 @@ func _ready() -> void:
 
 func _visual() -> String: return Herois.modelo({"raca": "Humano" if _sexo == 0 else "Humana"})
 
-# retrato: arte do dono (assets/ui/racas/N_m.png / N_f.png) se existir; senão o rosto do modelo (Rachel) ou um "?"
+# botão de cada raça/sexo: HOMEM / MULHER, ou "?" nas raças que ainda não existem
 func _retrato(r: int, sx: int, livre: bool) -> Control:
-	if livre and Cidadao.existe():                             # heróis do pacote: sem os retratos antigos
+	if livre:                                                  # HOMEM / MULHER (raças que ainda não existem: "?")
 		var q0 := ColorRect.new(); q0.color = Color(0.12, 0.09, 0.06)
 		var l0 := UI.rotulo("HOMEM" if sx == 0 else "MULHER", 17, Color(1.0, 0.85, 0.4)); l0.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		l0.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; l0.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; q0.add_child(l0)
 		return q0
-	var ic: String = "res://assets/ui/racas/%d_%s.png" % [r + 1, "m" if sx == 0 else "f"]
-	if ResourceLoader.exists(ic):
-		var t := TextureRect.new(); t.texture = load(ic); t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		if not livre: t.modulate = Color(0.25, 0.25, 0.28)          # indisponível: escuro
-		return t
-	if livre and r == 0 and sx == 1:                       # Rachel: rosto renderizado do modelo
-		var cont := SubViewportContainer.new(); cont.stretch = true
-		var vp := SubViewport.new(); vp.own_world_3d = true; cont.add_child(vp)
-		var mod: Node3D = load("res://assets/modelos/humana.glb").instantiate(); mod.rotation_degrees.y = -90; vp.add_child(mod)
-		_nitido(mod)
-		var luz := DirectionalLight3D.new(); luz.rotation_degrees = Vector3(-20, 25, 0); vp.add_child(luz)
-		var we := WorldEnvironment.new(); var env := Environment.new(); env.background_mode = Environment.BG_COLOR; env.background_color = Color(0.25, 0.32, 0.22)
-		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; env.ambient_light_color = Color(0.8, 0.78, 0.8); env.ambient_light_energy = 0.8; we.environment = env; vp.add_child(we)
-		var cam := Camera3D.new(); cam.projection = Camera3D.PROJECTION_ORTHOGONAL; cam.size = 0.22; cam.position = Vector3(0, 0.39, 1.0); vp.add_child(cam); cam.current = true
-		return cont
 	var q := ColorRect.new(); q.color = Color(0.1, 0.1, 0.12)
 	var l := UI.rotulo("?", 44, Color(0.35, 0.35, 0.38)); l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; q.add_child(l)
 	return q
-
-func _nitido(mod: Node3D) -> void:
-	for n in mod.find_children("*", "MeshInstance3D", true, false):
-		var mi: MeshInstance3D = n
-		var orig: BaseMaterial3D = mi.mesh.surface_get_material(0)
-		if orig:
-			var mt := orig.duplicate() as BaseMaterial3D; mt.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST; mi.material_override = mt
 
 # o campo: céu de dia, grama verde, árvores lá no fundo e o herói em pé na grama, visto de frente
 func _cena_campo() -> void:

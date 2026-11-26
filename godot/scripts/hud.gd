@@ -19,7 +19,6 @@ var _vida_vis := 1.0; var _mana_vis := 1.0
 var retrato: Texture2D
 var fonte: Font
 const R := 54.0                      # raio do retrato
-const OURO := Color(0.86, 0.68, 0.32)
 const OURO_CLARO := Color(1.0, 0.86, 0.5)
 
 func montar() -> void:
@@ -29,42 +28,20 @@ func montar() -> void:
 
 # renderiza o rosto da Rachel uma vez numa tela escondida e guarda como imagem
 func _tirar_retrato() -> void:
-	if Cidadao.existe():                                   # herói do pacote: o rosto do próprio modelo
-		var v2 := SubViewport.new(); v2.size = Vector2i(256, 256); v2.transparent_bg = true
-		v2.render_target_update_mode = SubViewport.UPDATE_ALWAYS; v2.own_world_3d = true; add_child(v2)
-		var c := CorpoHeroi.new(); v2.add_child(c); c.montar(null, Herois.modelo(Herois.ativo), false); c.rotation.y = PI
-		var l2 := DirectionalLight3D.new(); l2.rotation_degrees = Vector3(-25, 25, 0); l2.light_energy = 1.0; v2.add_child(l2)
-		var a2 := WorldEnvironment.new(); var e2 := Environment.new(); e2.background_mode = Environment.BG_CLEAR_COLOR
-		e2.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; e2.ambient_light_color = Color(0.8, 0.78, 0.8); e2.ambient_light_energy = 0.7
-		a2.environment = e2; v2.add_child(a2)
-		var sk: Skeleton3D = c.esq; var cab := sk.find_bone("Head")
-		var alt := (sk.global_transform * sk.get_bone_global_rest(cab)).origin.y + 0.1 if cab >= 0 else 1.6
-		var c2 := Camera3D.new(); c2.projection = Camera3D.PROJECTION_ORTHOGONAL; c2.size = 0.42
-		c2.position = Vector3(0.0, alt, 2.0); v2.add_child(c2); c2.current = true
-		for k in 5: await RenderingServer.frame_post_draw
-		retrato = ImageTexture.create_from_image(v2.get_texture().get_image())
-		v2.queue_free(); queue_redraw(); return
-	var arq := Herois.retrato(Herois.ativo)                 # retrato pintado da raça/sexo do herói
-	if ResourceLoader.exists(arq): retrato = load(arq); queue_redraw(); return
-	var vp := SubViewport.new(); vp.size = Vector2i(256, 256); vp.transparent_bg = true
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS; vp.own_world_3d = true; add_child(vp)
-	var mod: Node3D = load(Herois.modelo_glb(Herois.ativo)).instantiate(); vp.add_child(mod)
-	mod.rotation_degrees.y = -90                      # o modelo olha para +X; assim olha para +Z (para a câmera)
-	var luz := DirectionalLight3D.new(); luz.rotation_degrees = Vector3(-25, 35, 0); luz.light_energy = 1.1; vp.add_child(luz)
-	var amb := WorldEnvironment.new(); var env := Environment.new(); env.background_mode = Environment.BG_CLEAR_COLOR
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; env.ambient_light_color = Color(0.75, 0.72, 0.8); env.ambient_light_energy = 0.8
-	amb.environment = env; vp.add_child(amb)
-	var cam := Camera3D.new(); cam.projection = Camera3D.PROJECTION_ORTHOGONAL; cam.size = 0.2
-	cam.position = Vector3(0.0, 0.385, 1.0); vp.add_child(cam); cam.current = true      # o modelo vai de y -0,49 a 0,49
-	for n in mod.find_children("*", "MeshInstance3D", true, false):
-		var mi: MeshInstance3D = n
-		var orig: BaseMaterial3D = mi.mesh.surface_get_material(0)
-		if orig:
-			var mt := orig.duplicate() as BaseMaterial3D; mt.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-			mi.material_override = mt
-	for k in 4: await RenderingServer.frame_post_draw
-	retrato = ImageTexture.create_from_image(vp.get_texture().get_image())
-	vp.queue_free(); queue_redraw()
+	var v2 := SubViewport.new(); v2.size = Vector2i(256, 256); v2.transparent_bg = true
+	v2.render_target_update_mode = SubViewport.UPDATE_ALWAYS; v2.own_world_3d = true; add_child(v2)
+	var c := CorpoHeroi.new(); v2.add_child(c); c.montar(null, Herois.modelo(Herois.ativo), false); c.rotation.y = PI
+	var l2 := DirectionalLight3D.new(); l2.rotation_degrees = Vector3(-25, 25, 0); l2.light_energy = 1.0; v2.add_child(l2)
+	var a2 := WorldEnvironment.new(); var e2 := Environment.new(); e2.background_mode = Environment.BG_CLEAR_COLOR
+	e2.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; e2.ambient_light_color = Color(0.8, 0.78, 0.8); e2.ambient_light_energy = 0.7
+	a2.environment = e2; v2.add_child(a2)
+	var sk: Skeleton3D = c.esq; var cab := sk.find_bone("Head")
+	var alt := (sk.global_transform * sk.get_bone_global_rest(cab)).origin.y + 0.1 if cab >= 0 else 1.6
+	var c2 := Camera3D.new(); c2.projection = Camera3D.PROJECTION_ORTHOGONAL; c2.size = 0.42
+	c2.position = Vector3(0.0, alt, 2.0); v2.add_child(c2); c2.current = true
+	for k in 5: await RenderingServer.frame_post_draw
+	retrato = ImageTexture.create_from_image(v2.get_texture().get_image())
+	v2.queue_free(); queue_redraw()
 
 func _process(delta: float) -> void:
 	_vida_vis = move_toward(_vida_vis, vida / vida_max, delta * 0.8)
