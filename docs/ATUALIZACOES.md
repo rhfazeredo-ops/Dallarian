@@ -19,6 +19,18 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Interiores, porto e escadarias**
+- Dá para ENTRAR em 5 lugares (botão ENTRAR na porta; lá dentro, SAIR; no PC a tecla F), montados com as paredes,
+  pisos e móveis do pacote e com gente dentro:
+  - Taverna de Altamar: balcão, barril de chope, lareira, cabeça de cervo, lustre, mesas e banquinhos, taverneiro e
+    fregueses;
+  - Catedral: altar, púlpito, bancos de igreja, cortinas, estandartes, lustres, padre, freira e fiéis;
+  - Sala do Trono do castelo: tronos, tapetes, estandartes, mesas de banquete, mapa de guerra, rei, rainha, bobo e
+    guardas;
+  - Taverna da Vila e a oficina da Torre dos Magos (bancada de alquimia, estantes, caldeirão, planetário, maga).
+- Porto mais cheio: armazéns, barracas de peixe, pilhas de carga, carroças, mais barcos e um farol no fim do cais.
+- Escadarias de pedra nas ruas que passam pelos degraus da cidade.
+
 **Tudo do pacote e sem o rio na frente de Altamar**
 - O rio do leste saiu da frente do reino: agora desce das montanhas e vai ao mar bem ao norte da cidade.
 - Pacote Fantasy Kingdom inteiro no jogo (mais de 2.200 peças) e espalhado pelo mundo:

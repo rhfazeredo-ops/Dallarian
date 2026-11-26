@@ -98,8 +98,9 @@ func _altamar() -> void:
 			if zb - za > 6.0: _muro(Vector2(xd - 9.0, za), Vector2(xd - 9.0, zb), Regiao.altura_cidade(xd - 12.0, (za + zb) * 0.5), 0.9, 1.6, 0.6)
 			za = zr + 4.0
 			if zr < z1 and zr > Regiao.CASTELO.y + 80.0 or (xd == Regiao.X_PORTO and zr < z1):
-				var yb := Regiao.altura_cidade(xd + 10.0, zr)               # pé da escada (lado baixo, leste)
-				Synty.por3(m, "SM_Bld_Stairs_Straight_01", Vector3(xd - 9.0, yb - 0.05, zr), PI, Vector3(1.6, 0.62, 3.0), false, true)
+				var yb := Regiao.altura_cidade(xd + 12.0, zr)               # pé da escada (lado baixo, leste): cobre a rampa
+				var dy := Regiao.altura_cidade(xd - 12.0, zr) - yb
+				Synty.por3(m, "SM_Bld_Stairs_Straight_01", Vector3(xd, yb - 0.1, zr), ESCADA_GIRO, Vector3(24.0 / 5.0, dy / 5.0, 5.0), false, true)
 	# ---- castelo no morro (noroeste): torre de menagem, quatro torres e muralha em volta
 	var cs := Regiao.CASTELO; var yk := Regiao.ALTURA_CASTELO
 	Synty.por(m, "SM_Bld_Preset_Tower_01_Optimized", Vector3(cs.x, yk - 1.0, cs.y), 0.0, 2.7, true)
@@ -592,6 +593,7 @@ func _lugares_novos() -> void:
 # INTERIORES: salas montadas com as paredes e os pisos modulares do pacote, embaixo do mapa (y = -300), com os
 # móveis do pacote e gente dentro. Perto da porta aparece ENTRAR (lá dentro, SAIR): m.portas
 # ======================================================================================================
+const ESCADA_GIRO := PI
 const T := 2.5                     # módulo das peças (m)
 func _peca_int(nome: String, p: Vector3, ang := 0.0, esc := 1.0, col := false) -> void:
 	Synty.por(m, nome, p, ang, esc, col)
