@@ -26,6 +26,7 @@ jobs:
         with: { path: "~/godot-4.5-stable\n~/.local/share/godot/export_templates", key: godot-4.5-stable }
       - run: tools/godot-ci.sh
       - run: |
+          python3 tools/podar_arte.py godot      # só os modelos/texturas dos pacotes que o jogo usa
           cd godot && godot --headless --import || true
           # terreno de longe pronto (alturas e cores do mapa inteiro) vai dentro do jogo: o celular não precisa calcular
           godot --headless --path . res://cenas/mundo.tscn -- --gerar_terreno && ls -la dados/

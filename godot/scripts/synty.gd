@@ -45,6 +45,11 @@ static func material(neblina: Color, tipo := "atlas") -> ShaderMaterial:
 		var pz := tipo.trim_prefix("mf:").split("|")
 		mt.set_shader_parameter("tex", load("res://arte/mf/texturas/" + pz[0])); mt.set_shader_parameter("corte", pz[1] == "1")
 	else: mt.set_shader_parameter("tex", load(TEXTURAS.get(tipo, ATLAS)))
+	if tipo == "vidro":                                  # janelas: luz quente inteira à noite
+		var im := Image.create(2, 2, false, Image.FORMAT_RGB8); im.fill(Color(0.55, 0.42, 0.25))
+		mt.set_shader_parameter("usa_brilho", true); mt.set_shader_parameter("tex_brilho", ImageTexture.create_from_image(im))
+		if tipo == "atlas" and ResourceLoader.exists("res://arte/fk/texturas/PolygonFantasyKingdom_Texture_Emmisive.png"):   # janelas acesas à noite
+		mt.set_shader_parameter("usa_brilho", true); mt.set_shader_parameter("tex_brilho", load("res://arte/fk/texturas/PolygonFantasyKingdom_Texture_Emmisive.png"))
 	mt.set_shader_parameter("neblina", neblina)
 	if tipo == "longe": mt.set_shader_parameter("usa_tex", false)
 	if tipo == "personagem": mt.set_shader_parameter("sem_cor_vertice", true)          # versão de longe: só a cor dos vértices

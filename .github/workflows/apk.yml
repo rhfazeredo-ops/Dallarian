@@ -47,6 +47,7 @@ jobs:
       - run: |
           # número da versão (aumenta a cada execução): vai dentro do APK e no versao.json da Release
           echo "{\"n\": ${GITHUB_RUN_NUMBER}}" > godot/versao.json
+          python3 tools/podar_arte.py godot      # só os modelos/texturas dos pacotes que o jogo usa
           cd godot && godot --headless --import || true
           # terreno de longe pronto (alturas e cores do mapa inteiro) vai dentro do jogo: o celular não precisa calcular
           godot --headless --path . res://cenas/mundo.tscn -- --gerar_terreno && ls -la dados/

@@ -15,7 +15,10 @@ global uniform float neb_ini;
 global uniform float neb_fim;
 uniform float escala_uv = 1.0;
 uniform bool sem_cor_vertice = false;
-uniform bool corte = false;                      // folhas e grama recortadas pela transparência da textura          // personagens da Synty: as cores dos vértices não são cor
+uniform bool corte = false;
+uniform sampler2D tex_brilho : source_color, filter_linear_mipmap;   // janelas e velas que acendem à noite (mapa de emissão do pacote)
+uniform bool usa_brilho = false;
+global uniform float noite;                      // folhas e grama recortadas pela transparência da textura          // personagens da Synty: as cores dos vértices não são cor
 global uniform float relampago;
 global uniform float tremor_ps1;
 varying vec3 luz;
@@ -39,5 +42,6 @@ void fragment() {
   vec3 base = cor.rgb * tx.rgb;
   if (corte) { ALPHA = tx.a; ALPHA_SCISSOR_THRESHOLD = 0.5; }
   vec3 c = base * luz;
+  if (usa_brilho) c += texture(tex_brilho, UV).rgb * vec3(1.0, 0.78, 0.45) * smoothstep(0.2, 0.7, noite) * 3.5;
   ALBEDO = mix(noite_cor(c, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz), noite_nevoa(neblina * (1.0 + relampago * 0.8)), nb);
 }

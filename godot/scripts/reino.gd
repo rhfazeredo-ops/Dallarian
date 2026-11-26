@@ -18,6 +18,8 @@ func construir(mundo) -> void:
 	_enfeitar_vila_e_campos()
 	_natureza()
 	_lugares_novos()
+	_estrada_dos_herois()
+	_fumaca_chamines()
 	_cidadaos()
 	_interiores()
 
@@ -521,6 +523,7 @@ func _natureza() -> void:
 
 # ---------- lugares para explorar ----------
 var lugares_bussola := []
+var lugares_bussola_extra := false
 func _achar(p: Vector2, raio: float) -> Vector2:               # um lugar livre e plano perto de p
 	for t in 60:
 		var a := t * 2.4; var q := p + Vector2(cos(a), sin(a)) * (t * 1.5)
@@ -737,3 +740,46 @@ func _vila_norte() -> void:
 	_multidao(v, 35.0, 9, ["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Hermit_01", "SM_Chr_Blacksmith_Male_01", "SM_Chr_Monk_01"])
 	m.lugares.append([v, 40.0])
 	lugares_bussola.append(["Vila da Serra", v, "vila", 45.0])
+
+# ---------- Estrada dos Heróis: estátuas gigantes nos dois lados da Estrada Real antes do Portão Oeste ----------
+func _estrada_dos_herois() -> void:
+	var linha: PackedVector2Array = m.reg.estradas[m.reg.estrada_real]
+	var tipos := ["SM_Prop_Statue_Hero_01", "SM_Prop_Statue_Knight_02", "SM_Prop_Statue_Hero_02", "SM_Prop_Statue_Knight_01"]
+	var k := 0
+	for sp in [70.0, 110.0, 150.0, 190.0]:
+		var pr: Array = m._ponto_na_linha(linha, _comp(linha) - 40.0 - sp)
+		var pt: Vector2 = pr[0]; var tg: Vector2 = pr[1]; var nr := Vector2(-tg.y, tg.x)
+		for lado in [-1.0, 1.0]:
+			var q: Vector2 = pt + nr * lado * 12.0
+			var y: float = m.reg.altura(q.x, q.y)
+			Synty.por(m, "SM_Prop_Statue_Plinth_02", Vector3(q.x, y - 0.2, q.y), _virado(q, pt), 2.2, true)
+			var topo := Synty.caixa("SM_Prop_Statue_Plinth_02").end.y * 2.2
+			Synty.por(m, tipos[k % tipos.size()], Vector3(q.x, y - 0.3 + topo, q.y), _virado(q, pt), 3.2, false)
+			m._poste_em(q + tg * 6.0 - nr * lado * 4.0, pt)
+			k += 1
+	lugares_bussola.append(["Estrada dos Heróis", (m._ponto_na_linha(linha, _comp(linha) - 170.0) as Array)[0], "castelo", 25.0])
+
+func _comp(l: PackedVector2Array) -> float:
+	var t := 0.0
+	for i in l.size() - 1: t += l[i].distance_to(l[i + 1])
+	return t
+
+# ---------- fumaça saindo das chaminés (casas da cidade e das vilas, nem todas) ----------
+func _fumaca_chamines() -> void:
+	var tex := GradientTexture2D.new(); tex.fill = GradientTexture2D.FILL_RADIAL; tex.fill_from = Vector2(0.5, 0.5); tex.fill_to = Vector2(1.0, 0.5)
+	var gr := Gradient.new(); gr.set_color(0, Color(1, 1, 1, 0.55)); gr.set_color(1, Color(1, 1, 1, 0.0)); tex.gradient = gr
+	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; mt.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mt.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES; mt.albedo_texture = tex; mt.vertex_color_use_as_albedo = true
+	var quad := QuadMesh.new(); quad.size = Vector2(1.6, 1.6); quad.material = mt
+	var n := 0
+	for ca in m.casas:
+		if rng.randf() > 0.35: continue
+		var pos: Vector3 = ca[0]; var ang: float = ca[1]; var w: float = ca[2]
+		var topo := pos + Vector3(0, 9.0, 0) + Vector3(sin(ang + PI * 0.5), 0, cos(ang + PI * 0.5)) * w * 0.25
+		var f := CPUParticles3D.new(); f.mesh = quad; f.amount = 7; f.lifetime = 5.0; f.preprocess = 5.0
+		f.direction = Vector3(0.25, 1, 0); f.spread = 12.0; f.initial_velocity_min = 0.6; f.initial_velocity_max = 1.0; f.gravity = Vector3(0.15, 0.05, 0)
+		f.scale_amount_min = 0.8; f.scale_amount_max = 1.4
+		var cs := Curve.new(); cs.add_point(Vector2(0, 0.4)); cs.add_point(Vector2(1, 2.2)); f.scale_amount_curve = cs
+		f.color = Color(0.72, 0.72, 0.74, 0.7)
+		f.position = topo; f.visibility_range_end = 120.0
+		m.raiz.add_child(f); n += 1

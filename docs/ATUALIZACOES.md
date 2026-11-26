@@ -19,6 +19,11 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Ambientação e download menor**
+- Estrada dos Heróis: oito estátuas gigantes em pedestais nos dois lados da Estrada Real antes do Portão Oeste.
+- Fumaça saindo das chaminés de parte das casas.
+- O jogo agora leva só as peças dos pacotes que usa (o download tinha passado de 290 MB).
+
 **Segundo pacote (Meadow Forest), cidade e vila mais compactas, Vila da Serra**
 - Pacote POLYGON Meadow Forest: árvores com folhas de verdade (bétulas, árvores do campo, frutíferas) perto do
   jogador, arbustos, touceiras de grama com textura, flores do campo, cogumelos, montes de pedras e folhas.
