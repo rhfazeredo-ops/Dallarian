@@ -980,11 +980,17 @@ var _mus_vale: AudioStreamPlayer
 var _mus_cidade: AudioStreamPlayer
 var _na_cidade := false
 var _t_musica := 0.0
+# som ambiente de cidade (vozes, passos, carroças, ferreiro) por baixo da música de Altamar, entra e sai junto com ela
+const AMBIENTE_CIDADE := "res://arte/som/ambiente_cidade.ogg"
+const VOL_AMBIENTE := 4.0                 # o arquivo é baixinho (média -40 dB): um pouco abaixo da música
+var _amb_cidade: AudioStreamPlayer
 func _musica() -> void:
 	Audio.montar()
 	_mus_vale = _tocador("res://assets/som/musica_vale.ogg"); _mus_vale.play()
 	if ResourceLoader.exists("res://assets/som/musica_altamar.ogg"):
 		_mus_cidade = _tocador("res://assets/som/musica_altamar.ogg"); _mus_cidade.volume_db = -60.0
+	if ResourceLoader.exists(AMBIENTE_CIDADE):
+		_amb_cidade = _tocador(AMBIENTE_CIDADE); _amb_cidade.volume_db = -60.0; _amb_cidade.bus = "Efeitos"
 
 func _tocador(arq: String) -> AudioStreamPlayer:
 	var st: AudioStreamOggVorbis = load(arq); st.loop = true
@@ -1007,7 +1013,13 @@ func _tick_musica(delta: float) -> void:
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(entra, "volume_db", VOL_MUSICA, 3.0).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(sai, "volume_db", -60.0, 3.0).set_trans(Tween.TRANS_SINE)
-	tw.chain().tween_callback(func(): if (sai == _mus_vale) == _na_cidade: sai.stream_paused = true)
+	if _amb_cidade:
+		if dentro and not _amb_cidade.playing: _amb_cidade.play(randf() * 500.0)
+		_amb_cidade.stream_paused = false
+		tw.tween_property(_amb_cidade, "volume_db", VOL_AMBIENTE if dentro else -60.0, 3.0).set_trans(Tween.TRANS_SINE)
+	tw.chain().tween_callback(func():
+		if (sai == _mus_vale) == _na_cidade: sai.stream_paused = true
+		if _amb_cidade and not _na_cidade: _amb_cidade.stream_paused = true)
 
 # o jogador não sai da região nem entra em água funda (volta para o último lugar bom)
 func _physics_process(_d: float) -> void:
@@ -2601,7 +2613,7 @@ func _modo_teste() -> void:
 		get_tree().create_timer(3.6).timeout.connect(func(): toque.call(true, controles._centro_fixo()); arrasta.call(controles._centro_fixo() + Vector2(90, 0)))
 		get_tree().create_timer(5.0).timeout.connect(func(): print("AUTO: ", controles.auto, " dir ", controles.dir, " pos ", jogador.global_position.round()))
 	if args.has("musica"):
-		get_tree().create_timer(5.0).timeout.connect(func(): print("MUSICA cidade=%s vale=%.0f dB (pausada=%s) cidade=%.0f dB" % [_na_cidade, _mus_vale.volume_db, _mus_vale.stream_paused, _mus_cidade.volume_db if _mus_cidade else -99.0]))
+		get_tree().create_timer(5.0).timeout.connect(func(): print("MUSICA cidade=%s vale=%.0f dB (pausada=%s) cidade=%.0f dB ambiente=%.0f dB tocando=%s" % [_na_cidade, _mus_vale.volume_db, _mus_vale.stream_paused, _mus_cidade.volume_db if _mus_cidade else -99.0, _amb_cidade.volume_db if _amb_cidade else -99.0, _amb_cidade.playing if _amb_cidade else false]))
 	if args.has("picos"):          # teste: corre a cavalo pela Estrada Real e mede quadros lentos e quem montou o quê
 		var quadros := []
 		get_tree().create_timer(4.0).timeout.connect(func():

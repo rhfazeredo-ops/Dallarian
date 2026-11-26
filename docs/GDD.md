@@ -220,7 +220,8 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
   no rio do vale e curva suave ao lado do morro. Iluminada: poste com lanterna a cada 18 m, alternando os lados.
 
 ## 7.1.10 Música
-- Música do vale em todo lugar; dentro dos muros de Altamar entra a **música da cidade** (troca devagar em 3 s; a
+- Música do vale em todo lugar; dentro dos muros de Altamar entra a **música da cidade** (com o **som ambiente de
+  cidade** por baixo) (troca devagar em 3 s; a
   outra fica pausada e continua de onde parou). Música da cidade: "The White City Gates" (feita no Flow Music).
 
 ## 7.1.11 Save na nuvem e atualização automática (alfa)

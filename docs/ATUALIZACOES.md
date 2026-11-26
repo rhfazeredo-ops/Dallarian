@@ -2,6 +2,10 @@
 
 ## 27/11
 
+**Som de cidade viva em Altamar**
+- O som ambiente enviado pelo dono (vozes, passos, carroças, movimento de cidade medieval) toca em loop por baixo
+  da música de Altamar: entra e sai junto com ela (3 s) ao passar pelos muros; começa num ponto sorteado do arquivo.
+
 **Altamar nova: a cidade da cena Demo_01 do Fantasy Kingdom, montada como a Synty montou**
 - A cidade feita por código saiu inteira. No lugar dela entrou a cena de demonstração do pacote (os ~12 mil objetos
   na posição exata): cidade alta com casas de verdade (com interior: taverna com balcão, capela com bancos), praça
