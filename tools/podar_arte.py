@@ -24,4 +24,11 @@ if os.path.exists(mf + '/materiais.json'):
         if os.path.basename(f) not in tex: os.remove(f); apagados += 1
 for f in glob.glob(f'{raiz}/arte/fk/texturas/*'):
     if 'Normal' in f: os.remove(f); apagados += 1
+# heróis: só os dois do Fantasy Kingdom (Príncipe e Cavaleira); o Modular Fantasy Hero e as animações dos heróis
+# antigos ficam só no repositório da arte
+import shutil
+if os.path.isdir(f'{raiz}/arte/mh'): shutil.rmtree(f'{raiz}/arte/mh'); apagados += 1
+for n in ['heroi.res', 'heroi_m.res', 'heroi_mh_Masc.res', 'heroi_mh_Femn.res']:
+    f = f'{raiz}/arte/animacoes/{n}'
+    if os.path.exists(f): os.remove(f); apagados += 1
 print('podar_arte: apagados', apagados, 'arquivos; modelos citados', len(nomes))

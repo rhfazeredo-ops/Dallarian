@@ -29,7 +29,7 @@ func montar() -> void:
 
 # renderiza o rosto da Rachel uma vez numa tela escondida e guarda como imagem
 func _tirar_retrato() -> void:
-	if ResourceLoader.exists(CorpoHeroi.MH_ARQ):          # heróis dos pacotes da Synty: o rosto do próprio modelo
+	if Cidadao.existe():                                   # herói do pacote: o rosto do próprio modelo
 		var v2 := SubViewport.new(); v2.size = Vector2i(256, 256); v2.transparent_bg = true
 		v2.render_target_update_mode = SubViewport.UPDATE_ALWAYS; v2.own_world_3d = true; add_child(v2)
 		var c := CorpoHeroi.new(); v2.add_child(c); c.montar(null, Herois.modelo(Herois.ativo), false); c.rotation.y = PI

@@ -155,9 +155,7 @@ func _ready() -> void:
 	braco_cam.add_child(cam); cam.current = true
 	mao = Node3D.new(); cam.add_child(mao); mao.visible = false          # braços de primeira pessoa (não aparecem mais)
 	corpo = CorpoHeroi.new(); add_child(corpo)
-	var vis := Herois.modelo(Herois.ativo)
-	for x in OS.get_cmdline_user_args(): if x.begins_with("--visual="): vis = x.trim_prefix("--visual=")   # teste
-	corpo.montar(self, vis)
+	corpo.montar(self, Herois.modelo(Herois.ativo))
 	_armas()
 	piv_d.transform = _mao_t(_hp, _hd, _hn); piv_e.transform = _pose("e_repouso")
 

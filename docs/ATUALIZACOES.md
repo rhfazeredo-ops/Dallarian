@@ -4,7 +4,10 @@
 
 **Heróis base escolhidos pelo dono**
 - Homem: o **Príncipe** do Fantasy Kingdom. Mulher: a **Cavaleira loira** (Rider) do Fantasy Kingdom.
-- A criação de herói mostra direto esses dois (o catálogo com setas só volta com o teste --catalogo).
+- Só esses dois existem agora: saíram o catálogo com setas, os personagens do Modular Fantasy Hero e o código
+  dos outros modelos. Heróis já criados com outra aparência viram o Príncipe ou a Cavaleira.
+- O download do jogo ficou menor: o Modular Fantasy Hero e as animações dos heróis antigos ficam só no repositório
+  da arte (não vão para o celular).
 - Os dois saíram dos moradores (o cavalariço, o porto e a gente da cidade usam outros), para o herói não ter sósias.
 
 **Aviso de APK velho**
