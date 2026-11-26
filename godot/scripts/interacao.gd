@@ -100,6 +100,13 @@ func montar(mundo) -> void:
 	painel_coletar.anchor_left = 0.5; painel_coletar.anchor_right = 0.5; painel_coletar.anchor_top = 1; painel_coletar.anchor_bottom = 1
 	painel_coletar.offset_left = -75; painel_coletar.offset_right = 75; painel_coletar.offset_top = -380; painel_coletar.offset_bottom = -210
 	painel_coletar.visible = false; add_child(painel_coletar)
+	for par in [["ENTRAR", true], ["SAIR", false]]:                      # portas dos interiores
+		var b := _botao(par[0], true, func(): _usar_porta(par[1]))
+		b.anchor_left = 0.5; b.anchor_right = 0.5; b.anchor_top = 1; b.anchor_bottom = 1
+		b.offset_left = -75; b.offset_right = 75; b.offset_top = -380; b.offset_bottom = -210
+		b.visible = false; add_child(b)
+		if par[1]: botao_entrar = b
+		else: botao_sair = b
 	escuro = ColorRect.new(); escuro.color = Color(0, 0, 0, 1); escuro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	escuro.mouse_filter = Control.MOUSE_FILTER_IGNORE; escuro.modulate.a = 0.0; escuro.visible = false; add_child(escuro)
 	# caixa de fala
@@ -243,8 +250,37 @@ func _fechar() -> void:
 	caixa.visible = false; _falando = false; voz.stop()
 	if npc: npc.falando_com = null; npc.gesticula = true
 
+# ---------- portas: entrar nos interiores e sair ----------
+var botao_entrar: Control
+var botao_sair: Control
+var _porta: Array = []
+var _porta_dentro := false
+func _usar_porta(entrar: bool) -> void:
+	if _porta.is_empty() or m.jogador.montado: return
+	var alvo: Vector3 = _porta[1] if entrar else _porta[0]
+	var ang: float = _porta[3] if entrar else _porta[2]
+	escuro.visible = true
+	var tw := create_tween(); tw.tween_property(escuro, "modulate:a", 1.0, 0.25)
+	tw.tween_callback(func():
+		m.jogador.global_position = alvo + Vector3(0, 0.3, 0); m.jogador.velocity = Vector3.ZERO
+		m.jogador.rotation.y = ang
+		if m.jogador.has_method("reset_physics_interpolation"): m.jogador.reset_physics_interpolation()
+		_aviso(String(_porta[4]) if entrar else ""))
+	tw.tween_property(escuro, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(func(): escuro.visible = false)
+
+func _ver_portas() -> void:
+	_porta = []
+	var pj: Vector3 = m.jogador.global_position
+	for p in m.portas:
+		if pj.distance_to(p[0]) < 3.2: _porta = p; _porta_dentro = false; break
+		if pj.distance_to(p[1]) < 2.6: _porta = p; _porta_dentro = true; break
+	botao_entrar.visible = not _porta.is_empty() and not _porta_dentro and npc == null
+	botao_sair.visible = not _porta.is_empty() and _porta_dentro
+
 func _process(_d: float) -> void:
 	if m == null or m.jogador == null: return
+	if botao_entrar: _ver_portas()
 	var perto: Morador = null
 	if _ferreiros.is_empty():                     # procura uma vez só (andar por todos os nós a cada quadro pesava)
 		for mo in m.raiz.get_children(): if mo is Morador and mo.profissao == "ferreiro": _ferreiros.append(mo)
@@ -284,6 +320,7 @@ func _process(_d: float) -> void:
 	var f := Input.is_key_pressed(KEY_F)
 	if f and not _f_antes:
 		if _falando: _tocar_caixa()
+		elif not _porta.is_empty(): _usar_porta(not _porta_dentro)
 		elif npc: _conversar()
 		elif na_barraca: _descansar()
 		elif not _baga.is_empty(): _coletar()

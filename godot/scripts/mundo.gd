@@ -2428,6 +2428,7 @@ func _faixa_rio(linha: PackedVector2Array, largura: Callable, nivel: Callable, a
 
 # ---------- lugares da região ----------
 var reino: Reino
+var portas := []                 # [fora Vector3, dentro Vector3, ângulo fora, ângulo dentro, nome] — interiores (scripts/reino.gd)
 func _lugares() -> void:
 	# mapa novo (docs/MAPA_NOVO.md): Altamar, a Vila do Vale, o estábulo e os campos — scripts/reino.gd
 	reino = Reino.new(); reino.construir(self)
@@ -2902,6 +2903,9 @@ func _checar_chao() -> void:
 
 # ---------- modo de teste: --shot=arquivo.png --espera=2 --pos=x,z --olhar=graus ----------
 func _modo_teste() -> void:
+	if args.has("interior") and int(args.interior) < portas.size():     # teste: começa dentro de um interior (--interior=0..4)
+		var pi: Array = portas[int(args.interior)]
+		jogador.position = (pi[1] as Vector3) + Vector3(0, 0.3, 0); jogador.rotation.y = 0.0; _ultima = jogador.position
 	if args.has("pos"):
 		var pp := String(args.pos).split(","); jogador.position = Vector3(float(pp[0]), altura(float(pp[0]), float(pp[1])) + 0.3, float(pp[1])); _ultima = jogador.position
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))

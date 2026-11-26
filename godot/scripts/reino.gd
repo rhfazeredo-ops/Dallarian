@@ -18,6 +18,7 @@ func construir(mundo) -> void:
 	_natureza()
 	_lugares_novos()
 	_cidadaos()
+	_interiores()
 
 # ---------- ajudas ----------
 func _y(p: Vector2) -> float: return m.reg.altura(p.x, p.y)
@@ -85,13 +86,20 @@ func _altamar() -> void:
 			var q := pg + Vector2(-24.0 - k * 18.0, lado * 9.5)
 			_por("SM_Prop_Statue_Knight_01", q, _virado(q, q + Vector2(0, -lado)), 2.2, true)
 		_por("SM_Prop_Battle_Banner_01", pg + Vector2(6.0, lado * 7.5), PI * 0.5, 2.5, false)
-	# ---- degraus entre os níveis: paredões baixos (com passagem nas ruas)
+	# ---- degraus entre os níveis: paredões baixos com ESCADARIAS de pedra do pacote em cada rua que cruza o degrau
 	for xd in [Regiao.X_MERCADO, Regiao.X_PORTO]:
-		var segs := [[z0 + 4.0, zc - 9.0], [zc + 9.0, z1 - 4.0]]
-		for sg in segs:
-			var za: float = sg[0]; var zb: float = sg[1]
-			if xd == Regiao.X_MERCADO and za < zc: za = maxf(za, Regiao.CASTELO.y + 90.0)
-			if zb - za > 8.0: _muro(Vector2(xd - 9.0, za), Vector2(xd - 9.0, zb), Regiao.altura_cidade(xd - 12.0, (za + zb) * 0.5), 0.9, 1.6, 0.6)
+		var cortes: Array = [zc] + Regiao.RUAS_Z
+		cortes = cortes.filter(func(zr): return zr > z0 + 8.0 and zr < z1 - 8.0)
+		cortes.sort()
+		var za := z0 + 4.0
+		if xd == Regiao.X_MERCADO: za = maxf(za, Regiao.CASTELO.y + 90.0)
+		for zr in cortes + [z1 - 4.0 + 8.0]:
+			var zb: float = zr - 4.0 if zr < z1 else z1 - 4.0
+			if zb - za > 6.0: _muro(Vector2(xd - 9.0, za), Vector2(xd - 9.0, zb), Regiao.altura_cidade(xd - 12.0, (za + zb) * 0.5), 0.9, 1.6, 0.6)
+			za = zr + 4.0
+			if zr < z1 and zr > Regiao.CASTELO.y + 80.0 or (xd == Regiao.X_PORTO and zr < z1):
+				var yb := Regiao.altura_cidade(xd + 10.0, zr)               # pé da escada (lado baixo, leste)
+				Synty.por3(m, "SM_Bld_Stairs_Straight_01", Vector3(xd - 9.0, yb - 0.05, zr), PI, Vector3(1.6, 0.62, 3.0), false, true)
 	# ---- castelo no morro (noroeste): torre de menagem, quatro torres e muralha em volta
 	var cs := Regiao.CASTELO; var yk := Regiao.ALTURA_CASTELO
 	Synty.por(m, "SM_Bld_Preset_Tower_01_Optimized", Vector3(cs.x, yk - 1.0, cs.y), 0.0, 2.7, true)
@@ -202,6 +210,24 @@ func _porto(x1: float, zc: float) -> void:
 		for k in 3:
 			var q := Vector2(x1 - 20.0 + k * 4.0, zz + rng.randf_range(-9.0, 9.0))
 			_por(["SM_Prop_Crate_Stack_01", "SM_Prop_Barrel_Stack_01", "SM_Prop_Sack_Stack_01"][k], q, rng.randf() * TAU, 1.0, true, Regiao.NIVEL_PORTO)
+	# armazéns, mercado de peixe, pilhas de carga e mais barcos no cais
+	var xp := Regiao.X_PORTO + 18.0
+	for zz in range(int(Regiao.CIDADE.position.y) + 22, int(Regiao.CIDADE.end.y) - 16, 26):
+		var q := Vector2(xp + 22.0, zz)
+		if absf(zz - zc) < 16.0 or m.perto_de_casa(q.x, q.y, 9.0): continue
+		m._casa(Vector3(q.x, Regiao.NIVEL_PORTO, q.y), PI * 0.5, 15.0, 10.0, 8.0, null, null, true, _sorte(["SM_Bld_Preset_House_04_Optimized", "SM_Bld_Preset_Stables_01_Optimized", "SM_Bld_Preset_Shelter_01_Optimized"]), 1.0)
+	for k in 6:
+		var q := Vector2(x1 - 22.0, zc + 14.0 + k * 5.0)
+		_por(_sorte(["SM_Prop_Market_Stall_02", "SM_Prop_Market_Stall_05", "SM_Prop_Market_Stall_08"]), q, -PI * 0.5, 1.0, true, Regiao.NIVEL_PORTO)
+		_por("SM_Prop_Bucket_Fish_01", q + Vector2(-2.2, 0), 0.0, 1.0, false, Regiao.NIVEL_PORTO)
+	for k in 24:
+		var q := Vector2(rng.randf_range(x1 - 30.0, x1 - 6.0), rng.randf_range(Regiao.CIDADE.position.y + 12.0, Regiao.CIDADE.end.y - 12.0))
+		if absf(q.y - zc) < 7.0 or m.perto_de_casa(q.x, q.y, 2.0): continue
+		_por(_sorte(["SM_Prop_Crate_Stack_01", "SM_Prop_Crate_Stack_02", "SM_Prop_Barrel_Stack_01", "SM_Prop_Barrel_Stack_04", "SM_Prop_Sack_Stack_01", "SM_Prop_Crate_Wood_01", "SM_Veh_Cart_02", "SM_Veh_Wheelbarrow_01"]), q, rng.randf() * TAU, 1.0, true, Regiao.NIVEL_PORTO)
+	for k in 10:
+		var b := Vector2(x1 + 10.0 + rng.randf_range(0.0, 40.0), rng.randf_range(Regiao.CIDADE.position.y, Regiao.CIDADE.end.y))
+		Synty.por(m, "SM_Veh_Boat_Dinghy_01", Vector3(b.x, 0.25, b.y), rng.randf() * TAU, 1.6, false)
+	Synty.por(m, "SM_Bld_Preset_Tower_01_Optimized", Vector3(x1 + 46.0, 1.5, zc), 0.0, 0.9, true)      # farol no fim do cais
 	m.porto_pos = Vector2(x1 - 10.0, zc)
 	m.lugares.append([m.porto_pos + Vector2(20, 0), 30.0])
 
@@ -561,3 +587,126 @@ func _lugares_novos() -> void:
 		var t := _achar(p, 10.0)
 		_por("SM_Bld_Preset_Tower_01_Optimized", t, rng.randf() * TAU, 0.9, true)
 		m.lugares.append([t, 10.0]); lugares_bussola.append(["Torre de Vigia", t, "torre", 18.0])
+
+# ======================================================================================================
+# INTERIORES: salas montadas com as paredes e os pisos modulares do pacote, embaixo do mapa (y = -300), com os
+# móveis do pacote e gente dentro. Perto da porta aparece ENTRAR (lá dentro, SAIR): m.portas
+# ======================================================================================================
+const T := 2.5                     # módulo das peças (m)
+func _peca_int(nome: String, p: Vector3, ang := 0.0, esc := 1.0, col := false) -> void:
+	Synty.por(m, nome, p, ang, esc, col)
+
+# sala de nx × nz módulos com "alt" andares de parede; porta no meio da parede sul (+Z). Devolve o ponto de dentro da porta.
+func _sala(o: Vector3, nx: int, nz: int, piso: String, paredes: Array, alt: int, porta_parede := "SM_Bld_House_Wall_Door_01") -> Vector3:
+	var pe := 0.5 if paredes[0].begins_with("SM_Bld_Castle_") else 1.0          # peças do castelo têm 5 m: metade
+	for i in nx:
+		for j in nz:
+			_peca_int(piso, o + Vector3((i + 0.5) * T, 0.0, (j + 0.5) * T))
+			_peca_int(piso, o + Vector3((i + 0.5) * T, alt * T, (j + 0.5) * T), 0.0)                 # teto
+	var porta_i := nx / 2
+	for k in alt:
+		var y := o.y + k * T
+		for i in nx:
+			var pn := Vector3(o.x + (i + 0.5) * T, y, o.z)
+			var ps := Vector3(o.x + (i + 0.5) * T, y, o.z + nz * T)
+			_peca_int(_sorte(paredes), pn, 0.0, pe)
+			if k == 0 and i == porta_i: _peca_int(porta_parede, ps, PI)
+			else: _peca_int(_sorte(paredes), ps, PI, pe)
+		for j in nz:
+			_peca_int(_sorte(paredes), Vector3(o.x, y, o.z + (j + 0.5) * T), PI * 0.5, pe)
+			_peca_int(_sorte(paredes), Vector3(o.x + nx * T, y, o.z + (j + 0.5) * T), -PI * 0.5, pe)
+	# colisão: chão e quatro paredes (a porta fica fechada: sai pelo botão SAIR)
+	var w := nx * T; var d := nz * T; var h := alt * T
+	m._colisor_caixa(Vector3(o.x + w * 0.5, o.y - 0.5, o.z + d * 0.5), Vector3(w + 2.0, 1.0, d + 2.0), 0.0)
+	m._colisor_caixa(Vector3(o.x + w * 0.5, o.y, o.z - 0.3), Vector3(0.6, h, w + 1.0), PI * 0.5)
+	m._colisor_caixa(Vector3(o.x + w * 0.5, o.y, o.z + d + 0.3), Vector3(0.6, h, w + 1.0), PI * 0.5)
+	m._colisor_caixa(Vector3(o.x - 0.3, o.y, o.z + d * 0.5), Vector3(0.6, h, d + 1.0), 0.0)
+	m._colisor_caixa(Vector3(o.x + w + 0.3, o.y, o.z + d * 0.5), Vector3(0.6, h, d + 1.0), 0.0)
+	return Vector3(o.x + (porta_i + 0.5) * T, o.y, o.z + d - 1.6)
+
+func _gente(tipo: String, p: Vector3, olhar: Vector3) -> void:
+	if not Cidadao.existe(): return
+	var c := Cidadao.new(); c.tipo = tipo; c.fixo = true; c.olhar = Vector2(olhar.x, olhar.z)
+	m.raiz.add_child(c); c.position = p; c.montar(m, 9500 + _n_cid); _n_cid += 1
+
+func _porta(nome: String, fora: Vector2, ang_fora: float, dentro: Vector3) -> void:
+	var yf: float = m.reg.altura(fora.x, fora.y)
+	if Regiao.CIDADE.has_point(fora): yf = Regiao.altura_cidade(fora.x, fora.y)
+	m.portas.append([Vector3(fora.x, yf, fora.y), dentro, ang_fora, PI, nome])
+
+const PAREDE_MADEIRA := ["SM_Bld_House_Wall_01", "SM_Bld_House_Wall_02", "SM_Bld_House_Wall_03"]
+const PAREDE_PEDRA := ["SM_Bld_Castle_Wall_01", "SM_Bld_Castle_Wall_02", "SM_Bld_Castle_Wall_03"]
+
+func _interiores() -> void:
+	m.portas = []
+	var base := Vector3(1000.0, -300.0, -1000.0)
+	# ---- taverna de Altamar
+	var o := base
+	var d := _sala(o, 6, 5, "SM_Bld_House_Floor_Wood_01", PAREDE_MADEIRA, 2)
+	for i in 3: _peca_int("SM_Prop_Bar_02", o + Vector3(4.5 + i * 2.7, 0, 2.6), PI * 0.5, 1.0, true)
+	_peca_int("SM_Prop_Barrel_Dispenser_Large_01", o + Vector3(7.5, 0, 0.9), PI * 0.5)
+	_peca_int("SM_Bld_House_Fireplace_01", o + Vector3(14.6, 0, 6.2), -PI * 0.5)
+	_peca_int("SM_Prop_Animal_Head_Deer_01", o + Vector3(0.3, 2.6, 6.2), PI * 0.5)
+	_peca_int("SM_Prop_Chandelier_01", o + Vector3(7.5, 3.0, 7.0))
+	_peca_int("SM_Prop_Rug_02_Round", o + Vector3(7.5, 0.02, 8.0))
+	for q in [Vector3(3.0, 0, 7.0), Vector3(3.0, 0, 10.0), Vector3(11.5, 0, 7.5), Vector3(11.5, 0, 10.5)]:
+		_peca_int(_sorte(["SM_Prop_Table_Preset_01", "SM_Prop_Table_Preset_02", "SM_Prop_Table_Preset_03"]), o + q, PI * 0.5, 1.0, true)
+		for lado in [-1.0, 1.0]: _peca_int(_sorte(["SM_Prop_Stool_02", "SM_Prop_Stool_03"]), o + q + Vector3(0, 0, lado * 1.0))
+	_gente("SM_Chr_Bartender_01", o + Vector3(7.5, 0, 1.6), o + Vector3(7.5, 0, 8.0))
+	for q in [Vector3(2.2, 0, 7.6), Vector3(12.3, 0, 8.2), Vector3(3.8, 0, 10.6), Vector3(6.0, 0, 3.8)]:
+		_gente(_sorte(["SM_Chr_Peasant_Male_01", "SM_Chr_Hermit_01", "SM_Chr_Rider_01", "SM_Chr_Peasant_Female_01"]), o + q, o + Vector3(7.5, 0, 6.0))
+	_porta("Taverna de Altamar", m.taverna_pos + Vector2(0, -9.0), PI, d)
+	# ---- catedral
+	o = base + Vector3(60, 0, 0)
+	d = _sala(o, 6, 12, "SM_Bld_House_Floor_Stone_01", PAREDE_PEDRA, 3)
+	_peca_int("SM_Prop_Throne_Plinth_01", o + Vector3(7.5, 0, 3.0), 0.0, 1.2, true)
+	_peca_int("SM_Prop_Church_Lectern_01", o + Vector3(7.5, 0.5, 4.4), 0.0)
+	for lado in [-1.0, 1.0]:
+		for k in 8: _peca_int("SM_Prop_Bench_Seat_Pew_01", o + Vector3(7.5 + lado * 3.6, 0, 9.0 + k * 2.4), PI, 1.0, true)
+		_peca_int("SM_Prop_Curtain_Large_01", o + Vector3(7.5 + lado * 5.0, 0, 0.5), 0.0)
+		for k in 4: _peca_int(_sorte(["SM_Prop_Banner_01", "SM_Prop_Banner_03"]), o + Vector3(7.5 + lado * 7.2, 6.0, 8.0 + k * 6.0), -lado * PI * 0.5, 1.5)
+	for k in 3: _peca_int("SM_Prop_Chandelier_02", o + Vector3(7.5, 4.8, 9.0 + k * 8.0))
+	_peca_int("SM_Prop_Rug_01", o + Vector3(7.5, 0.02, 18.0), 0.0, 2.0)
+	_gente("SM_Chr_Priest_01", o + Vector3(7.5, 0.5, 3.6), o + Vector3(7.5, 0, 20.0))
+	_gente("SM_Chr_Nun_01", o + Vector3(5.0, 0, 5.5), o + Vector3(7.5, 0, 20.0))
+	for k in 6: _gente(_sorte(["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Monk_01", "SM_Chr_Merchant_01"]), o + Vector3(4.0 + (k % 2) * 7.0, 0, 10.2 + (k / 2) * 4.8), o + Vector3(7.5, 0, 0.0))
+	_porta("Catedral", cat_pos() + Vector2(0, 18.0), 0.0, d)
+	# ---- sala do trono do castelo
+	o = base + Vector3(120, 0, 0)
+	d = _sala(o, 8, 10, "SM_Bld_House_Floor_Stone_01", PAREDE_PEDRA, 3)
+	_peca_int("SM_Prop_Throne_Plinth_01", o + Vector3(10.0, 0, 2.6), 0.0, 1.4, true)
+	_peca_int("SM_Prop_Throne_01", o + Vector3(9.0, 0.55, 2.3), 0.0, 1.2)
+	_peca_int("SM_Prop_Throne_02", o + Vector3(11.0, 0.55, 2.3), 0.0, 1.2)
+	for k in 5: _peca_int("SM_Prop_Rug_01", o + Vector3(10.0, 0.02, 6.0 + k * 3.6), 0.0, 1.4)
+	for lado in [-1.0, 1.0]:
+		for k in 3: _peca_int("SM_Prop_Banner_02", o + Vector3(10.0 + lado * 9.7, 5.0, 6.0 + k * 7.0), -lado * PI * 0.5, 1.6)
+		for k in 3: _peca_int("SM_Prop_Table_Preset_04", o + Vector3(10.0 + lado * 6.0, 0, 9.0 + k * 3.0), 0.0, 1.0, true)
+		for k in 3: _gente("SM_Chr_Soldier_Male_01", o + Vector3(10.0 + lado * 2.6, 0, 8.0 + k * 5.0), o + Vector3(10.0, 0, 8.0 + k * 5.0))
+	for k in 2: _peca_int("SM_Prop_Chandelier_03", o + Vector3(10.0, 5.0, 8.0 + k * 9.0))
+	_peca_int("SM_Prop_Map_01", o + Vector3(3.0, 0.9, 20.0), 0.0, 1.5)
+	_peca_int("SM_Prop_Table_Preset_01", o + Vector3(3.0, 0, 20.0), 0.0, 1.0, true)
+	_gente("SM_Chr_King_01", o + Vector3(9.0, 0.55, 3.0), o + Vector3(9.0, 0, 20.0))
+	_gente("SM_Chr_Queen_01", o + Vector3(11.0, 0.55, 3.0), o + Vector3(11.0, 0, 20.0))
+	_gente("SM_Chr_Jester_01", o + Vector3(10.0, 0, 9.0), o + Vector3(10.0, 0, 2.0))
+	_porta("Castelo de Altamar", Regiao.CASTELO + Vector2(0, 14.0), 0.0, d)
+	# ---- taverna da vila
+	o = base + Vector3(180, 0, 0)
+	d = _sala(o, 5, 4, "SM_Bld_House_Floor_Wood_01", PAREDE_MADEIRA, 2)
+	_peca_int("SM_Prop_Bar_01", o + Vector3(3.0, 0, 2.0), PI * 0.5, 1.0, true)
+	_peca_int("SM_Bld_House_Fireplace_01", o + Vector3(12.2, 0, 5.0), -PI * 0.5)
+	for q in [Vector3(4.0, 0, 6.5), Vector3(9.0, 0, 6.5)]:
+		_peca_int("SM_Prop_Table_Preset_02", o + q, PI * 0.5, 1.0, true)
+		for lado in [-1.0, 1.0]: _peca_int("SM_Prop_Stool_02", o + q + Vector3(0, 0, lado * 1.0))
+	_gente("SM_Chr_Bartender_01", o + Vector3(3.0, 0, 1.0), o + Vector3(3.0, 0, 6.0))
+	_gente("SM_Chr_Peasant_Male_01", o + Vector3(9.0, 0, 7.5), o + Vector3(9.0, 0, 6.5))
+	_porta("Taverna da Vila", Regiao.VILA + Vector2(-34.0, -14.0), 0.0, d)
+	# ---- oficina de alquimia (torre dos magos)
+	o = base + Vector3(240, 0, 0)
+	d = _sala(o, 4, 4, "SM_Bld_House_Floor_Stone_01", PAREDE_PEDRA, 2)
+	_peca_int("SM_Prop_Workbench_Alchemy_01_Preset", o + Vector3(5.0, 0, 1.0), 0.0, 1.0, true)
+	for k in 3: _peca_int(_sorte(["SM_Prop_Shelves_01", "SM_Prop_Shelves_02"]), o + Vector3(0.4, 0, 2.5 + k * 2.4), PI * 0.5, 1.0, true)
+	_peca_int("SM_Prop_Cauldron_01", o + Vector3(7.5, 0, 6.0), 0.0, 1.2, true)
+	_peca_int("SM_Prop_Planetarium_01", o + Vector3(8.6, 0, 1.6), 0.0, 1.0, true)
+	_peca_int("SM_Prop_Rug_02_Round", o + Vector3(5.0, 0.02, 5.0))
+	_gente("SM_Chr_Mage_01", o + Vector3(5.0, 0, 2.2), o + Vector3(5.0, 0, 8.0))
+	_porta("Torre dos Magos", tm_pos() + Vector2(0, 10.5), 0.0, d)

@@ -31,8 +31,7 @@ static func material(neblina: Color, tipo := "atlas") -> ShaderMaterial:
 
 static func _tipo(m: Material) -> String:
 	var n := m.resource_name.to_lower() if m else ""
-	if "castle" in n and not "glass" in n and not "texture" in n: return "castelo"
-	return "atlas"
+	return "atlas"                  # (o tijolo do castelo vai pelo nome do modelo: SM_Bld_Castle_*)
 
 # peças (malha + transform relativo à raiz do arquivo) e a caixa que envolve o modelo
 static func pecas(nome: String) -> Array:
