@@ -75,7 +75,7 @@ func _ready() -> void:
 	if args.has("carga"): print("CARGA moradores ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	raiz.add_child(jogador)
 	# a Rachel começa no portão oeste de Altamar, logo antes de sair do reino, virada para a ponte (testes: --vila)
-	var ini := Regiao.VILA + Vector2(-4, 48) if args.has("vila") else Vector2(Regiao.CIDADE.position.x + 9.0, Regiao.CIDADE_C.y)
+	var ini := Regiao.VILA + Vector2(-4, 48) if args.has("vila") else Regiao.PORTAO + Vector2(14.0, 0.0)
 	jogador.position = Vector3(ini.x, altura(ini.x, ini.y) + 0.3, ini.y)
 	if not args.has("vila"): jogador.rotation.y = PI * 0.5                # olhando para o oeste (portão e ponte)
 	_ultima = jogador.position

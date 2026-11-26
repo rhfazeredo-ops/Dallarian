@@ -19,6 +19,19 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Altamar refeita como capital de reino (referências: Ventobravo, Whiterun, cidades medievais)**
+- Muralha irregular com torres por todo o contorno; Portão Oeste com arco, duas torres, estandartes e guardas, e a
+  Estrada dos Heróis do lado de fora.
+- Bairros ligados por PONTES sobre canais de água com cais de pedra: Ilha da Catedral no meio (catedral, árvores,
+  quatro pontes), Fortaleza no morro a noroeste (torre de menagem, torres, muralha e portão próprios), bairro
+  comercial com a praça do mercado (chafariz, 16 barracas, palco, quadro de missões, carroça de mercador, taverna),
+  bairro dos magos (torres), Cidade Velha (praça da justiça), jardim dos nobres e o porto embaixo, no mar (cais,
+  três píeres, barcos, armazéns, peixaria, farol, escadarias).
+- Casas em quarteirões com becos e pátios, viradas para a rua; lojas com placa no bairro comercial.
+- Interiores novos: Ferraria do Bram (vila) e Ferraria de Altamar (forja, fole, bigornas, rebolo, armas, ferreiros),
+  Igreja da Vila (bancos, cruz, velas, monge) e Taverna da Serra.
+- Colisão em muralhas, torres, casas, pontes (com guarda-corpo), muretas dos canais, peças e interiores.
+
 **Ambientação e download menor**
 - Estrada dos Heróis: oito estátuas gigantes em pedestais nos dois lados da Estrada Real antes do Portão Oeste.
 - Fumaça saindo das chaminés de parte das casas.

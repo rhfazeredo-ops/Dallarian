@@ -28,18 +28,61 @@ const COSTA := 2220.0        # linha da praia (o mar vai daqui até o fim do map
 # cidade grande redonda (centro e raio da muralha); um canal em anel corta a cidade no raio CANAL
 # MAPA NOVO (docs/MAPA_NOVO.md): Altamar é um retângulo na costa leste, em degraus — nível do portão (oeste, 9 m),
 # do mercado (meio, 6 m) e do porto (leste, 3 m), com o castelo num morro no noroeste (24 m)
-const CIDADE := Rect2(1840.0, -75.0, 360.0, 315.0)     # compacta (antes 550 × 550 e depois 430 × 390, com vazios)
-const CIDADE_C := Vector2(2020.0, 75.0)          # a avenida do portão passa em z = 75
-const CIDADE_R := 180.0                          # metade do lado (compatibilidade)
-const CANAL := -1000.0                           # (a cidade nova não tem canal em anel)
-const ALTURA_CIDADE := 9.0                       # nível do portão oeste (a estrada, a ponte e o estábulo)
-const NIVEL_MERCADO := 6.0
+# ALTAMAR (refeita: bairros ligados por pontes sobre canais, muralha irregular com torres, fortaleza no morro a
+# noroeste, catedral numa ilha no meio, porto no mar a leste). Tudo plano no nível 7 m, o porto 4 m mais baixo.
+const CIDADE := Rect2(1770.0, -170.0, 470.0, 480.0)      # caixa em volta da muralha
+const CIDADE_C := Vector2(1990.0, 50.0)                  # centro (a ilha da catedral)
+const CIDADE_R := 235.0
+const CANAL := -1000.0
+const ALTURA_CIDADE := 7.0
+const NIVEL_MERCADO := 7.0
 const NIVEL_PORTO := 3.0
-const X_MERCADO := 1955.0                        # degrau do portão para o mercado
-const X_PORTO := 2100.0                          # degrau do mercado para o porto
-const CASTELO := Vector2(1895.0, -25.0)          # topo do morro do castelo
-const ALTURA_CASTELO := 24.0
-const PRACA := Vector2(2025.0, 75.0)             # praça do mercado
+const X_MERCADO := -100000.0                              # (sem degrau no meio da cidade)
+const X_PORTO := 2165.0                                   # degrau para o porto (leste)
+const CASTELO := Vector2(1850.0, -95.0)                   # topo do morro da fortaleza
+const ALTURA_CASTELO := 20.0
+const PRACA := Vector2(1965.0, 205.0)                     # praça do mercado (bairro comercial, ao sul)
+const ILHA_CATEDRAL := Vector2(1990.0, 40.0)
+const RAIO_ILHA := 50.0                                   # o canal em volta vai de 52 a 62 m
+const PORTAO := Vector2(1780.0, 75.0)                     # Portão Oeste
+# muralha (contorno no sentido horário); a beira do mar (leste) fica aberta para o porto
+const MURALHA := [Vector2(1780.0, 75.0), Vector2(1790.0, -40.0), Vector2(1800.0, -140.0), Vector2(1900.0, -165.0),
+	Vector2(2010.0, -160.0), Vector2(2120.0, -150.0), Vector2(2190.0, -110.0), Vector2(2205.0, -60.0)]
+const MURALHA_SUL := [Vector2(2200.0, 250.0), Vector2(2110.0, 295.0), Vector2(2000.0, 305.0), Vector2(1890.0, 290.0),
+	Vector2(1810.0, 225.0), Vector2(1780.0, 75.0)]
+# ruas principais (linhas): avenida do portão, rua da fortaleza, rua dos magos, rua do mercado, rua do porto, rua velha
+const RUAS := [
+	[Vector2(1700.0, 75.0), Vector2(1932.0, 75.0)],
+	[Vector2(1900.0, 75.0), Vector2(1895.0, 0.0), Vector2(1860.0, -45.0)],
+	[Vector2(1880.0, 75.0), Vector2(1860.0, 150.0), Vector2(1850.0, 215.0)],
+	[Vector2(1975.0, 105.0), Vector2(1965.0, 205.0), Vector2(1980.0, 270.0)],
+	[Vector2(2050.0, 75.0), Vector2(2150.0, 75.0), Vector2(2235.0, 75.0)],
+	[Vector2(2100.0, 75.0), Vector2(2095.0, -30.0), Vector2(2080.0, -130.0)],
+	[Vector2(1965.0, 205.0), Vector2(2080.0, 190.0), Vector2(2190.0, 175.0)],
+	[Vector2(1990.0, -12.0), Vector2(2000.0, -80.0), Vector2(1960.0, -140.0)],
+]
+# canais: o anel em volta da ilha da catedral é feito à parte; este leva a água do anel até o mar
+const CANAIS := [[Vector2(2048.0, 25.0), Vector2(2130.0, 12.0), Vector2(2250.0, 5.0)],
+	[Vector2(1938.0, 20.0), Vector2(1880.0, 30.0), Vector2(1830.0, 40.0)]]
+static func _dist_linha(q: Vector2, l: Array) -> float:
+	var d := INF
+	for i in l.size() - 1: d = minf(d, q.distance_to(Geometry2D.get_closest_point_to_segment(q, l[i], l[i + 1])))
+	return d
+static func poligono_cidade() -> PackedVector2Array:
+	var p := PackedVector2Array(MURALHA)
+	p.append(Vector2(2240.0, -40.0)); p.append(Vector2(2240.0, 240.0))      # a beira do porto
+	for q in MURALHA_SUL: p.append(q)
+	return p
+static var _poli := PackedVector2Array()
+static func dentro_cidade(q: Vector2) -> bool:
+	if _poli.is_empty(): _poli = poligono_cidade()
+	return Geometry2D.is_point_in_polygon(q, _poli)
+static func dist_canal(x: float, z: float) -> float:
+	var q := Vector2(x, z)
+	var d := absf(q.distance_to(ILHA_CATEDRAL) - (RAIO_ILHA + 7.0))
+	for c in CANAIS: d = minf(d, _dist_linha(q, c))
+	return d
+const NIVEL_CANAL := ALTURA_CIDADE - 1.6
 const VILA := Vector2(250.0, 420.0)              # Vila do Vale (centro da praça)
 const VILA_NORTE := Vector2(470.0, -560.0)       # Vila da Serra (pequena, na Estrada do Norte)
 # O desenho original era de 1,2 km. Para aumentar o mapa sem mexer na vila, tudo até 150 m do centro fica igual
@@ -97,9 +140,9 @@ func _init() -> void:
 	ruido_relevo.seed = 27; ruido_relevo.frequency = 0.0022; ruido_relevo.fractal_octaves = 4; ruido_relevo.fractal_gain = 0.45
 	# ESTRADA REAL: da saída leste da vila, pela ponte do rio e pelos vales, até o Portão Oeste de Altamar; continua
 	# como a avenida da cidade até a praça do mercado
-	var porta := Vector2(CIDADE.position.x, CIDADE_C.y)
+	var porta := PORTAO
 	estradas.append(PackedVector2Array([VILA + Vector2(10, 0), Vector2(400, 402), Vector2(560, 332), Vector2(760, 270),
-		Vector2(980, 205), Vector2(1200, 160), Vector2(1400, 110), Vector2(1530, 80), porta + Vector2(-40, 0), porta, PRACA]))
+		Vector2(980, 205), Vector2(1200, 160), Vector2(1400, 110), Vector2(1530, 80), porta + Vector2(-40, 0), porta, Vector2(1932.0, 75.0)]))
 	estrada_real = estradas.size() - 1
 	d_estrada.resize(NX * NZ); d_estrada.fill(1e6)
 	d_rio.resize(NX * NZ); d_rio.fill(1e6); t_rio.resize(NX * NZ); t_rio.fill(0.0)
@@ -236,6 +279,9 @@ func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a mo
 	if dcid < 60.0:
 		var qc := Vector2(clampf(x, CIDADE.position.x, CIDADE.end.x), clampf(z, CIDADE.position.y, CIDADE.end.y))
 		h = lerp(altura_cidade(qc.x, qc.y), h, smoothstep(0.0, 60.0, dcid))
+	if CIDADE.grow(20.0).has_point(Vector2(x, z)):
+		var dk := dist_canal(x, z)
+		if dk < 6.5: h = minf(h, lerpf(NIVEL_CANAL - 1.4, h, smoothstep(4.6, 5.6, dk)))   # leito do canal (margem reta: cais de pedra)
 	var costa := COSTA + ruido_grande.get_noise_2d(0.0, z * 2.0) * 40.0
 	# na altura da cidade o mar chega até perto da muralha leste (porto)
 	var dz_cid := maxf(absf(z - CIDADE_C.y) - CIDADE_R * 0.7, 0.0)
@@ -322,21 +368,20 @@ func _calma_relevo(x: float, z: float, dr: float, dl: float) -> float:
 # altura de uma serra a "d" metros da borda: sobe rápido no pé e para em "alto"
 # distância até a cidade (0 dentro das muralhas)
 func _dist_cidade(x: float, z: float) -> float:
+	if dentro_cidade(Vector2(x, z)): return 0.0
 	return _dist_ret(x, z, CIDADE)
 
-# chão de Altamar: degraus do portão (9 m) → mercado (6 m) → porto (3 m) e o morro do castelo (24 m)
+# chão de Altamar: plano (7 m), o porto mais baixo (3 m) e o morro da fortaleza; canais cavados
 static func altura_cidade(x: float, z: float) -> float:
-	var h := ALTURA_CIDADE
-	h = lerpf(h, NIVEL_MERCADO, smoothstep(X_MERCADO - 10.0, X_MERCADO + 10.0, x))
-	h = lerpf(h, NIVEL_PORTO, smoothstep(X_PORTO - 10.0, X_PORTO + 10.0, x))
+	var h := lerpf(ALTURA_CIDADE, NIVEL_PORTO, smoothstep(X_PORTO - 8.0, X_PORTO + 8.0, x))
 	var dc := Vector2(x, z).distance_to(CASTELO)
-	if dc < 95.0: h = maxf(h, lerpf(ALTURA_CASTELO, ALTURA_CIDADE, smoothstep(55.0, 95.0, dc)))
+	if dc < 95.0: h = maxf(h, lerpf(ALTURA_CASTELO, ALTURA_CIDADE, smoothstep(50.0, 92.0, dc)))
 	return h
 
 func na_cidade(x: float, z: float, folga := 0.0) -> bool: return _dist_cidade(x, z) <= folga
 
 # bairros de Altamar pelo ângulo e pela distância ao centro (leste = 0, sul = PI/2, oeste = PI, norte = -PI/2)
-const FOSSO_X := CIDADE.position.x - 55.0
+const FOSSO_X := PORTAO.x - 55.0
 const ESTABULO := Vector2(FOSSO_X - 58.0, CIDADE_C.y - 42.0)
 const PATIO_NIVEL := Rect2(FOSSO_X - 112.0, CIDADE_C.y - 78.0, 96.0, 106.0)     # aplainado no nível da estrada
 # terra batida do estábulo: um quadrado certinho pegando o telheiro e o cercado (sem grama nenhuma)...
@@ -356,12 +401,15 @@ static func _dist_ret(x: float, z: float, r: Rect2) -> float:
 	return Vector2(dx, dz).length()
 static var LAGO_PARQUE := Vector2(-99999.0, -99999.0)     # (a cidade nova não tem lago no parque)
 static func distrito(x: float, z: float) -> String:
-	if not CIDADE.has_point(Vector2(x, z)): return ""
-	if Vector2(x, z).distance_to(CASTELO) < 80.0: return "castelo"
-	if Vector2(x, z).distance_to(PRACA) < 28.0: return "praca"
+	var q := Vector2(x, z)
+	if not dentro_cidade(q): return ""
+	if q.distance_to(CASTELO) < 80.0: return "castelo"
+	if q.distance_to(ILHA_CATEDRAL) < RAIO_ILHA + 12.0: return "catedral"
 	if x > X_PORTO: return "porto"
-	if x > X_MERCADO: return "comercio" if absf(z - CIDADE_C.y) < 70.0 else ("nobres" if z < CIDADE_C.y else "velho")
-	return "catedral" if z < CIDADE_C.y else "magos"
+	if q.distance_to(PRACA) < 70.0 or (z > 120.0 and x > 1930.0): return "comercio"
+	if z > 120.0: return "magos"
+	if x > 2040.0: return "velho"
+	return "portao"
 func parque(x: float, z: float) -> bool: return distrito(x, z) == "parque"
 # distância até o eixo da rua principal mais perto (as quatro que saem da praça)
 # peso (0..1) da estrada calçada que vem da Estrada Real, passa pela Ponte dos Guardiões e entra no portão oeste
@@ -371,15 +419,10 @@ static func acesso_ponte(x: float, z: float) -> float:
 	return (1.0 - smoothstep(10.0, 20.0, dz)) * smoothstep(FOSSO_X - 120.0, FOSSO_X - 70.0, x)
 # ruas de Altamar: a avenida do portão (leste–oeste, z = 75), a rua do mercado (norte–sul, x = 1950) e as ruas
 # secundárias que fecham os quarteirões
-const RUAS_Z := [15.0, 140.0, 195.0]
-const RUAS_X := [1900.0, 1990.0, 2065.0, 2150.0]
 static func rua_cidade(x: float, z: float) -> float:
-	var d := Vector2(x, z) - PRACA
-	var r := minf(absf(d.x), absf(d.y))
-	if CIDADE.has_point(Vector2(x, z)):
-		for rz in RUAS_Z: r = minf(r, absf(z - rz) + 2.5)        # (as secundárias são um pouco mais estreitas)
-		for rx in RUAS_X: r = minf(r, absf(x - rx) + 2.5)
-	return r
+	var q := Vector2(x, z); var d := INF
+	for r in RUAS: d = minf(d, _dist_linha(q, r))
+	return d
 
 func _serra(d: float, alto: float) -> float: return alto * (1.0 - exp(-d / 32.0))
 
@@ -467,6 +510,7 @@ func agua(x: float, z: float) -> float:
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 0.5: return nivel_rio(_amostra(t_rio, x, z))
 	if Vector2(x - LAGO.x, z - LAGO.y).length() < LAGO.z + 2.0: return nivel_lago()
+	if CIDADE.has_point(Vector2(x, z)) and dist_canal(x, z) < 5.5: return NIVEL_CANAL
 	var d2 := dist_rio2(x, z)
 	if d2 < 40.0:
 		var t2 := _amostra(t_rio2, x, z)
