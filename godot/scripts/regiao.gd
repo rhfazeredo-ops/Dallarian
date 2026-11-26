@@ -299,16 +299,26 @@ func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a mo
 
 func relevo(x: float, z: float) -> float:
 	var n := ruido_relevo.get_noise_2d(x, z) * 0.5 + 0.5                   # 0..1
-	var colinas := pow(n, 1.7) * 30.0 - 4.0                                 # morros de até ~26 m e baixadas
+	var colinas := pow(n, 1.5) * 46.0 - 7.0                                 # morros de até ~40 m e baixadas
+	# cristas de serra (ruído "dobrado": linhas altas e finas) em parte do mapa
+	var cr := 1.0 - absf(ruido_relevo.get_noise_2d(x * 1.7 + 900.0, z * 1.7 - 300.0))
+	var cristas := pow(cr, 5.0) * 26.0 * smoothstep(0.1, 0.5, ruido_grande.get_noise_2d(x * 0.8 + 50.0, z * 0.8))
 	var borda := ruido_grande.get_noise_2d(x * 2.5, z * 2.5) * 70.0
-	var planalto := 22.0 * smoothstep(-330.0, -470.0, x + borda)            # planalto do Bosque Sombrio (oeste)
-	var norte := 12.0 * smoothstep(-250.0, -800.0, z + borda)               # sobe para as montanhas do norte
+	var planalto := 26.0 * smoothstep(-330.0, -430.0, x + borda)            # planalto do Bosque Sombrio (oeste)
+	var norte := 16.0 * smoothstep(-250.0, -800.0, z + borda)               # sobe para as montanhas do norte
 	var sul := -3.0 * smoothstep(500.0, 850.0, z)                           # desce para o pântano
-	return colinas + planalto + norte + sul
+	var h := colinas + cristas + planalto + norte + sul
+	# mesas: em algumas regiões o relevo vira degraus de 9 m (platôs com paredões entre eles)
+	var mesa := smoothstep(0.15, 0.45, ruido_grande.get_noise_2d(x * 1.3 - 400.0, z * 1.3 + 200.0))
+	if mesa > 0.0 and h > 4.0:
+		var deg := 9.0; var f := fposmod(h, deg) / deg
+		var deg_h := floorf(h / deg) * deg + smoothstep(0.72, 0.95, f) * deg
+		h = lerpf(h, deg_h, mesa)
+	return h
 
 func _calma_relevo(x: float, z: float, dr: float, dl: float) -> float:
-	var c := smoothstep(6.0, 70.0, dist_estrada(x, z))
-	c *= smoothstep(14.0, 90.0, dr) * smoothstep(LAGO.z, LAGO.z + 90.0, dl)
+	var c := smoothstep(6.0, 110.0, dist_estrada(x, z))
+	c *= smoothstep(14.0, 120.0, dr) * smoothstep(LAGO.z, LAGO.z + 110.0, dl)
 	c *= smoothstep(60.0, 160.0, Vector2(x, z).length())                   # vila
 	c *= smoothstep(30.0, 160.0, _dist_cidade(x, z))
 	c *= smoothstep(10.0, 60.0, dist_rio2(x, z))
