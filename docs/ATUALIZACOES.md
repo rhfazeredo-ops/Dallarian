@@ -19,6 +19,12 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Cidade menor e moradores do pacote**
+- Altamar com 1/3 da área (muralha de ~270 × 280 m), ruas, pontes e canais mais estreitos, tudo proporcional.
+- Os moradores feitos no Tripo saíram: todos agora são personagens do pacote Fantasy Kingdom, escolhidos pelo papel
+  (ferreiro, freira, cavalariço, camponeses, taverneira, cartomante, monge...), andando e parados com as animações da
+  Synty. Crianças: o mesmo modelo, menor.
+
 **Altamar refeita como capital de reino (referências: Ventobravo, Whiterun, cidades medievais)**
 - Muralha irregular com torres por todo o contorno; Portão Oeste com arco, duas torres, estandartes e guardas, e a
   Estrada dos Heróis do lado de fora.

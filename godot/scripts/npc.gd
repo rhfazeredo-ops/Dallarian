@@ -78,6 +78,9 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING      # anda no plano; a altura vem do terreno
 	# modelo: 0,98 m no arquivo, de frente para -X → girado para frente = -Z e escalado
 	visual = Node3D.new(); add_child(visual)
+	if Cidadao.existe():                       # personagens do pacote Fantasy Kingdom, pelo papel de cada um
+		_montar_pacote(alt)
+		return
 	var arq: String = MODELOS_PROF[profissao] if MODELOS_PROF.has(profissao) else (TIPOS[tipo][0] if tipo != "" else SKINS[skin])
 	var mod: Node3D = load(arq).instantiate(); visual.add_child(mod)
 	var k := alt / 0.981
@@ -107,6 +110,38 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 	if profissao != "":
 		if profissao == "ferreiro": _segurar("martelo")
 		if profissao == "lenhador": _segurar("machado")
+		estado = "trabalho"; _alvo = posto
+		if profissao == "fazendeiro": _proximo_canteiro()
+	elif tipo == "menino" or tipo == "menina":
+		estado = "brincar"; _tempo_estado = rng.randf_range(20.0, 35.0)
+	else:
+		_proxima_coisa()
+
+# ---------- personagem do pacote (Synty) com as animações da Synty (parado/andar) ----------
+const PAPEIS := {"ferreiro": "SM_Chr_Blacksmith_Male_01", "lenhador": "SM_Chr_Hermit_01", "fazendeiro": "SM_Chr_Peasant_Male_01",
+	"freira": "SM_Chr_Nun_01", "cavalarico": "SM_Chr_Rider_01"}
+const TIPOS_PACOTE := {"fem": "SM_Chr_Peasant_Female_01", "gorda": "SM_Chr_Bartender_01", "velha": "SM_Chr_FortuneTeller_01",
+	"forte": "SM_Chr_Blacksmith_Male_01", "velho": "SM_Chr_Monk_01", "menino": "SM_Chr_Peasant_Male_01", "menina": "SM_Chr_Peasant_Female_01"}
+var _ap: AnimationPlayer
+func _montar_pacote(alt: float) -> void:
+	var nome: String = PAPEIS.get(profissao, TIPOS_PACOTE.get(tipo, ""))
+	if nome == "": nome = ["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Merchant_01", "SM_Chr_Peasant_Male_01", "SM_Chr_Hermit_01"][rng.randi() % 5]
+	if profissao == "fazendeiro" and rng.randf() < 0.4: nome = "SM_Chr_Peasant_Female_01"
+	var n: Node3D = load(Cidadao.ARQ).instantiate(); visual.add_child(n)
+	for c in n.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = c
+		if mi.name != nome: mi.queue_free()
+		else:
+			mi.material_override = Synty.material(m.NEBLINA, "personagem"); mi.visibility_range_end = 90.0
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var k := 0.72 if (tipo == "menino" or tipo == "menina") else 1.0          # crianças: o mesmo modelo menor
+	n.scale = Vector3.ONE * k
+	esq = n.find_children("*", "Skeleton3D", true, false)[0]
+	_ap = AnimationPlayer.new(); n.add_child(_ap); _ap.root_node = NodePath("..")
+	_ap.add_animation_library("", Cidadao._lib("Femn" if nome in Cidadao.MULHERES else "Masc"))
+	if _ap.has_animation("parado"): _ap.play("parado"); _ap.seek(rng.randf() * 1.5, true)
+	_fase = rng.randf() * TAU
+	if profissao != "":
 		estado = "trabalho"; _alvo = posto
 		if profissao == "fazendeiro": _proximo_canteiro()
 	elif tipo == "menino" or tipo == "menina":
@@ -378,6 +413,15 @@ func _q(eixo: Vector3, ang: float) -> Quaternion: return Quaternion(eixo, ang)
 func _zx(z: float, x: float) -> Quaternion: return _q(Vector3(0, 0, 1), z) * _q(Vector3(1, 0, 0), x)
 
 func _animar(delta: float, anda: float) -> void:
+	if _ap:
+		var clipe := "andar" if anda > 0.15 else "parado"
+		if _ap.has_animation(clipe) and _ap.current_animation != clipe: _ap.play(clipe, 0.25)
+		_ap.speed_scale = clampf(anda * (1.6 if _corre > 0.5 else 1.0), 0.6, 1.8) if clipe == "andar" else 1.0
+		_t += delta
+		if estado == "trabalho" and anda < 0.1 and ao_bater.is_valid():         # martelada / machadada a cada ~1,1 s
+			var b := int(_t / 1.1)
+			if b != _anim_quadro: _anim_quadro = b; ao_bater.call()
+		return
 	_anda_suave = lerp(_anda_suave, anda, 1.0 - exp(-8.0 * delta))
 	var a := _anda_suave
 	_fase += delta * TAU * 0.95 * a * (ritmo if ritmo < 1.0 else 1.0) * (1.0 + 0.85 * _corre)
