@@ -1,5 +1,28 @@
 # Dallarian — Log de atualizações
 
+## 27/11
+
+**Altamar nova: a cidade da cena Demo_01 do Fantasy Kingdom, montada como a Synty montou**
+- A cidade feita por código saiu inteira. No lugar dela entrou a cena de demonstração do pacote (os ~12 mil objetos
+  na posição exata): cidade alta com casas de verdade (com interior: taverna com balcão, capela com bancos), praça
+  da árvore grande com barracas, castelo no alto a leste com sala do trono, campos e fazendas ao sul, rio, muralhas
+  e casa do portão com ponte levadiça. O portão oeste fica onde a Estrada Real (dos Heróis) chega.
+- Colisão de verdade: chão, pedras, escadas (a colisão pronta do pacote), portas, arcos e pisos com a forma real;
+  paredes com caixa. A heroína agora sobe degraus sozinha (até 45 cm): escadas, soleiras, meios-fios.
+- Teste automático de caminhada: a heroína anda sozinha pelos caminhos de pedra da cidade (3 rotas de 70 trechos,
+  saindo do portão, da praça e do castelo) sem travar nem cair.
+- Vendedores atrás das 10 barracas do mercado, taverneiros nos balcões das tavernas (o Bartolomeu vende poções),
+  a Irmã Odília na capela, o rei e a rainha na sala do trono, guardas no portão; o povo anda de pedra em pedra
+  pelos caminhos (sobe e desce escadas junto).
+- Objetos pequenos (caixas, barris, móveis, plantas) somem de longe para o celular aguentar.
+- Mapa do jogo com a vista de cima da cidade nova.
+
+**Animação de andar e correr consertada**
+- O conversor antigo copiava só a direção de cada osso e perdia a torção: o andar e o correr ficavam tortos.
+  As animações da Synty foram reconvertidas com a rotação completa (ferramentas/retarget_synty.gd), para a
+  heroína, o herói e o povo da cidade.
+- O botão de correr usa a corrida normal acelerada (o sprint da Synty era curvado demais).
+
 ## 26/11
 
 **Faxina no projeto (o que foi substituído saiu de vez)**

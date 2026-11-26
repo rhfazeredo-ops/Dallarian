@@ -19,6 +19,10 @@ var fixo := false                  # fica parado no lugar (guardas, vendedores)
 var olhar := Vector2.ZERO
 var linha := []                    # [a, b]: anda só por esse segmento (a calçada), de um ponto a outro
 var dy := 0.0                      # altura acima do chão (calçada)
+var rede := []                     # Altamar: pedras dos caminhos (Vector3) e os vizinhos de cada uma
+var viz := []
+var no := 0
+var _ant := -1
 var _ap: AnimationPlayer
 var _alvo := Vector2.ZERO
 var _espera := 0.0
@@ -62,6 +66,8 @@ func _physics_process(delta: float) -> void:
 		_espera -= delta
 		if _espera <= 0.0: _novo_alvo()
 		return
+	if not rede.is_empty():
+		_andar_rede(delta); return
 	var d := _alvo - p
 	if d.length() < 0.6:
 		_espera = _rng.randf_range(0.5, 3.0) if not linha.is_empty() else _rng.randf_range(2.0, 8.0); _ap.play("parado", 0.3); return
@@ -71,7 +77,32 @@ func _physics_process(delta: float) -> void:
 	position = Vector3(q.x, m.reg.altura(q.x, q.y) + dy, q.y)
 	rotation.y = lerp_angle(rotation.y, atan2(d.x, d.y), 1.0 - exp(-8.0 * delta))
 
+# anda de pedra em pedra pelos caminhos da cidade (a altura acompanha as pedras: escadas e ladeiras)
+func _andar_rede(delta: float) -> void:
+	var alvo: Vector3 = rede[no]
+	var d := alvo - position
+	var dh := Vector2(d.x, d.z)
+	if dh.length() < 0.4:
+		var vs: Array = viz[no]
+		if vs.is_empty(): _espera = 3.0; return
+		var prox: int = vs[_rng.randi() % vs.size()]
+		if prox == _ant and vs.size() > 1: prox = vs[_rng.randi() % vs.size()]
+		_ant = no; no = prox
+		if _rng.randf() < 0.06: _espera = _rng.randf_range(2.0, 6.0); _ap.play("parado", 0.3)
+		elif _ap.current_animation != "andar": _ap.play("andar", 0.3); _ap.speed_scale = _vel / 1.4
+		return
+	if _ap.current_animation != "andar": _ap.play("andar", 0.3); _ap.speed_scale = _vel / 1.4
+	var passo := minf(_vel * delta, dh.length())
+	var ini := Vector2(position.x, position.z)
+	var q := ini + dh.normalized() * passo
+	var anterior: Vector3 = rede[_ant] if _ant >= 0 else position
+	var tot := Vector2(anterior.x, anterior.z).distance_to(Vector2(alvo.x, alvo.z))
+	var f := 1.0 - (Vector2(alvo.x, alvo.z).distance_to(q) / maxf(tot, 0.01))
+	position = Vector3(q.x, lerpf(anterior.y, alvo.y, clampf(f, 0.0, 1.0)) + 0.05, q.y)
+	rotation.y = lerp_angle(rotation.y, atan2(dh.x, dh.y), 1.0 - exp(-8.0 * delta))
+
 func _novo_alvo() -> void:
+	if not rede.is_empty(): return
 	if not linha.is_empty():
 		var a: Vector2 = linha[0]; var b: Vector2 = linha[1]
 		_alvo = a.lerp(b, _rng.randf()); _ap.play("andar", 0.3); _ap.speed_scale = _vel / 1.4; return

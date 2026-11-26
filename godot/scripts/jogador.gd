@@ -123,6 +123,25 @@ func _cair_morta(delta: float) -> void:            # terceira pessoa: o corpo ca
 	move_and_slide()
 	if corpo: corpo.animar(delta)
 
+# degraus: se a frente está travada por algo baixo (degrau, meio-fio, soleira, borda de escada) e 45 cm acima está
+# livre, sobe o corpo; o "floor snap" assenta de volta no degrau. Sem isso o personagem empaca em qualquer quina.
+const DEGRAU := 0.45
+func _subir_degrau(delta: float) -> void:
+	var h := Vector3(velocity.x, 0.0, velocity.z) * delta * 3.0
+	if h.length() < 0.01 or not is_on_floor(): return
+	var t := global_transform
+	if not test_move(t, h): return
+	var cima := Vector3(0, DEGRAU, 0)
+	if test_move(t, cima): return
+	var t2 := t.translated(cima)
+	if test_move(t2, h): return
+	# acha a altura do degrau: desce de volta a partir da frente
+	var col := KinematicCollision3D.new()
+	var t3 := t2.translated(h)
+	if test_move(t3, -cima, col):
+		var subir: float = DEGRAU - col.get_travel().length()
+		if subir > 0.02: global_position.y += subir + 0.02
+
 func montar_em(id: String, modelo: Node3D) -> void:
 	if montado: desmontar()
 	_por_armas(false)                                  # a cavalo as armas vão para as costas
@@ -591,6 +610,7 @@ func _physics_process(delta: float) -> void:
 	velocity.x = atual.x; velocity.z = atual.y
 	if not is_on_floor(): velocity.y -= GRAV * delta
 	var vy := velocity.y
+	_subir_degrau(delta)
 	move_and_slide()
 	if is_on_floor() and not _no_chao and vy < -3.0: _queda = clamp(-vy * 0.012, 0.0, 0.12)   # afunda ao cair
 	_no_chao = is_on_floor()

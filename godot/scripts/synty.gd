@@ -164,6 +164,40 @@ static func malha(nome: String, neblina: Color, esc := 1.0) -> ArrayMesh:
 # desenha as peças postas, por pedaço do mapa: cada peça repetida vira um MultiMesh (a malha vai uma vez só para a
 # placa de vídeo) — perto a completa, longe a simplificada. Montar é instantâneo (antes juntava tudo: 12 s).
 # modo: 0 sempre, 1 só perto, 2 só longe
+# põe o modelo com a transformação exata (cenas montadas pela Synty). col: "colisao" (a malha _Collision do pacote),
+# "malha" (a própria malha), "caixa" (caixa do tamanho do modelo), "tronco" (cilindro fino: árvores) ou "" (nada).
+# vis: 0 sempre; 3 até 45 m; 4 até 95 m (objetos pequenos somem de longe: o celular agradece)
+static var _faces := {}           # pedaço do mapa → faces de colisão (juntadas num corpo só por pedaço)
+static var _corpos := {}          # pedaço do mapa → StaticBody3D das caixas
+static func por_t(m: Object, nome: String, T: Transform3D, col := "", vis := 0) -> void:
+	var ps := pecas(nome)
+	if ps.is_empty(): return
+	var cel := Vector2i(floori(T.origin.x / CEL), floori(T.origin.z / CEL))
+	var cv := cel if vis == 0 else Vector2i(floori(T.origin.x / 24.0), floori(T.origin.z / 24.0))     # some junto com o grupinho dele
+	for p in ps: _no_lote(cv, p[0], p[2], vis, T * (p[1] as Transform3D))
+	if col == "": return
+	if col == "colisao" and not existe(nome + "_Collision"): col = "malha"
+	if col == "colisao" or col == "malha":
+		if not _faces.has(cel): _faces[cel] = PackedVector3Array()
+		var fs: PackedVector3Array = _faces[cel]
+		for p in pecas(nome + "_Collision" if col == "colisao" else nome):
+			var TT: Transform3D = T * (p[1] as Transform3D)
+			for v in (p[0] as Mesh).get_faces(): fs.append(TT * v)
+		_faces[cel] = fs
+		return
+	if not _corpos.has(cel):
+		var cb := StaticBody3D.new(); m.raiz.add_child(cb); _corpos[cel] = cb
+	var cx: AABB = _caixas[nome]
+	var esc := Vector3(T.basis.x.length(), T.basis.y.length(), T.basis.z.length())
+	var cs := CollisionShape3D.new()
+	if col == "tronco":
+		var cil := CylinderShape3D.new(); cil.radius = 0.35 * esc.x; cil.height = 4.0 * esc.y; cs.shape = cil
+		cs.transform = Transform3D(Basis(), T.origin + Vector3(0, cil.height * 0.5, 0))
+	else:
+		var bx := BoxShape3D.new(); bx.size = (cx.size * esc).max(Vector3.ONE * 0.1); cs.shape = bx
+		cs.transform = Transform3D(T.basis.orthonormalized(), T * cx.get_center())
+	(_corpos[cel] as StaticBody3D).add_child(cs)
+
 static func _no_lote(cel: Vector2i, malha: Mesh, tipo: String, modo: int, t: Transform3D) -> void:
 	var k := [cel, malha.get_instance_id(), tipo, modo]
 	if not _lote.has(k): _lote[k] = [malha, []]
@@ -179,5 +213,11 @@ static func finalizar(m: Object) -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if k[3] == 1: mi.visibility_range_end = PERTO
 		elif k[3] == 2: mi.visibility_range_begin = PERTO
+		elif k[3] == 3: mi.visibility_range_end = 45.0
+		elif k[3] == 4: mi.visibility_range_end = 95.0
 		m.raiz.add_child(mi)
 	_lote.clear()
+	for cel in _faces.keys():
+		var cb := StaticBody3D.new(); var cs := CollisionShape3D.new(); var sh := ConcavePolygonShape3D.new()
+		sh.set_faces(_faces[cel]); sh.backface_collision = true; cs.shape = sh; cb.add_child(cs); m.raiz.add_child(cb)
+	_faces.clear(); _corpos.clear()

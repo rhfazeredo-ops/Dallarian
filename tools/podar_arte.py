@@ -6,6 +6,9 @@ import os, re, json, glob, sys
 raiz = sys.argv[1] if len(sys.argv) > 1 else 'godot'
 txt = ''.join(open(f, encoding='utf-8').read() for f in glob.glob(f'{raiz}/scripts/*.gd'))
 nomes = set(re.findall(r'"(?:MF:)?(SM_[A-Za-z0-9_]+)"', txt)) | {'FantasyKingdom_Characters'}
+# Altamar: a cena da Synty (arte/altamar/cena.json) usa os modelos pelo nome da lista
+cena = f'{raiz}/arte/altamar/cena.json'
+if os.path.exists(cena): nomes |= {o['n'] for o in json.load(open(cena))}
 usados = set()
 for n in nomes: usados |= {n, n + '_Collision'}
 apagados = 0

@@ -286,8 +286,7 @@ func _calmo(vel: float, vh: Vector2, no_chao: bool, para_tras: bool) -> void:
 		if incl > 0.22: rampa = "_sobe"
 		elif incl < -0.22: rampa = "_desce"
 	if vel < 2.4: _tocar("calmo_andar" + rampa, clampf(vel / 1.5, 0.6, 1.6))
-	elif vel < 6.5: _tocar("calmo_correr" + rampa, clampf(vel / 4.6, 0.7, 1.6))
-	else: _tocar("calmo_disparada" + rampa, clampf(vel / 7.0, 0.8, 1.5))
+	else: _tocar("calmo_correr" + rampa, clampf(vel / 4.6, 0.7, 1.6))       # (o sprint da Synty é curvado demais: a corrida acelerada fica melhor)
 
 # Sacar/guardar da cintura: depois das animações, leva a mão direita até o lado esquerdo do quadril (onde está a
 # espada) e devolve; "peso" 0..1 vem do tempo do sacar/guardar. Direções no espaço do esqueleto (+X frente, +Z direita).

@@ -23,7 +23,6 @@ var estrada: PackedVector2Array      # estrada que sai da vila para o sul (poça
 var casas := [] # [pos, ang, w, d]
 var lugares := []                    # [centro Vector2, raio] — as árvores não nascem aqui
 var moinhos := []
-var porto_pos := Vector2.ZERO
 var pier_pos := Vector2.ZERO
 var _depois: Array[Callable] = []    # peças montadas depois do terreno (precisam da altura exata da malha)
 var args := {}
@@ -102,7 +101,6 @@ func _ready() -> void:
 		["Píer do Rio", pier_pos, "agua", 14.0],
 		["Lago do Planalto", Vector2(Regiao.LAGO.x, Regiao.LAGO.y), "agua", 60.0],
 		["Estábulo de Altamar", estabulo_pos, "vila", 20.0],
-		["Porto de Altamar", porto_pos, "farol", 30.0],
 		["Altamar", cidade_pos, "castelo", 200.0],
 	] + (reino.lugares_bussola if reino else []) + [
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
@@ -121,8 +119,7 @@ func _ready() -> void:
 # moradores: o mesmo modelo com cores e alturas sorteadas, andando pela vila (e alguns no porto e nas fazendas)
 func _moradores() -> void:
 	# (na cidade o povo anda pelas calçadas: são os cidadãos de reino.gd; aqui só a praça, sem cavalos)
-	var grupos := [[Regiao.VILA, 70.0, 14], [porto_pos + Vector2(-25, 0), 30.0, 5], [Regiao.PRACA, 14.0, 8],
-		[Vector2(1840, 75), 50.0, 8]]
+	var grupos := [[Regiao.VILA, 70.0, 14], [Vector2(1840, 75), 50.0, 8]]
 	var n := 0
 	for g in grupos:
 		for i in g[2]:
@@ -1023,7 +1020,10 @@ func _physics_process(_d: float) -> void:
 		_ultima = p
 
 func _tempo_jogo() -> float: return Time.get_ticks_msec() / 1000.0
-func altura(x: float, z: float) -> float: return reg.altura(x, z)
+# altura para pôr coisas e gente: em Altamar, o chão da cena da Synty (o terreno fica escondido logo abaixo)
+func altura(x: float, z: float) -> float:
+	if Regiao.CIDADE.has_point(Vector2(x, z)): return Regiao.chao_altamar(x, z)
+	return reg.altura(x, z)
 func cor_chao(x: float, z: float, h: float, ny: float) -> Color: return reg.cor(x, z, h, ny)
 func altura_malha(x: float, z: float) -> float: return terreno.altura_malha(x, z)
 func normal_malha(x: float, z: float) -> Vector3: return terreno.normal_malha(x, z)
@@ -1312,17 +1312,10 @@ var _estrada_ped := []          # [centro, amostras [[ponto, normal, s]], feito,
 var _t_estrada := 0.0
 func _estrada_preparar() -> void:
 	if reg.estrada_real < 0: return
-	var c := Regiao.CIDADE_C; var fx := Regiao.FOSSO_X; var rr := Regiao.CIDADE_R
-	# Estrada Real (vila → ponte) e, com a mesma pedra, a chegada da ponte, as quatro ruas principais de Altamar
-	# (da praça até os portões; a do norte para no castelo) e a praça
+	var fx := Regiao.FOSSO_X; var zp := Regiao.PORTAO.y
+	# Estrada Real (vila → ponte) e, com a mesma pedra, a chegada da ponte até o Portão Oeste de Altamar
 	_faixa_linha(reg.estradas[reg.estrada_real], ESTRADA_MEIA, func(p: Vector2) -> bool: return p.x > fx - 92.0)
-	_faixa_linha(PackedVector2Array([Vector2(fx - 92.0, c.y), Vector2(fx - 19.5, c.y)]), 4.0)
-	var fora_canal := func(p: Vector2) -> bool: return absf(p.distance_to(c) - Regiao.CANAL) < 7.0    # pontes do canal
-	_faixa_linha(PackedVector2Array([Vector2(fx + 19.5, c.y), c + Vector2(-24.0, 0)]), 5.5, fora_canal)
-	_faixa_linha(PackedVector2Array([c + Vector2(24.0, 0), c + Vector2(rr + 30.0, 0)]), 5.5, fora_canal)
-	_faixa_linha(PackedVector2Array([c + Vector2(0, -24.0), c + Vector2(0, -150.0)]), 5.5, fora_canal)
-	_faixa_linha(PackedVector2Array([c + Vector2(0, 24.0), c + Vector2(0, rr - 2.0)]), 5.5, fora_canal)
-	_estrada_ped.append([c, [], false, -24.0])                     # a praça (disco de 24 m; meia < 0 = disco)
+	_faixa_linha(PackedVector2Array([Vector2(fx - 92.0, zp), Vector2(Regiao.PORTAO.x - 2.0, zp)]), 4.0)
 
 # amostras a cada 1,5 m ao longo da linha; "pular" tira trechos (ponte, canal); pedaços de ~90 m
 func _faixa_linha(linha: PackedVector2Array, meia: float, pular := Callable()) -> void:
@@ -1786,13 +1779,50 @@ func _espuma() -> void:
 			ag.append(lc + q * anel[0]); mg.append(lc + q * anel[1]); yy.append(yl)
 		faixa.call(ag, mg, yy, 0, 0.55, 0.85)
 
-# ---------- cidade grande: Altamar (redonda, por bairros) ----------
-# Muralha redonda de pedra clara com torres de telhado azul e três portões. Fora do portão oeste: fosso e a Ponte
-# dos Guardiões, com quatro estátuas de heróis (guerreiro de martelo, maga de cajado, arqueira, cavaleiro de
-# espada). Dentro: praça central com chafariz, anel do Comércio (lojas com placas penduradas), canal em anel com
-# mureta e pontes; bairros: Castelo (norte), Catedral (noroeste), Portão (oeste), Magos (sudoeste, torre roxa),
-# Parque (sul: árvores, grama e lago), Porto (sudeste: armazéns e caixotes) e Bairro Velho (leste). Ruas principais
-# de pedra clara com calçada de tijolo, postes de luz e árvores. Os modelos do dono vão substituindo as peças.
+# teste: a Rachel anda sozinha pela rede de caminhos de pedra de Altamar (do portão para dentro), "n" pedras;
+# anota onde travou (andou < 0,8 m em 1,5 s) ou caiu (ficou 2 m abaixo da pedra) e tira foto desses lugares
+func _teste_rota(n: int) -> void:
+	var nos: Array = reino.rede_nos; var viz: Array = reino.rede_viz
+	if nos.is_empty(): print("ROTA: sem rede"); return
+	var rr := RandomNumberGenerator.new(); rr.seed = int(args.get("semente", "7"))
+	var atual := 0; var md := INF
+	var ini := Vector2(jogador.global_position.x, jogador.global_position.z)
+	for i in nos.size():
+		if viz[i].is_empty(): continue
+		var d := Vector2(nos[i].x, nos[i].z).distance_to(ini)
+		if d < md: md = d; atual = i
+	jogador.global_position = nos[atual] + Vector3(0, 0.6, 0)
+	controles.set_process(false)
+	await get_tree().create_timer(1.0).timeout
+	var ant := -1; var t_parado := 0.0; var ult := jogador.global_position; var problemas := 0; var feitos := 0
+	var visitados := {}
+	while feitos < n:
+		var vs: Array = viz[atual]
+		var cand := vs.filter(func(v): return not visitados.has(v))
+		if cand.is_empty(): cand = vs
+		var prox: int = cand[rr.randi() % cand.size()]
+		visitados[prox] = true; ant = atual; atual = prox; feitos += 1
+		var alvo: Vector3 = nos[atual]; var tempo := 0.0
+		while Vector2(jogador.global_position.x - alvo.x, jogador.global_position.z - alvo.z).length() > 0.6 and tempo < 4.0:
+			var dd := Vector2(alvo.x - jogador.global_position.x, alvo.z - jogador.global_position.z)
+			jogador.rotation.y = atan2(-dd.x, -dd.y); controles.dir = Vector2(0, -0.75)
+			await get_tree().physics_frame
+			tempo += get_physics_process_delta_time()
+		var ruim := ""
+		if tempo >= 4.0: ruim = "TRAVOU"
+		if jogador.global_position.y < alvo.y - 2.0: ruim = "CAIU"
+		if ruim != "":
+			problemas += 1
+			print("ROTA %s em %s (pedra %s)" % [ruim, str(jogador.global_position.snapped(Vector3.ONE * 0.1)), str(alvo.snapped(Vector3.ONE * 0.1))])
+			if problemas <= 6 and DisplayServer.get_name() != "headless":
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(String(args.shot).replace(".png", "_prob%d.png" % problemas))
+			jogador.global_position = alvo + Vector3(0, 0.6, 0); jogador.velocity = Vector3.ZERO
+	controles.dir = Vector2.ZERO
+	print("ROTA FIM: %d pedras, %d problemas" % [feitos, problemas])
+	if args.has("sair"): get_tree().quit()
+
+# ---------- Altamar (reino.gd monta a cena da Synty; aqui ficam as posições que os sistemas usam) ----------
 var cidade_pos := Vector2.ZERO
 var cidade_y := 0.0
 var estabulo_pos := Vector2.ZERO
@@ -1946,17 +1976,6 @@ func _placa(pos: Vector3, ang: float, w: float, d: float, h: float, nome: String
 		_quad(st, Vector3(xx, -2.0, 0.85), Vector3(xx, -2.0, 2.15), Vector3(xx, -0.6, 2.15), Vector3(xx, -0.6, 0.85), 1, 1)
 	var pl := _peca(st, _mat_tex("res://assets/ui/placas/%s.png" % nome), base); pl.rotation.y = ang
 
-# brilho roxo girando no alto da torre dos magos
-func _particulas_magia(pos: Vector3) -> void:
-	var p := CPUParticles3D.new(); p.position = pos; p.amount = 40; p.lifetime = 2.5; p.preprocess = 3.0
-	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING; p.emission_ring_axis = Vector3.UP; p.emission_ring_radius = 3.0; p.emission_ring_inner_radius = 2.0; p.emission_ring_height = 0.5
-	p.direction = Vector3(0, 1, 0); p.spread = 20.0; p.initial_velocity_min = 0.4; p.initial_velocity_max = 1.0; p.gravity = Vector3.ZERO
-	p.orbit_velocity_min = 0.15; p.orbit_velocity_max = 0.25
-	var q := QuadMesh.new(); q.size = Vector2(0.4, 0.4)
-	var mt := StandardMaterial3D.new(); mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; mt.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	mt.albedo_color = Color(0.85, 0.5, 1.0); q.material = mt; p.mesh = q
-	p.visibility_aabb = AABB(Vector3(-8, -4, -8), Vector3(16, 12, 16)); raiz.add_child(p)
-
 # faixa de água seguindo uma linha de rio (nível e largura por posição ao longo dele)
 func _faixa_rio(linha: PackedVector2Array, largura: Callable, nivel: Callable, am: Material) -> void:
 	var st := _st(); var pts := []
@@ -1997,8 +2016,7 @@ func _estatuas_guardia() -> void:
 	var pontos := [
 		[v + Vector2(16, 40), v],                                              # entrada sul da vila
 		[Vector2(980, 230), Vector2(980, 205)],                                # meio da Estrada Real
-		[Regiao.PRACA + Vector2(-17, -15), Regiao.PRACA],                      # praça do mercado de Altamar
-		[Vector2(Regiao.CIDADE.position.x - 70.0, Regiao.CIDADE_C.y + 25.0), Vector2(Regiao.CIDADE.position.x - 70.0, Regiao.CIDADE_C.y)],   # Portão Oeste
+		[Regiao.PORTAO + Vector2(-85.0, 16.0), Regiao.PORTAO + Vector2(-85.0, 0.0)],   # Portão Oeste (a da praça é o anjo da cena)
 		[lago + Vector2(Regiao.LAGO.z + 25.0, 40.0), lago],                    # lago do Planalto do Oeste
 		[Vector2(-520, 260), Vector2(-560, 250)],                              # subida do planalto
 		[Vector2(520, -600), Vector2(500, -600)],                              # Estrada do Norte (mina)
@@ -2116,30 +2134,6 @@ func _parede_colisao(p0: Vector2, p1: Vector2, esp: float, alt: float) -> void:
 		var q := p0.lerp(p1, i / 4.0); var y := terreno.altura_malha(q.x, q.y)
 		ymin = minf(ymin, y); ymax = maxf(ymax, y)
 	_colisor_caixa(Vector3(meio.x, ymin - 0.3, meio.y), Vector3(esp, ymax - ymin + alt + 0.3, comp), atan2(d.x, d.y))
-
-func _porto() -> void:
-	var z := 58.0; var xc := Regiao.Ws(380.0)
-	while xc < Regiao.X1 - 40.0 and altura(xc, z) > 0.4: xc += 1.0
-	var st := _st()
-	var y := 1.5
-	for i in 18:                                        # píer: tábuas sobre estacas
-		var x := xc - 6.0 + i * 2.0
-		_caixa(st, Vector3(x, y, z), Vector3(2.0, 0.2, 3.2))
-		if i % 2 == 0:
-			for lz in [-1.4, 1.4]: _caixa(st, Vector3(x, y - 1.6, z + lz), Vector3(0.3, 3.2, 0.3))
-	_peca(st, mat("madeira"), Vector3.ZERO)
-	_colisor_caixa(Vector3(xc + 11.0, y - 0.1, z), Vector3(36.0, 0.2, 3.2), PI / 2)
-	# barcos
-	for b in [[xc + 14.0, z + 5.0], [xc + 24.0, z - 5.0]]:
-		st = _st(); _caixa(st, Vector3(0, 0.25, 0), Vector3(5.0, 0.7, 1.8)); _caixa(st, Vector3(2.7, 0.35, 0), Vector3(0.8, 0.5, 1.0))
-		_peca(st, mat("madeira", 1.0, Color(0.75, 0.6, 0.5)), Vector3(b[0], 0.0, b[1]), 0.2)
-	for h in [[xc - 24.0, z - 24.0], [xc - 30.0, z + 26.0], [xc - 16.0, z + 46.0], [xc - 40.0, z - 4.0]]:
-		var p := Vector2(h[0], h[1])
-		if altura(p.x, p.y) < 0.8: continue
-		_casa(Vector3(p.x, altura(p.x, p.y) - 0.2, p.y), atan2(xc - p.x, z - p.y) + PI, 5.0, 4.4, 2.7)
-	for b in [[xc - 2.0, z + 3.0], [xc - 1.0, z + 3.6], [xc - 3.0, z - 3.0]]:
-		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
-	lugares.append([Vector2(xc - 20.0, z), 45.0]); porto_pos = Vector2(xc - 10.0, z)
 
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, uw: float, vh: float) -> void:
 	var n := (b - a).cross(d - a).normalized()
@@ -2287,7 +2281,7 @@ func _modo_teste() -> void:
 		var pi: Array = portas[int(args.interior)]
 		jogador.position = (pi[1] as Vector3) + Vector3(0, 0.3, 0); jogador.rotation.y = 0.0; _ultima = jogador.position
 	if args.has("pos"):
-		var pp := String(args.pos).split(","); jogador.position = Vector3(float(pp[0]), altura(float(pp[0]), float(pp[1])) + 0.3, float(pp[1])); _ultima = jogador.position
+		var pp := String(args.pos).split(","); jogador.position = Vector3(float(pp[0]), altura(float(pp[0]), float(pp[1])) + 0.3 if pp.size() < 3 else float(pp[2]), float(pp[1])); _ultima = jogador.position
 	if args.has("olhar"): jogador.rotation.y = deg_to_rad(float(args.olhar))
 	if args.has("raio"): _prox_raio = 0.0
 	if args.has("pose"): jogador.mostrar_pose(args.pose)
@@ -2516,7 +2510,6 @@ func _modo_teste() -> void:
 			"praca": alvo = cidade_pos + Vector2(-30, 6); olha = cidade_pos + Vector2(0, -150)
 			"ponte": alvo = Vector2(Regiao.FOSSO_X - 18.0, cidade_pos.y + 2.0); olha = cidade_pos
 			"lojas": alvo = cidade_pos + Vector2(-14, 14); olha = cidade_pos + Vector2(-40, 30)
-			"parque": alvo = cidade_pos + Vector2(-60, 160); olha = Regiao.LAGO_PARQUE
 			"magos": alvo = cidade_pos + Vector2(-60, 70); olha = cidade_pos + Vector2(-130, 115)
 			"porto_cidade": alvo = Vector2(Regiao.CIDADE.end.x + 22.0, cidade_pos.y + 30.0); olha = Vector2(Regiao.CIDADE.end.x + 120.0, cidade_pos.y - 10.0)
 			"portao_leste": alvo = Vector2(Regiao.CIDADE.end.x + 30.0, cidade_pos.y + 4.0); olha = Vector2(Regiao.CIDADE.end.x - 40.0, cidade_pos.y)
@@ -2575,11 +2568,13 @@ func _modo_teste() -> void:
 				jogador.iniciar(ps[0]); jogador._fase = int(ps[1]); jogador.congelar = float(ps[2])
 			elif ps[0] == "bloquear" or ps[0] == "escudada": controles.bloqueio_mouse = true
 			elif ps[0] == "correr": controles.auto = true
-			elif ps[0] == "andar": controles.dir = Vector2(0, -0.6)
+			elif ps[0] == "andar": controles.dir = Vector2(0, -0.4); controles.set_process(false)
+			elif ps[0] == "trotar": controles.dir = Vector2(0, -1.0); controles.set_process(false)
 			elif ps[0] == "pular": jogador._pulo_pedido = 0.2
 			elif ps[0] == "pular_correndo":
 				controles.auto = true; get_tree().create_timer(0.8).timeout.connect(func(): jogador._pulo_pedido = 0.2)
 			elif ps[0] == "parar": controles.auto = true; get_tree().create_timer(0.8).timeout.connect(func(): controles.auto = false))
+	if args.has("rota"): _teste_rota(int(args.rota))       # teste: anda sozinha pelos caminhos de Altamar
 	if args.has("dar_cavalos"):    # teste: dá as três montarias (e dinheiro)
 		for id in ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]: if not id in bolsa.montarias: bolsa.montarias.append(id)
 		bolsa.montaria_sel = String(args.get("cavalo", "cavalo_preto")) if String(args.get("cavalo", "")) != "" else bolsa.montarias[0]
@@ -2758,6 +2753,11 @@ func _modo_teste() -> void:
 			get_viewport().get_texture().get_image().save_png(String(args.shot).replace(".png", "-%d.png" % q)); q += 1
 		get_tree().quit(); return
 	await get_tree().create_timer(float(args.get("espera", "2"))).timeout
+	print("POS_FINAL ", jogador.global_position.snapped(Vector3.ONE * 0.1), " no_chao ", jogador.is_on_floor())
+	if args.has("perf"):
+		print("DESENHO objetos=%d triangulos=%d chamadas=%d" % [Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)])
+	var cp = jogador.corpo
+	if cp and cp._ap: print("ANIM atual=%s tocando=%s vel_anim=%.2f vel=%.2f armado=%s braco=%.2f sentar=%.2f" % [cp._atual, cp._ap.current_animation, cp._ap.speed_scale, Vector2(jogador.velocity.x, jogador.velocity.z).length(), jogador.armado, cp._braco.peso, cp._sentar.peso])
 	get_viewport().get_texture().get_image().save_png(args.shot)
 	get_tree().quit()
 
@@ -2777,16 +2777,17 @@ func _gerar_mapa() -> void:
 			if (ag != 0.0 and h < ag) or (x > Regiao.COSTA - 30.0 and h < 0.2): c = Color(0.27, 0.5, 0.72).lerp(Color(0.18, 0.36, 0.6), clampf(-h * 0.1, 0.0, 1.0))
 			var luz := clampf(0.82 + (nrm.x - nrm.z) * 1.6, 0.55, 1.25)
 			img.set_pixel(i, j, c * luz)
-	# ruas de Altamar e a praça do mercado (pedra clara)
-	for j in H:
-		for i in W:
-			var x := Regiao.X0 + (i + 0.5) * sx; var z := Regiao.Z0 + (j + 0.5) * sz
-			if not Regiao.CIDADE.grow(30.0).has_point(Vector2(x, z)): continue
-			var na_rua := Regiao.na_praca(Vector2(x, z))
-			for k in Regiao.RUAS.size():
-				var cc := Geometry2D.get_closest_point_to_segment(Vector2(x, z), Regiao.RUAS[k][0], Regiao.RUAS[k][1])
-				if Vector2(x, z).distance_to(cc) < Regiao.LARG_RUAS[k] + Regiao.CALCADA: na_rua = true
-			if na_rua and reg.agua(x, z) == 0.0: img.set_pixel(i, j, Color(0.78, 0.74, 0.66))
+	# Altamar: a vista de cima da cena da Synty (ferramentas/altamar_mapa.gd), 1 pixel = 1 m
+	if ResourceLoader.exists("res://arte/altamar/mapa.png") or FileAccess.file_exists("res://arte/altamar/mapa.png"):
+		var cid := Image.load_from_file(ProjectSettings.globalize_path("res://arte/altamar/mapa.png"))
+		var R := Regiao.CIDADE
+		for j in H:
+			for i in W:
+				var x := Regiao.X0 + (i + 0.5) * sx; var z := Regiao.Z0 + (j + 0.5) * sz
+				if not R.has_point(Vector2(x, z)): continue
+				var c := cid.get_pixel(clampi(int(x - R.position.x), 0, cid.get_width() - 1), clampi(int(z - R.position.y), 0, cid.get_height() - 1))
+				var borda := minf(minf(x - R.position.x, R.end.x - x), minf(z - R.position.y, R.end.y - z))
+				img.set_pixel(i, j, img.get_pixel(i, j).lerp(c, smoothstep(0.0, 8.0, borda)))
 	# casas: retângulo do tamanho da casa, cor de telhado
 	for ca in casas:
 		var pos: Vector3 = ca[0]; var ang: float = ca[1]; var w: float = ca[2]; var d: float = ca[3]

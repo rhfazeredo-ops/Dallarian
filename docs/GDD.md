@@ -114,17 +114,12 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Escudo levantado de frente bloqueia a mordida. Lobo comum cai com 3 golpes leves (o forte vale 2); dá XP
   (15, líder 40). Vida da Rachel zerada: desmaia e acorda na vila.
 
-- **Altamar**, a capital (canto leste, entre as montanhas e o mar), feita só com peças do POLYGON Fantasy Kingdom.
-  Planta em **grade de ruas retas** (docs: regiao.gd RUAS): a **Avenida Real** vai do Portão Oeste à **ilha da
-  catedral** (canal em anel, quatro pontes de pedra em arco), segue como **Rua do Porto** até o cais. Cada rua tem a
-  **pista de pedrinhas** no meio (cavalos e carroças, no futuro) e **calçadas de lajotas** mais altas dos dois lados,
-  com meio-fio; o povo anda só pelas calçadas. Casas **coladas umas nas outras** com a porta para a calçada e o miolo
-  dos quarteirões cheio de casas de fundos. **Praça do mercado** retangular ao sul da ilha: chafariz, oito barracas
-  com vendedores (LOJA e CONVERSAR; mercadoria em breve), lojas com placa dos dois lados (armas, armaduras, alquimia,
-  alfaiate, joalheiro) e a **Taverna O Javali Dourado** (entra; o taverneiro Bartolomeu vende poções). Rua das Lojas
-  ao sul (banco, estalagem, ferraria). **Catedral** virada para a avenida, com coro no mezanino e escada de pedra.
-  Fortaleza no morro a noroeste (Rua do Castelo sobe até ela), torres dos magos a sudoeste, praça da justiça e jardim
-  dos nobres ao norte, porto a leste.
+- **Altamar**, a capital (no leste, entre as montanhas e o mar): a cena de demonstração Demo_01 do pacote POLYGON
+  Fantasy Kingdom, montada peça por peça como a Synty montou (tools/ler_cena_unity.py → ferramentas/
+  altamar_assar.gd → reino.gd). Cidade alta murada com casas que têm interior (tavernas com balcão, capela), praça
+  do mercado em volta de uma árvore grande, castelo no alto a leste (sala do trono), campos ao sul, rio, casa do
+  portão oeste com ponte levadiça, onde chega a Estrada dos Heróis. Vendedores nas barracas e nos balcões, a Irmã
+  Odília na capela, o povo andando pelos caminhos de pedra.
 - **A vila** também é redonda: casas em dois anéis em volta da praça do poço, viradas para o centro.
 
 ## 7.1.1 Dia e noite
