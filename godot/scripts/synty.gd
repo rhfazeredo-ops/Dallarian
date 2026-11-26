@@ -47,6 +47,7 @@ static func pecas(nome: String) -> Array:
 			for si in mi.mesh.get_surface_count():
 				var arr: Array = mi.mesh.surface_get_arrays(si)
 				arr[Mesh.ARRAY_COLOR] = null           # a Synty guarda o "vento" nas cores dos vértices (deixava as árvores pretas)
+				for ai in [Mesh.ARRAY_BONES, Mesh.ARRAY_WEIGHTS, Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]: arr[ai] = null
 				var am := ArrayMesh.new(); am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 				lista.append([am, t, "castelo" if nome.begins_with("SM_Bld_Castle_") else _tipo(mi.mesh.surface_get_material(si))])
 			var b: AABB = t * mi.mesh.get_aabb()

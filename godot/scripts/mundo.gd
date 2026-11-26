@@ -74,7 +74,7 @@ func _ready() -> void:
 	if args.has("carga"): print("CARGA moradores ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	raiz.add_child(jogador)
 	# a Rachel começa no portão oeste de Altamar, logo antes de sair do reino, virada para a ponte (testes: --vila)
-	var ini := Vector2(-4, 48) if args.has("vila") else Regiao.CIDADE_C + Vector2(-Regiao.CIDADE_R + 9.0, 0.0)
+	var ini := Regiao.VILA + Vector2(-4, 48) if args.has("vila") else Vector2(Regiao.CIDADE.position.x + 9.0, Regiao.CIDADE_C.y)
 	jogador.position = Vector3(ini.x, altura(ini.x, ini.y) + 0.3, ini.y)
 	if not args.has("vila"): jogador.rotation.y = PI * 0.5                # olhando para o oeste (portão e ponte)
 	_ultima = jogador.position
@@ -97,17 +97,12 @@ func _ready() -> void:
 	var bus := Bussola.new(); cl.add_child(bus)
 	bus.descobriu.connect(func(_n): hud.ganhar_xp(roundf(40.0 + 20.0 * hud.nivel)))      # descobrir um local dá XP
 	bus.montar(self, [
-		["Vila do Vale", Vector2(0, 0), "vila", 45.0],
+		["Vila do Vale", Regiao.VILA, "vila", 45.0],
 		["Ferraria do Bram", ferraria_pos, "ferraria", 12.0],
-		["Mosteiro da Ilha", Vector2(Regiao.ILHA.x, Regiao.ILHA.y), "torre", 30.0],
-		["Porto dos Pescadores", porto_pos, "farol", 30.0],
 		["Píer do Rio", pier_pos, "agua", 14.0],
-		["Moinho", Regiao.W(Vector2(-244, 100)), "moinho", 18.0],
-		["Torre em Ruínas", Regiao.W(Vector2(220, -260)), "ruinas", 25.0],
-		["Serraria", Regiao.W(Vector2(286, -170)), "arvore", 22.0],
-		["Acampamento de Bandidos", Regiao.W(Vector2(-330, 300)), "bandidos", 25.0],
-		["Caverna do Oeste", caverna_pos, "caverna", 18.0],
-		["Desfiladeiro do Norte", Vector2(0, -Regiao.Ws(468.0)), "montanhas", 40.0],
+		["Lago do Planalto", Vector2(Regiao.LAGO.x, Regiao.LAGO.y), "agua", 60.0],
+		["Estábulo de Altamar", estabulo_pos, "ferradura", 20.0],
+		["Porto de Altamar", porto_pos, "farol", 30.0],
 		["Altamar", cidade_pos, "castelo", 200.0],
 	] + barracas.map(func(b: Vector2) -> Array: return ["Acampamento", b, "tenda", 14.0]))
 	fauna.montar(self)
@@ -124,8 +119,8 @@ func _ready() -> void:
 
 # moradores: o mesmo modelo com cores e alturas sorteadas, andando pela vila (e alguns no porto e nas fazendas)
 func _moradores() -> void:
-	var grupos := [[Vector2(-3, 0), 58.0, 12], [porto_pos + Vector2(-25, 0), 30.0, 3], [Regiao.W(Vector2(-215, 60)), 40.0, 3],
-		[cidade_pos + Vector2(0, 30), 120.0, 18], [cidade_pos + Vector2(-140, 0), 60.0, 6], [cidade_pos + Vector2(120, 60), 60.0, 6]]
+	var grupos := [[Regiao.VILA, 70.0, 14], [porto_pos + Vector2(-25, 0), 30.0, 5], [Regiao.PRACA, 45.0, 16],
+		[Vector2(1760, 75), 60.0, 8], [Vector2(1950, -60), 60.0, 6], [Vector2(1990, 210), 60.0, 8]]
 	var n := 0
 	for g in grupos:
 		for i in g[2]:
@@ -1429,7 +1424,7 @@ func _vento(delta: float) -> void:
 func _postes() -> void:
 	var pontos := []                                       # [posição, para onde a lanterna aponta]
 	for k in 6:                                            # praça do poço
-		var a := TAU * (k + 0.5) / 6.0; var q := Vector2(cos(a), sin(a)) * 9.5
+		var a := TAU * (k + 0.5) / 6.0; var q := Regiao.VILA + Vector2(cos(a), sin(a)) * 12.5
 		if reg.folga_caminho(q.x, q.y) > 0.6 and not perto_de_casa(q.x, q.y, 0.6): pontos.append([q, Vector2.ZERO])
 	for e in 2:
 		var linha: PackedVector2Array = reg.estradas[e]
@@ -1586,7 +1581,7 @@ func _barracas() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 91
 	for i in 3000:
 		var q := Vector2(rng.randf_range(Regiao.X0 + 80, Regiao.X1 - 80), rng.randf_range(-Regiao.LIM + 80, Regiao.LIM - 80))
-		if q.length() < 170.0 or reg.folga_caminho(q.x, q.y) < 22.0 or reg.agua(q.x, q.y) != 0.0: continue
+		if q.distance_to(Regiao.VILA) < 170.0 or reg.folga_caminho(q.x, q.y) < 22.0 or reg.agua(q.x, q.y) != 0.0: continue
 		if reg.dist_rio(q.x, q.y) < 25.0 or Vector2(q.x - Regiao.LAGO.x, q.y - Regiao.LAGO.y).length() < Regiao.LAGO.z + 15.0: continue
 		if perto_de_lugar(q.x, q.y, 30.0) or reg.campo_em(q.x, q.y) >= 0: continue
 		var h0 := reg.altura(q.x, q.y); var desnivel := 0.0
@@ -1599,7 +1594,7 @@ func _barracas() -> void:
 	while esc.size() < 9 and not cand.is_empty():
 		var melhor: Vector2 = cand[0]; var md := -1.0
 		for q in cand:
-			var d: float = q.length() * 0.6
+			var d: float = q.distance_to(Regiao.VILA) * 0.6
 			for e in esc: d = minf(d, q.distance_to(e))
 			if d > md: md = d; melhor = q
 		if md < 260.0 and esc.size() > 0: break
@@ -2428,17 +2423,9 @@ func _faixa_rio(linha: PackedVector2Array, largura: Callable, nivel: Callable, a
 
 # ---------- lugares da região ----------
 func _lugares() -> void:
-	_vila()
+	# mapa novo (docs/MAPA_NOVO.md): Altamar, a Vila do Vale, o estábulo e os campos — scripts/reino.gd
+	Reino.new().construir(self)
 	_pontes()
-	_fazendas()
-	_porto()
-	_mosteiro()
-	_ruinas()
-	_serraria()
-	_bandidos()
-	_caverna()
-	_barricada()
-	_cidade()
 	_estatuas_guardia()
 	_barracas()
 	_postes()
@@ -2447,23 +2434,19 @@ func _lugares() -> void:
 # marcantes, sem encher o mapa: vila, meio da Estrada Real, praça de Altamar e perto dos lugares mais perigosos
 # ou afastados (porto, moinho, torre em ruínas, acampamento de bandidos, caverna, desfiladeiro, lago, leste).
 func _estatuas_guardia() -> void:
-	var c := Regiao.CIDADE_C
-	var lago := Vector2(Regiao.LAGO.x, Regiao.LAGO.y)
-	var bandidos := Regiao.W(Vector2(-330, 300)); var ruinas := Regiao.W(Vector2(220, -260)); var moinho := Regiao.W(Vector2(-244, 100))
-	var desf := Vector2(0, -Regiao.Ws(468.0))
+	var v := Regiao.VILA; var lago := Vector2(Regiao.LAGO.x, Regiao.LAGO.y)
 	var pontos := [
-		[Vector2(16, 62), Vector2(-4, 48)],                                   # entrada sul da vila
-		[Vector2(850, -285), Vector2(840, -310)],                             # meio da Estrada Real
-		[c + Vector2(-20, 13), c + Vector2(-20, 0)],                          # praça de Altamar
-		[porto_pos + Vector2(-30, -18), porto_pos],                           # Porto dos Pescadores
-		[moinho + Vector2(26, -20), moinho],                                  # Moinho
-		[ruinas + Vector2(-40, 30), ruinas],                                  # Torre em Ruínas (e a serraria perto)
-		[bandidos + bandidos.direction_to(Vector2.ZERO) * 70.0, bandidos],    # antes do Acampamento de Bandidos
-		[caverna_pos + caverna_pos.direction_to(Vector2.ZERO) * 40.0, caverna_pos],   # Caverna do Oeste
-		[desf + Vector2(30, 45), desf],                                       # Desfiladeiro do Norte
-		[lago + lago.direction_to(Vector2.ZERO) * (Regiao.LAGO.z + 22.0), lago],      # margem do lago do mosteiro
-		[Vector2(1350, 260), Vector2(1350, 200)],                             # terras do leste (sul)
-		[Vector2(1250, -880), Vector2(1250, -820)],                           # terras do leste (norte)
+		[v + Vector2(16, 40), v],                                              # entrada sul da vila
+		[Vector2(980, 230), Vector2(980, 205)],                                # meio da Estrada Real
+		[Regiao.PRACA + Vector2(-34, 22), Regiao.PRACA],                       # praça do mercado de Altamar
+		[Vector2(Regiao.CIDADE.position.x - 70.0, Regiao.CIDADE_C.y + 25.0), Vector2(Regiao.CIDADE.position.x - 70.0, Regiao.CIDADE_C.y)],   # Portão Oeste
+		[lago + Vector2(Regiao.LAGO.z + 25.0, 40.0), lago],                    # lago do Planalto do Oeste
+		[Vector2(-520, 260), Vector2(-560, 250)],                              # subida do planalto
+		[Vector2(520, -600), Vector2(500, -600)],                              # Estrada do Norte (mina)
+		[Vector2(300, 860), Vector2(300, 880)],                                # pântano
+		[Vector2(1250, -700), Vector2(1250, -650)],                            # colinas do nordeste
+		[Vector2(1000, 650), Vector2(1000, 600)],                              # colinas do sudeste
+		[Vector2(-300, -700), Vector2(-300, -650)],                            # noroeste
 	]
 	for par in pontos:
 		var alvo: Vector2 = par[0]; var frente_para: Vector2 = par[1]
@@ -2483,6 +2466,12 @@ func _estatua_guardia(p: Vector2, fr: Vector2) -> void:
 	var ang := atan2(fr.x, fr.y)
 	var y := reg.aplanar(p, Vector2(2.4, 2.4), -ang, 3.0)
 	lugares.append([p, 5.0])
+	if Synty.existe("SM_Prop_Statue_Angel_01"):                 # mapa novo: estátua de anjo da Synty num pedestal
+		Synty.por(self, "SM_Prop_Statue_Plinth_01", Vector3(p.x, y - 0.05, p.y), ang, 1.4, true)
+		var topo := Synty.caixa("SM_Prop_Statue_Plinth_01").end.y * 1.4
+		Synty.por(self, "SM_Prop_Statue_Angel_01", Vector3(p.x, y - 0.1 + topo, p.y), ang, 1.6, false)
+		luzes.append(Vector3(p.x, y + 1.6, p.y) + Vector3(fr.x, 0, fr.y) * 1.6)
+		return
 	var arq := "res://assets/modelos/estatua_guardia.glb"
 	if ResourceLoader.exists(arq):
 		# modelo do Tripo: ~0,98 de altura, de frente para +X, base em y = -0,49 → 4,5 m, de frente para "fr"

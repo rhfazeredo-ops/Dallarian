@@ -26,11 +26,21 @@ const NZ := 600              # células nas grades (norte → sul)
 const COSTA := 2220.0        # linha da praia (o mar vai daqui até o fim do mapa)
 # cidade grande murada com porto, no canto nordeste, entre as montanhas e o mar: [x0, z0, x1, z1] das muralhas
 # cidade grande redonda (centro e raio da muralha); um canal em anel corta a cidade no raio CANAL
-const CIDADE_C := Vector2(1890.0, -600.0)
-const CIDADE_R := 230.0
-const CANAL := 95.0
-const CIDADE := Rect2(CIDADE_C - Vector2(CIDADE_R, CIDADE_R), Vector2(CIDADE_R, CIDADE_R) * 2.0)   # caixa em volta
-const ALTURA_CIDADE := 6.0       # cidade de porto: um pouco acima do mar
+# MAPA NOVO (docs/MAPA_NOVO.md): Altamar é um retângulo na costa leste, em degraus — nível do portão (oeste, 9 m),
+# do mercado (meio, 6 m) e do porto (leste, 3 m), com o castelo num morro no noroeste (24 m)
+const CIDADE := Rect2(1650.0, -200.0, 550.0, 550.0)
+const CIDADE_C := Vector2(1925.0, 75.0)          # centro do retângulo (a avenida do portão passa em z = 75)
+const CIDADE_R := 275.0                          # metade do lado (compatibilidade)
+const CANAL := -1000.0                           # (a cidade nova não tem canal em anel)
+const ALTURA_CIDADE := 9.0                       # nível do portão oeste (a estrada, a ponte e o estábulo)
+const NIVEL_MERCADO := 6.0
+const NIVEL_PORTO := 3.0
+const X_MERCADO := 1855.0                        # degrau do portão para o mercado
+const X_PORTO := 2045.0                          # degrau do mercado para o porto
+const CASTELO := Vector2(1740.0, -110.0)         # topo do morro do castelo
+const ALTURA_CASTELO := 24.0
+const PRACA := Vector2(1950.0, 75.0)             # praça do mercado
+const VILA := Vector2(250.0, 420.0)              # Vila do Vale (centro da praça)
 # O desenho original era de 1,2 km. Para aumentar o mapa sem mexer na vila, tudo até 150 m do centro fica igual
 # e o que está além se afasta ("Ws"/"W": distância/ponto do desenho original → mundo de 2,4 km).
 const PERTO := 150.0
@@ -44,40 +54,32 @@ var ruido := FastNoiseLite.new()
 var ruido_grande := FastNoiseLite.new()
 var ruido_relevo := FastNoiseLite.new()       # mapa novo: colinas, planaltos e vales
 
-# estradas (linhas) — a primeira sai da vila para o sul (onde o jogador começa)
+# estradas (linhas, coordenadas do mundo) — a primeira sai da vila para o sul
 var estradas := [
-	PackedVector2Array([Vector2(0, 8), Vector2(-14, 70), Vector2(-22, 125), Vector2(4, 200), Vector2(14, 262), Vector2(40, 330), Vector2(52, 392)]),
-	PackedVector2Array([Vector2(0, -8), Vector2(-8, -70), Vector2(-12, -125), Vector2(8, -200), Vector2(12, -280), Vector2(0, -380), Vector2(0, -470)]),
-	PackedVector2Array([Vector2(8, 0), Vector2(80, 14), Vector2(160, 30), Vector2(240, 44), Vector2(330, 40), Vector2(408, 58)]),
-	PackedVector2Array([Vector2(-8, 0), Vector2(-80, 18), Vector2(-160, 34), Vector2(-240, 30), Vector2(-300, 70), Vector2(-330, 130)]),
-	PackedVector2Array([Vector2(-160, 34), Vector2(-200, -20), Vector2(-240, -70)]),
-	PackedVector2Array([Vector2(12, -280), Vector2(-60, -290), Vector2(-112, -300)]),     # trilha até o lago
-	PackedVector2Array([Vector2(240, 44), Vector2(260, -60), Vector2(280, -150)]),        # serraria
+	PackedVector2Array([VILA + Vector2(0, 10), Vector2(244, 520), Vector2(205, 640), Vector2(232, 760), Vector2(300, 880)]),
+	PackedVector2Array([VILA + Vector2(0, -10), Vector2(268, 300), Vector2(330, 120), Vector2(362, -100), Vector2(420, -350), Vector2(500, -600), Vector2(560, -820)]),
+	PackedVector2Array([VILA + Vector2(-10, 0), Vector2(120, 412), Vector2(-50, 382), Vector2(-250, 330), Vector2(-400, 300), Vector2(-560, 250), Vector2(-660, 120), Vector2(-690, -150)]),
 ]
-# trilhas: caminhos estreitos de terra saindo da rua principal da vila para grupos de casas, hortas e o rio
+# trilhas: caminhos estreitos saindo da rua da vila para sítios, hortas e o rio
 var trilhas := [
-	PackedVector2Array([Vector2(-4, -32), Vector2(-24, -38), Vector2(-40, -42), Vector2(-52, -44)]),    # sítio a oeste
-	PackedVector2Array([Vector2(-7, 30), Vector2(14, 36), Vector2(30, 40), Vector2(44, 44)]),          # casas e horta a leste
-	PackedVector2Array([Vector2(-4, -36), Vector2(28, -54), Vector2(70, -63), Vector2(108, -64)]),     # descida para o rio (píer)
-	PackedVector2Array([Vector2(-9, -60), Vector2(10, -72), Vector2(28, -80)]),                        # casa afastada ao norte
+	PackedVector2Array([VILA + Vector2(-20, 12), VILA + Vector2(-40, 45), VILA + Vector2(-70, 70)]),
+	PackedVector2Array([VILA + Vector2(30, -12), VILA + Vector2(60, -50), VILA + Vector2(90, -80)]),
+	PackedVector2Array([VILA + Vector2(60, 8), VILA + Vector2(120, 20), VILA + Vector2(175, 30)]),
 ]
-# rio em "S", das montanhas do norte até o pântano
-var rio := PackedVector2Array([Vector2(-270, -520), Vector2(-250, -420), Vector2(-215, -345), Vector2(-170, -300),
-	Vector2(-130, -240), Vector2(-60, -175), Vector2(40, -135), Vector2(115, -70), Vector2(140, 20), Vector2(110, 120),
-	Vector2(40, 200), Vector2(30, 280), Vector2(80, 360), Vector2(150, 430), Vector2(200, 480)])
-static var LAGO := _lago()        # x, z, raio
-static var ILHA := Vector3(LAGO.x + 2.0 * 1.5, LAGO.y + 4.0 * 1.5, 16.0 * 1.4)
-static func _lago() -> Vector3:
-	var c := W(Vector2(-170, -300)); return Vector3(c.x, c.y, 58.0 * 1.5)
-const CENTRO_VILA := Vector2(0, 0)
-# campos das fazendas: [centro x, centro z, largura, comprimento, ângulo (graus), tipo]  tipo 0 = trigo, 1 = terra arada
+# rio do vale: nasce nas montanhas do norte, desce pelo meio do mapa, passa a leste da vila e morre no pântano
+var rio := PackedVector2Array([Vector2(650, -1180), Vector2(620, -900), Vector2(560, -650), Vector2(505, -420),
+	Vector2(470, -200), Vector2(432, 30), Vector2(422, 230), Vector2(440, 380), Vector2(520, 560), Vector2(650, 700),
+	Vector2(850, 820), Vector2(1100, 920)])
+static var LAGO := Vector3(-700.0, -300.0, 95.0)        # x, z, raio (no Planalto do Oeste)
+static var ILHA := Vector3(-696.0, -294.0, 22.0)
+const CENTRO_VILA := VILA
+# campos: [centro x, centro z, largura, comprimento, ângulo (graus), tipo]  tipo 0 = trigo, 1 = terra arada
 var campos := [
-	[-200, 75, 60, 40, 8, 0], [-205, 125, 50, 34, 8, 1], [-280, -10, 56, 42, -12, 0], [-300, 40, 40, 30, -12, 1],
-	[-265, 180, 64, 40, 20, 0], [-90, 60, 44, 30, 4, 0], [70, 70, 50, 32, -6, 0], [90, -40, 36, 28, 10, 1],
-	[-62, -60, 22, 14, 8, 1], [20, 60, 16, 11, 0, 1],      # hortas da vila (sítio oeste e casas a leste)
+	[120, 520, 60, 40, 10, 0], [100, 320, 50, 34, -8, 1], [370, 560, 64, 40, 20, 0], [560, 470, 50, 34, -15, 0],
+	[620, 600, 44, 30, 5, 1], [140, 610, 40, 30, 0, 0], [330, 250, 40, 28, 12, 0],
+	[190, 470, 16, 11, 0, 1], [305, 365, 14, 10, 0, 1],                 # hortas da vila
 ]
-# morros (x, z, raio, altura)
-var morros := [Vector4(220, -260, 70, 16), Vector4(-60, -390, 60, 10), Vector4(330, 250, 80, 12), Vector4(-380, 330, 70, 9)]
+var morros := []
 
 var estrada_real := -1                       # índice da Estrada Real (vila → Altamar) em "estradas"
 var d_estrada := PackedFloat32Array()
@@ -89,25 +91,14 @@ var pontes := []                             # [posição Vector2, direção da 
 var planos := []                             # chão aplanado embaixo das construções: [centro, meia medida, ângulo, altura, margem, raio²]
 
 func _init() -> void:
-	# afasta tudo do desenho original que fica longe da vila
-	for e in estradas:
-		for i in e.size(): e[i] = W(e[i])
-	for i in rio.size(): rio[i] = W(rio[i])
-	for c in campos:
-		var q := W(Vector2(c[0], c[1])); c[0] = q.x; c[1] = q.y
-	for i in morros.size():
-		var mq := W(Vector2(morros[i].x, morros[i].y)); morros[i] = Vector4(mq.x, mq.y, morros[i].z * 1.6, morros[i].w)
-	# terras novas a leste (entre o vale antigo e a cidade): alguns morros
-	morros.append_array([Vector4(1150, 380, 130, 14), Vector4(1480, -140, 110, 11), Vector4(1100, -560, 120, 15), Vector4(1700, 520, 140, 10)])
 	ruido.seed = 11; ruido.frequency = 0.018; ruido.fractal_octaves = 3
 	ruido_grande.seed = 4; ruido_grande.frequency = 0.004; ruido_grande.fractal_octaves = 2
 	ruido_relevo.seed = 27; ruido_relevo.frequency = 0.0022; ruido_relevo.fractal_octaves = 4; ruido_relevo.fractal_gain = 0.45
-	# ESTRADA REAL: direto da saída leste da vila até a Ponte dos Guardiões (portão oeste de Altamar), em curvas
-	# suaves passando ao lado do morro de (1100, -560); continua como rua principal da cidade até o porto
-	var porta := CIDADE_C + Vector2(-CIDADE_R, 0)
-	estradas.append(PackedVector2Array([Vector2(60, 10), Vector2(300, -60), Vector2(560, -170), Vector2(840, -310),
-		Vector2(1080, -405), Vector2(1290, -500), Vector2(1470, -580), porta + Vector2(-60, 0), porta,
-		CIDADE_C + Vector2(CIDADE_R + 40.0, 0)]))
+	# ESTRADA REAL: da saída leste da vila, pela ponte do rio e pelos vales, até o Portão Oeste de Altamar; continua
+	# como a avenida da cidade até a praça do mercado
+	var porta := Vector2(CIDADE.position.x, CIDADE_C.y)
+	estradas.append(PackedVector2Array([VILA + Vector2(10, 0), Vector2(400, 402), Vector2(560, 332), Vector2(760, 270),
+		Vector2(980, 205), Vector2(1200, 160), Vector2(1400, 110), Vector2(1530, 80), porta + Vector2(-40, 0), porta, PRACA]))
 	estrada_real = estradas.size() - 1
 	d_estrada.resize(NX * NZ); d_estrada.fill(1e6)
 	d_rio.resize(NX * NZ); d_rio.fill(1e6); t_rio.resize(NX * NZ); t_rio.fill(0.0)
@@ -150,9 +141,9 @@ func dist_rio2(x: float, z: float) -> float: return _amostra(d_rio2, x, z)
 func dist_rios(x: float, z: float) -> float: return minf(dist_rio(x, z), dist_rio2(x, z))
 
 # ---------- rio do leste: nasce nas montanhas do norte, passa na frente do portão oeste da cidade e deságua no mar ----------
-var rio2 := PackedVector2Array([Vector2(1590, -1190), Vector2(1625, -1060), Vector2(1606, -930), Vector2(1618, -800),
-	Vector2(1618, -640), Vector2(1618, -560), Vector2(1612, -420), Vector2(1575, -270), Vector2(1510, -110), Vector2(1490, 60),
-	Vector2(1545, 230), Vector2(1660, 390), Vector2(1810, 520), Vector2(1960, 610), Vector2(2120, 660), Vector2(2330, 690)])
+var rio2 := PackedVector2Array([Vector2(1500, -1190), Vector2(1530, -950), Vector2(1560, -700), Vector2(1580, -450),
+	Vector2(1590, -200), Vector2(1595, 0), Vector2(1595, 75), Vector2(1600, 200), Vector2(1640, 380), Vector2(1760, 520),
+	Vector2(1950, 600), Vector2(2150, 640), Vector2(2330, 660)])
 var d_rio2 := PackedFloat32Array()
 var t_rio2 := PackedFloat32Array()
 var _rio2_comp := PackedFloat32Array()
@@ -215,8 +206,8 @@ func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a mo
 	# do rio, do lago, da vila e da cidade (os caminhos correm pelos vales e sobem aos poucos)
 	h += relevo(x, z) * _calma_relevo(x, z, dr, dl)
 	# vila plana
-	var dv := Vector2(x, z).length()
-	h = lerp(base(0.0) + 0.3, h, smoothstep(22.0, 48.0, dv))
+	var dv := Vector2(x, z).distance_to(VILA)
+	h = lerp(base(VILA.y) + 0.3, h, smoothstep(30.0, 70.0, dv))
 	# campos planos
 	for c in campos:
 		var dc := Vector2(x - c[0], z - c[1]).length()
@@ -239,12 +230,9 @@ func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a mo
 	# mar a leste (com praia)
 	# cidade: chão plano (um pouco acima da base), suave até 40 m fora das muralhas
 	var dcid := _dist_cidade(x, z)
-	if dcid < 60.0: h = lerp(ALTURA_CIDADE, h, smoothstep(0.0, 60.0, dcid))
-	var dcan := absf(Vector2(x, z).distance_to(CIDADE_C) - CANAL)
-	if dcan < 7.0: h = minf(h, ALTURA_CIDADE - 1.8 * (1.0 - smoothstep(4.0, 7.0, dcan)))      # leito do canal
-	# lago do parque
-	var dl_p := Vector2(x, z).distance_to(LAGO_PARQUE)
-	if dl_p < 22.0: h = minf(h, ALTURA_CIDADE - 2.2 * (1.0 - smoothstep(14.0, 22.0, dl_p)))
+	if dcid < 60.0:
+		var qc := Vector2(clampf(x, CIDADE.position.x, CIDADE.end.x), clampf(z, CIDADE.position.y, CIDADE.end.y))
+		h = lerp(altura_cidade(qc.x, qc.y), h, smoothstep(0.0, 60.0, dcid))
 	var costa := COSTA + ruido_grande.get_noise_2d(0.0, z * 2.0) * 40.0
 	# na altura da cidade o mar chega até perto da muralha leste (porto)
 	var dz_cid := maxf(absf(z - CIDADE_C.y) - CIDADE_R * 0.7, 0.0)
@@ -319,7 +307,7 @@ func relevo(x: float, z: float) -> float:
 func _calma_relevo(x: float, z: float, dr: float, dl: float) -> float:
 	var c := smoothstep(6.0, 110.0, dist_estrada(x, z))
 	c *= smoothstep(14.0, 120.0, dr) * smoothstep(LAGO.z, LAGO.z + 110.0, dl)
-	c *= smoothstep(60.0, 160.0, Vector2(x, z).length())                   # vila
+	c *= smoothstep(70.0, 180.0, Vector2(x, z).distance_to(VILA))            # vila
 	c *= smoothstep(30.0, 160.0, _dist_cidade(x, z))
 	c *= smoothstep(10.0, 60.0, dist_rio2(x, z))
 	for cp in campos:
@@ -330,7 +318,17 @@ func _calma_relevo(x: float, z: float, dr: float, dl: float) -> float:
 # altura de uma serra a "d" metros da borda: sobe rápido no pé e para em "alto"
 # distância até a cidade (0 dentro das muralhas)
 func _dist_cidade(x: float, z: float) -> float:
-	return maxf(Vector2(x, z).distance_to(CIDADE_C) - CIDADE_R, 0.0)
+	return _dist_ret(x, z, CIDADE)
+
+# chão de Altamar: degraus do portão (9 m) → mercado (6 m) → porto (3 m) e o morro do castelo (24 m)
+static func altura_cidade(x: float, z: float) -> float:
+	var h := ALTURA_CIDADE
+	h = lerpf(h, NIVEL_MERCADO, smoothstep(X_MERCADO - 10.0, X_MERCADO + 10.0, x))
+	h = lerpf(h, NIVEL_PORTO, smoothstep(X_PORTO - 10.0, X_PORTO + 10.0, x))
+	var dc := Vector2(x, z).distance_to(CASTELO)
+	if dc < 95.0: h = maxf(h, lerpf(ALTURA_CASTELO, ALTURA_CIDADE, smoothstep(55.0, 95.0, dc)))
+	return h
+
 func na_cidade(x: float, z: float, folga := 0.0) -> bool: return _dist_cidade(x, z) <= folga
 
 # bairros de Altamar pelo ângulo e pela distância ao centro (leste = 0, sul = PI/2, oeste = PI, norte = -PI/2)
@@ -352,21 +350,14 @@ func patio_casa(x: float, z: float) -> float:
 static func _dist_ret(x: float, z: float, r: Rect2) -> float:
 	var dx := maxf(maxf(r.position.x - x, x - r.end.x), 0.0); var dz := maxf(maxf(r.position.y - z, z - r.end.y), 0.0)
 	return Vector2(dx, dz).length()
-static var LAGO_PARQUE := CIDADE_C + Vector2(cos(PI * 0.45), sin(PI * 0.45)) * 165.0
+static var LAGO_PARQUE := Vector2(-99999.0, -99999.0)     # (a cidade nova não tem lago no parque)
 static func distrito(x: float, z: float) -> String:
-	var d := Vector2(x, z) - CIDADE_C; var r := d.length()
-	if r > CIDADE_R: return ""
-	var a := atan2(d.y, d.x)
-	if r < 24.0: return "praca"
-	if r < CANAL - 6.0: return "comercio"
-	if absf(r - CANAL) <= 6.0: return "canal"
-	if a > -PI * 0.7 and a < -PI * 0.3 and r > 135.0: return "castelo"
-	if a > -PI * 0.96 and a <= -PI * 0.7: return "catedral"
-	if a > PI * 0.62 and a < PI * 0.93: return "magos"
-	if a > PI * 0.3 and a <= PI * 0.62: return "parque"
-	if a > PI * 0.05 and a <= PI * 0.3: return "porto"
-	if a >= PI * 0.93 or a <= -PI * 0.96: return "portao"
-	return "velho"
+	if not CIDADE.has_point(Vector2(x, z)): return ""
+	if Vector2(x, z).distance_to(CASTELO) < 80.0: return "castelo"
+	if Vector2(x, z).distance_to(PRACA) < 28.0: return "praca"
+	if x > X_PORTO: return "porto"
+	if x > X_MERCADO: return "comercio" if absf(z - CIDADE_C.y) < 70.0 else ("nobres" if z < CIDADE_C.y else "velho")
+	return "catedral" if z < CIDADE_C.y else "magos"
 func parque(x: float, z: float) -> bool: return distrito(x, z) == "parque"
 # distância até o eixo da rua principal mais perto (as quatro que saem da praça)
 # peso (0..1) da estrada calçada que vem da Estrada Real, passa pela Ponte dos Guardiões e entra no portão oeste
@@ -374,9 +365,17 @@ static func acesso_ponte(x: float, z: float) -> float:
 	var dz := absf(z - CIDADE_C.y)
 	if dz > 20.0 or x < FOSSO_X - 120.0 or x > CIDADE_C.x - CIDADE_R + 6.0: return 0.0
 	return (1.0 - smoothstep(10.0, 20.0, dz)) * smoothstep(FOSSO_X - 120.0, FOSSO_X - 70.0, x)
+# ruas de Altamar: a avenida do portão (leste–oeste, z = 75), a rua do mercado (norte–sul, x = 1950) e as ruas
+# secundárias que fecham os quarteirões
+const RUAS_Z := [-140.0, -55.0, 10.0, 140.0, 210.0, 285.0]
+const RUAS_X := [1705.0, 1775.0, 1820.0, 2005.0, 2090.0, 2160.0]
 static func rua_cidade(x: float, z: float) -> float:
-	var d := Vector2(x, z) - CIDADE_C
-	return minf(absf(d.x), absf(d.y))
+	var d := Vector2(x, z) - PRACA
+	var r := minf(absf(d.x), absf(d.y))
+	if CIDADE.has_point(Vector2(x, z)):
+		for rz in RUAS_Z: r = minf(r, absf(z - rz) + 2.5)        # (as secundárias são um pouco mais estreitas)
+		for rx in RUAS_X: r = minf(r, absf(x - rx) + 2.5)
+	return r
 
 func _serra(d: float, alto: float) -> float: return alto * (1.0 - exp(-d / 32.0))
 
@@ -440,6 +439,7 @@ func gruta_d(x: float, z: float) -> float:
 # morro alto por cima da gruta: sobe atrás da boca (nada muda no vale na frente da entrada)
 const MONTE_C := Vector2(1525.0, -1005.0)
 func monte_gruta(x: float, z: float) -> float:
+	if SEM_GRUTA: return 0.0
 	var d := Vector2(x, z).distance_to(MONTE_C)
 	if d > 170.0: return 0.0
 	var forma := 1.0 - smoothstep(0.0, 170.0, d + ruido.get_noise_2d(x * 2.0, z * 2.0) * 35.0)
@@ -463,8 +463,6 @@ func agua(x: float, z: float) -> float:
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 0.5: return nivel_rio(_amostra(t_rio, x, z))
 	if Vector2(x - LAGO.x, z - LAGO.y).length() < LAGO.z + 2.0: return nivel_lago()
-	if Vector2(x, z).distance_to(LAGO_PARQUE) < 15.0: return ALTURA_CIDADE - 1.0
-	if absf(Vector2(x, z).distance_to(CIDADE_C) - CANAL) < 5.0: return ALTURA_CIDADE - 0.6
 	var d2 := dist_rio2(x, z)
 	if d2 < 40.0:
 		var t2 := _amostra(t_rio2, x, z)
@@ -484,8 +482,8 @@ func floresta(x: float, z: float) -> float:
 	# 0 = aberto, 1 = mata fechada
 	if GRUTA_BB.grow(14.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 10.0: return -1.0
 	var f := ruido_grande.get_noise_2d(x * 1.6 + 300.0, z * 1.6) * 1.6 + 0.35
-	f += 0.25 * smoothstep(Ws(250.0), Ws(420.0), Vector2(x, z).length())   # mais mata longe da vila
-	f -= 1.0 - smoothstep(40.0, 110.0, Vector2(x, z).length())       # vila e arredores abertos
+	f += 0.25 * smoothstep(400.0, 800.0, Vector2(x, z).distance_to(VILA))   # mais mata longe da vila
+	f -= 1.0 - smoothstep(60.0, 160.0, Vector2(x, z).distance_to(VILA))     # vila e arredores abertos
 	f -= 1.0 - smoothstep(30.0, 140.0, _dist_cidade(x, z))           # campos abertos em volta da cidade
 	return clampf(f, 0.0, 1.0)
 
@@ -501,7 +499,7 @@ func cor(x: float, z: float, h: float, ny: float, gruta := true) -> Color:
 	elif campo == 1:
 		var faixa := int(floor(Vector2(x, z).rotated(0.2).x / 1.6)) % 2
 		c = Color(0.48, 0.34, 0.22) * (0.9 + 0.12 * faixa)
-	if dist_estrada(x, z) < 2.6 or Vector2(x, z).length() < 13.0 + n * 3.0: c = Color(0.52, 0.38, 0.24) * (0.95 + n * 0.1)
+	if dist_estrada(x, z) < 2.6 or Vector2(x, z).distance_to(VILA) < 13.0 + n * 3.0: c = Color(0.52, 0.38, 0.24) * (0.95 + n * 0.1)
 	elif dist_trilha(x, z) < 1.3 + n * 0.3: c = Color(0.55, 0.42, 0.27) * (0.95 + n * 0.1)     # trilha de terra
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 2.5 or abs(Vector2(x - LAGO.x, z - LAGO.y).length() - LAGO.z) < 4.0:
@@ -551,7 +549,7 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	if em_construcao(x, z): return 0.0
 	if dist_trilha(x, z) < 1.2: return 0.0
 	if x < X0 + 20 or x > X1 - 20 or abs(z) > LIM - 20 or ny < 0.8 or h > 58.0: return 0.0
-	if Vector2(x, z).length() < 18.0: return 0.0
+	if Vector2(x, z).distance_to(VILA) < 18.0: return 0.0
 	if h < agua(x, z) + 0.15: return 0.0
 	if x > COSTA - 120.0 and h < 2.0: return 0.0
 	if na_cidade(x, z, 2.0) and not parque(x, z): return 0.0

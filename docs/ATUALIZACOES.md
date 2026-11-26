@@ -19,6 +19,15 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Mapa recriado do zero (docs/MAPA_NOVO.md)**
+- Altamar mudou de lugar e de forma: cidade retangular na costa leste, em degraus (Portão Oeste no alto, mercado no
+  meio, porto embaixo com cais e barcos), castelo num morro no noroeste, catedral, torres dos magos, praça do
+  mercado com barracas e chafariz, quarteirões com ruas e becos, muralhas com torres.
+- A Vila do Vale mudou de lugar (vale ao sul do centro): vila de estrada com taverna, igreja, ferraria (bigorna e
+  forja do pacote), moinho, píer no rio e campos cercados com sítios.
+- Estradas, rio, rio do leste e lago em lugares novos; estábulo fora do Portão Oeste.
+- Estátuas da Guardiã agora são anjos do pacote; ficam em pontos novos do mapa.
+
 **Mapa novo com o Fantasy Kingdom (Synty) — primeira parte**
 - Todas as casas do jogo (vilarejo, cidade, fazendas) são casas prontas do pacote; postes de luz da Synty.
 - Altamar: muralha e torres de pedra do castelo, portões em arco, chafariz, catedral, torre dos magos, castelo
