@@ -2,6 +2,11 @@
 
 ## 26/11
 
+**Heróis base escolhidos pelo dono**
+- Homem: o **Príncipe** do Fantasy Kingdom. Mulher: a **Cavaleira loira** (Rider) do Fantasy Kingdom.
+- A criação de herói mostra direto esses dois (o catálogo com setas só volta com o teste --catalogo).
+- Os dois saíram dos moradores (o cavalariço, o porto e a gente da cidade usam outros), para o herói não ter sósias.
+
 **Aviso de APK velho**
 - Achado: a atualização pelo pacote (.pck) não ensina ao APK instalado as classes de script novas (class_name).
   Os moradores dos pacotes (Cidadao) são uma classe nova, e o herói e o catálogo usam essa classe; num APK antigo

@@ -83,6 +83,9 @@ func _ready() -> void:
 func _seletor_base() -> void:
 	if Herois.catalogo(false).is_empty(): return
 	_idx = [maxi(0, Herois.catalogo(true).find(Herois.PADRAO_M)), maxi(0, Herois.catalogo(false).find(Herois.PADRAO_F))]
+	# o dono já escolheu as bases (príncipe e cavaleira): o seletor só aparece com --catalogo (para escolher de novo)
+	var args := OS.get_cmdline_user_args()
+	if not args.has("--catalogo") and not str(args).contains("--folha=") and not str(args).contains("--base="): return
 	var cx := HBoxContainer.new(); cx.add_theme_constant_override("separation", 10)
 	cx.anchor_top = 1; cx.anchor_bottom = 1; cx.offset_left = 20; cx.offset_right = 560; cx.offset_top = -110; cx.offset_bottom = -30; add_child(cx)
 	var ant := UI.botao("◀", func(): _mudar_base(-1), true, 34, 80.0); ant.custom_minimum_size = Vector2(80, 80); cx.add_child(ant)

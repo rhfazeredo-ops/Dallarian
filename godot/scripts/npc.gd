@@ -119,7 +119,7 @@ func montar(mundo, semente: int, centro: Vector2, raio: float) -> void:
 
 # ---------- personagem do pacote (Synty) com as animações da Synty (parado/andar) ----------
 const PAPEIS := {"ferreiro": "SM_Chr_Blacksmith_Male_01", "lenhador": "SM_Chr_Hermit_01", "fazendeiro": "SM_Chr_Peasant_Male_01",
-	"freira": "SM_Chr_Nun_01", "cavalarico": "SM_Chr_Rider_01"}
+	"freira": "SM_Chr_Nun_01", "cavalarico": "SM_Chr_Peasant_Male_01"}
 const TIPOS_PACOTE := {"fem": "SM_Chr_Peasant_Female_01", "gorda": "SM_Chr_Bartender_01", "velha": "SM_Chr_FortuneTeller_01",
 	"forte": "SM_Chr_Blacksmith_Male_01", "velho": "SM_Chr_Monk_01", "menino": "SM_Chr_Peasant_Male_01", "menina": "SM_Chr_Peasant_Female_01"}
 var _ap: AnimationPlayer

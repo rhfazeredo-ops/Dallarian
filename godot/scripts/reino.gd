@@ -388,7 +388,7 @@ func _cercas_dos_campos() -> void:
 
 # ---------- gente do pacote (cidadãos com as animações da Synty) ----------
 const POVO := ["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Merchant_01", "SM_Chr_Hermit_01",
-	"SM_Chr_Monk_01", "SM_Chr_Bartender_01", "SM_Chr_Blacksmith_Male_01", "SM_Chr_Blacksmith_Female_01", "SM_Chr_Rider_01"]
+	"SM_Chr_Monk_01", "SM_Chr_Bartender_01", "SM_Chr_Blacksmith_Male_01", "SM_Chr_Blacksmith_Female_01"]
 var _n_cid := 0
 func _cidadao(tipo: String, p: Vector2, centro: Vector2, raio: float, fixo := false, olhar := Vector2.ZERO) -> void:
 	if not Cidadao.existe(): return
@@ -407,7 +407,7 @@ func _cidadaos() -> void:
 	var pr := Regiao.PRACA; var zc := Regiao.PORTAO.y; var x0 := Regiao.PORTAO.x
 	_multidao(pr, 22.0, 18)                                                   # praça do mercado cheia
 	_multidao(Vector2(x0 + 40.0, zc), 22.0, 8)                                  # avenida do portão
-	_multidao(Vector2(2215.0, zc), 22.0, 8, ["SM_Chr_Peasant_Male_01", "SM_Chr_Merchant_01", "SM_Chr_Hermit_01", "SM_Chr_Rider_01"])   # porto
+	_multidao(Vector2(2215.0, zc), 22.0, 8, ["SM_Chr_Peasant_Male_01", "SM_Chr_Merchant_01", "SM_Chr_Hermit_01", "SM_Chr_Soldier_Male_01"])   # porto
 	_multidao(Vector2(2150.0, -20.0), 20.0, 7)                               # Cidade Velha (taverna)
 	_multidao(Regiao.VILA, 60.0, 14, ["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Hermit_01", "SM_Chr_Blacksmith_Male_01", "SM_Chr_Monk_01"])
 	# guardas no Portão Oeste e no castelo
@@ -420,7 +420,7 @@ func _cidadaos() -> void:
 	for lado in [-1.0, 1.0]: _cidadao("SM_Chr_Soldier_Male_01", cs + Vector2(lado * 6.0, 4.0), cs, 1.0, true, cs + Vector2(lado * 6.0, 12.0))
 	_cidadao("SM_Chr_King_01", Regiao.CASTELO + Vector2(-3, 12), Regiao.CASTELO + Vector2(0, 12), 5.0)
 	_cidadao("SM_Chr_Queen_01", Regiao.CASTELO + Vector2(3, 12), Regiao.CASTELO + Vector2(0, 12), 5.0)
-	_cidadao("SM_Chr_Prince_01", Regiao.CASTELO + Vector2(-8, 14), Regiao.CASTELO + Vector2(0, 14), 8.0)
+	_cidadao("SM_Chr_Soldier_Male_01", Regiao.CASTELO + Vector2(-8, 14), Regiao.CASTELO + Vector2(0, 14), 8.0)
 	_cidadao("SM_Chr_Princess_01", Regiao.CASTELO + Vector2(8, 14), Regiao.CASTELO + Vector2(0, 14), 8.0)
 	# patrulha pela avenida
 	for k in 2: _cidadao("SM_Chr_Soldier_Male_01", Vector2(x0 + 20.0 + k * 50.0, zc + 2.0), Vector2(x0 + 60.0, zc), 45.0)
@@ -690,7 +690,7 @@ func _interiores() -> void:
 		for lado in [-1.0, 1.0]: _peca_int(_sorte(["SM_Prop_Stool_02", "SM_Prop_Stool_03"]), o + q + Vector3(0, 0, lado * 1.0))
 	_gente("SM_Chr_Bartender_01", o + Vector3(7.5, 0, 1.6), o + Vector3(7.5, 0, 8.0))
 	for q in [Vector3(2.2, 0, 7.6), Vector3(12.3, 0, 8.2), Vector3(3.8, 0, 10.6), Vector3(6.0, 0, 3.8)]:
-		_gente(_sorte(["SM_Chr_Peasant_Male_01", "SM_Chr_Hermit_01", "SM_Chr_Rider_01", "SM_Chr_Peasant_Female_01"]), o + q, o + Vector3(7.5, 0, 6.0))
+		_gente(_sorte(["SM_Chr_Peasant_Male_01", "SM_Chr_Hermit_01", "SM_Chr_Peasant_Female_01"]), o + q, o + Vector3(7.5, 0, 6.0))
 	_porta("Taverna de Altamar", m.taverna_pos + Vector2(0, -9.0), PI, d)
 	# ---- catedral
 	o = base + Vector3(60, 0, 0)

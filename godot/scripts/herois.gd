@@ -51,8 +51,8 @@ static func modelo(h: Dictionary) -> String:
 
 # todos os personagens dos pacotes da Synty que servem de herói, por gênero, numerados na criação de herói:
 # primeiro os 53/67 prontos do Modular Fantasy Hero, depois os do Fantasy Kingdom
-const PADRAO_F := "mh:Female:35"
-const PADRAO_M := "mh:Male:57"
+const PADRAO_F := "fk:SM_Chr_Rider_01"     # escolhida pelo dono (a cavaleira loira)
+const PADRAO_M := "fk:SM_Chr_Prince_01"    # escolhido pelo dono (o príncipe)
 static var _cat := {}
 static func catalogo(masc: bool) -> Array:
 	if _cat.has(masc): return _cat[masc]

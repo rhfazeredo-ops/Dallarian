@@ -65,8 +65,8 @@ monstros, política e traição, onde ainda existem amor, amizade e gente boa pe
 - Orçamento (triângulos): objetos 300–800 · casas 800–2.000 · personagens 1.000–2.500 ·
   texturas 128–256 px.
 - Arte: ChatGPT (folhas com 4 vistas) → Tripo 3D (Multiview, Low Poly, GLB) → redução no projeto.
-- Heróis jogáveis (Rachel e o Humano): humanos base do pacote **POLYGON Modular Fantasy Hero** (Synty), roupa 01,
-  com as animações Sword and Shield (combate) e Base Locomotion (fora de combate) convertidas para o esqueleto deles.
+- Heróis jogáveis: mulher = a Cavaleira loira (SM_Chr_Rider_01) e homem = o Príncipe (SM_Chr_Prince_01), do pacote
+  **POLYGON Fantasy Kingdom** (escolhidos pelo dono num catálogo com os 142 personagens dos pacotes), com as animações Sword and Shield (combate) e Base Locomotion (fora de combate) convertidas para o esqueleto deles.
 
 ## 7.1 A região inicial: Vale de Aldren (feita)
 Primeiro mapa do continente de Dallarian; os próximos mapas se conectam a ele (saída do desfiladeiro do norte).
