@@ -114,15 +114,17 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Escudo levantado de frente bloqueia a mordida. Lobo comum cai com 3 golpes leves (o forte vale 2); dá XP
   (15, líder 40). Vida da Rachel zerada: desmaia e acorda na vila.
 
-- **Altamar**, a cidade grande e redonda (canto nordeste, entre as montanhas e o mar), inspirada no estilo das grandes
-  capitais de MMO (desenho próprio): muralha de pedra clara com torres de telhado azul e três portões. Fora do portão
-  oeste: fosso e a **Ponte dos Guardiões** com quatro estátuas de heróis (martelo, cajado, arco, espada). Dentro:
-  praça central com **chafariz** de três andares, anel do **Comércio** (lojas com placas penduradas: banco, taverna,
-  estalagem, armas, armaduras, alquimia, alfaiate, joalheiro, ferreiro), canal em anel com mureta e pontes, e os
-  bairros **Castelo** (norte, escadaria e estandartes), **Catedral** (noroeste, flecha alta), **Portão** (oeste),
-  **Magos** (sudoeste, torre roxa com brilho mágico), **Parque** (sul: grama, árvores e lago), **Porto** (sudeste:
-  armazéns e caixotes) e **Bairro Velho** (leste, telhados vermelhos). Ruas de pedra clara com calçada de tijolo,
-  postes e árvores. O dono vai modelando peças (casas, estátuas, chafariz) para substituir as provisórias.
+- **Altamar**, a capital (canto leste, entre as montanhas e o mar), feita só com peças do POLYGON Fantasy Kingdom.
+  Planta em **grade de ruas retas** (docs: regiao.gd RUAS): a **Avenida Real** vai do Portão Oeste à **ilha da
+  catedral** (canal em anel, quatro pontes de pedra em arco), segue como **Rua do Porto** até o cais. Cada rua tem a
+  **pista de pedrinhas** no meio (cavalos e carroças, no futuro) e **calçadas de lajotas** mais altas dos dois lados,
+  com meio-fio; o povo anda só pelas calçadas. Casas **coladas umas nas outras** com a porta para a calçada e o miolo
+  dos quarteirões cheio de casas de fundos. **Praça do mercado** retangular ao sul da ilha: chafariz, oito barracas
+  com vendedores (LOJA e CONVERSAR; mercadoria em breve), lojas com placa dos dois lados (armas, armaduras, alquimia,
+  alfaiate, joalheiro) e a **Taverna O Javali Dourado** (entra; o taverneiro Bartolomeu vende poções). Rua das Lojas
+  ao sul (banco, estalagem, ferraria). **Catedral** virada para a avenida, com coro no mezanino e escada de pedra.
+  Fortaleza no morro a noroeste (Rua do Castelo sobe até ela), torres dos magos a sudoeste, praça da justiça e jardim
+  dos nobres ao norte, porto a leste.
 - **A vila** também é redonda: casas em dois anéis em volta da praça do poço, viradas para o centro.
 
 ## 7.1.1 Dia e noite

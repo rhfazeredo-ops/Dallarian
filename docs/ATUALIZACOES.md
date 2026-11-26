@@ -2,6 +2,20 @@
 
 ## 26/11
 
+**Altamar arrumada: ruas retas, calçadas, casas enfileiradas, mercado, taverna, catedral e pontes**
+- Planta nova em grade: 10 ruas retas (Avenida Real, Porto, Norte, Mercado, Castelo, Magos, Ofícios, Lojas, Velha,
+  Leste). A ilha da catedral foi para o eixo da avenida do portão.
+- Cada rua: pista de pedrinhas no meio (para cavalos no futuro) e calçada de lajotas mais alta dos dois lados, com
+  meio-fio de pedra. Postes alternando os lados.
+- Casas coladas umas nas outras, com a porta para a calçada; o miolo dos quarteirões também tem casas (~170).
+- O povo anda pelas calçadas, de um lado para o outro (não no meio da rua). Na praça, pelos corredores das barracas.
+- Praça do mercado retangular: chafariz, 8 barracas com vendedores (LOJA e CONVERSAR; prateleiras vazias por
+  enquanto), lojas com placa e vendedor na porta (armas, armaduras, alquimia, alfaiate, joalheiro, banco, estalagem).
+- Taverna "O Javali Dourado" de frente para a praça: dá para entrar; o taverneiro Bartolomeu vende poções.
+- Catedral virada para a avenida, com escadaria; dentro, coro num mezanino com escada de pedra (dá para subir).
+- Pontes de pedra em arco (dá para atravessar a pé subindo a corcova), com postes nas cabeceiras.
+- Mapa redesenhado com as ruas.
+
 **Heróis base escolhidos pelo dono**
 - Homem: o **Príncipe** do Fantasy Kingdom. Mulher: a **Cavaleira loira** (Rider) do Fantasy Kingdom.
 - Só esses dois existem agora: saíram o catálogo com setas, os personagens do Modular Fantasy Hero e o código

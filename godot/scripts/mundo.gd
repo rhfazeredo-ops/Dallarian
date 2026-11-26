@@ -121,8 +121,9 @@ func _ready() -> void:
 
 # moradores: o mesmo modelo com cores e alturas sorteadas, andando pela vila (e alguns no porto e nas fazendas)
 func _moradores() -> void:
-	var grupos := [[Regiao.VILA, 70.0, 14], [porto_pos + Vector2(-25, 0), 30.0, 5], [Regiao.PRACA, 45.0, 16],
-		[Vector2(1840, 75), 50.0, 8], [Vector2(2010, -40), 45.0, 6], [Vector2(2000, 190), 45.0, 8]]
+	# (na cidade o povo anda pelas calçadas: são os cidadãos de reino.gd; aqui só a praça, sem cavalos)
+	var grupos := [[Regiao.VILA, 70.0, 14], [porto_pos + Vector2(-25, 0), 30.0, 5], [Regiao.PRACA, 14.0, 8],
+		[Vector2(1840, 75), 50.0, 8]]
 	var n := 0
 	for g in grupos:
 		for i in g[2]:
@@ -1964,6 +1965,7 @@ var taverna_pos := Vector2.ZERO
 var estabulo_npc: Morador
 var floresta: Floresta
 var freiras := []                 # as irmãs que vendem poções (na frente da igreja da vila e da catedral)
+var vendedores := []              # barracas do mercado, portas das lojas e o taverneiro (LOJA e CONVERSAR)
 var igreja_vila := []             # [posição da igreja, direção da porta]
 var montaria_ui: Montaria
 var cidade_lojas := []              # [nome, posição da porta] — banco, taverna, lojas (para as interações depois)
@@ -2445,7 +2447,7 @@ func _estatuas_guardia() -> void:
 	var pontos := [
 		[v + Vector2(16, 40), v],                                              # entrada sul da vila
 		[Vector2(980, 230), Vector2(980, 205)],                                # meio da Estrada Real
-		[Regiao.PRACA + Vector2(-34, 22), Regiao.PRACA],                       # praça do mercado de Altamar
+		[Regiao.PRACA + Vector2(-17, -15), Regiao.PRACA],                      # praça do mercado de Altamar
 		[Vector2(Regiao.CIDADE.position.x - 70.0, Regiao.CIDADE_C.y + 25.0), Vector2(Regiao.CIDADE.position.x - 70.0, Regiao.CIDADE_C.y)],   # Portão Oeste
 		[lago + Vector2(Regiao.LAGO.z + 25.0, 40.0), lago],                    # lago do Planalto do Oeste
 		[Vector2(-520, 260), Vector2(-560, 250)],                              # subida do planalto
@@ -2920,6 +2922,7 @@ func _modo_teste() -> void:
 		var cx := float(pc[1]) if pc.size() > 2 else 0.0; var cz := float(pc[2]) if pc.size() > 2 else 0.0
 		jogador.set_physics_process(false); jogador.global_position = Vector3(cx, float(pc[0]), cz); jogador.rotation.y = 0
 		jogador.pescoco.rotation.x = -PI / 2; jogador.mao.visible = false; set_physics_process(false)
+		if pc.size() > 3: jogador.rotation.y = deg_to_rad(float(pc[3])); jogador.pescoco.rotation.x = float(pc[4]) if pc.size() > 4 else -0.6
 	if args.has("falar") and args.falar == "1":
 		get_tree().create_timer(3.0).timeout.connect(func():
 			for c in get_children():
@@ -3396,6 +3399,16 @@ func _gerar_mapa() -> void:
 			if (ag != 0.0 and h < ag) or (x > Regiao.COSTA - 30.0 and h < 0.2): c = Color(0.27, 0.5, 0.72).lerp(Color(0.18, 0.36, 0.6), clampf(-h * 0.1, 0.0, 1.0))
 			var luz := clampf(0.82 + (nrm.x - nrm.z) * 1.6, 0.55, 1.25)
 			img.set_pixel(i, j, c * luz)
+	# ruas de Altamar e a praça do mercado (pedra clara)
+	for j in H:
+		for i in W:
+			var x := Regiao.X0 + (i + 0.5) * sx; var z := Regiao.Z0 + (j + 0.5) * sz
+			if not Regiao.CIDADE.grow(30.0).has_point(Vector2(x, z)): continue
+			var na_rua := Regiao.na_praca(Vector2(x, z))
+			for k in Regiao.RUAS.size():
+				var cc := Geometry2D.get_closest_point_to_segment(Vector2(x, z), Regiao.RUAS[k][0], Regiao.RUAS[k][1])
+				if Vector2(x, z).distance_to(cc) < Regiao.LARG_RUAS[k] + Regiao.CALCADA: na_rua = true
+			if na_rua and reg.agua(x, z) == 0.0: img.set_pixel(i, j, Color(0.78, 0.74, 0.66))
 	# casas: retângulo do tamanho da casa, cor de telhado
 	for ca in casas:
 		var pos: Vector3 = ca[0]; var ang: float = ca[1]; var w: float = ca[2]; var d: float = ca[3]

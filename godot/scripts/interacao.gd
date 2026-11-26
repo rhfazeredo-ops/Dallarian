@@ -158,6 +158,13 @@ func _abrir_loja() -> void:
 	if _tipo_npc == "cavalarico":
 		var c := LOJA_ESTABULO.duplicate(); c["retrato"] = load("res://assets/ui/itens/cavalo_marrom.png")
 		m.loja_ui.abrir(npc, c)
+	elif _tipo_npc == "vendedor":
+		var it: Array = npc.get_meta("itens", [])
+		var c := {"nome": String(npc.get_meta("nome", "")) + " — " + String(npc.get_meta("loja", "")), "cargo": String(npc.get_meta("cargo", "")),
+			"itens": it, "falas_compra": ["Volte sempre!", "Ótima escolha."], "falas_venda": ["Hum, serve. Fechado."]}
+		c["retrato"] = load("res://assets/ui/itens/pocao_m.png")
+		m.loja_ui.abrir(npc, c)
+		if it.is_empty(): _aviso("As prateleiras ainda estão vazias... volte em breve!")
 	elif _tipo_npc == "freira":
 		var c := LOJA_FREIRA.duplicate(); c["retrato"] = load("res://assets/ui/itens/pocao_m.png"); c["nome"] = String(npc.get_meta("nome", "Irmã"))
 		m.loja_ui.abrir(npc, c)
@@ -216,11 +223,19 @@ func _conversar() -> void:
 	if npc == null: return
 	_conversou = true; legenda.modulate.a = 0.0
 	_falando = true; painel.visible = false
-	var lista: Array = DIALOGOS_CAVALARICO if _tipo_npc == "cavalarico" else (DIALOGOS_FREIRA if _tipo_npc == "freira" else DIALOGOS_FERREIRO)
+	var lista: Array = DIALOGOS_CAVALARICO if _tipo_npc == "cavalarico" else (DIALOGOS_FREIRA if _tipo_npc == "freira" else (_dialogos_vendedor() if _tipo_npc == "vendedor" else DIALOGOS_FERREIRO))
 	_dialogo = lista[_fala_i % lista.size()]; _fala_i += 1
 	_fala = 0; caixa.visible = true
 	npc.falando_com = m.jogador
 	_mostrar_fala()
+
+func _dialogos_vendedor() -> Array:
+	var loja := String(npc.get_meta("loja", "minha loja"))
+	return [
+		[["heroina", "Bom dia! O que o senhor vende aqui?", ""], ["vendedor", "Bem-vinda à %s! As mercadorias novas estão chegando de navio, logo, logo as prateleiras enchem." % loja, ""]],
+		[["heroina", "Como andam os negócios em Altamar?", ""], ["vendedor", "Com a praça cheia assim, não posso reclamar. Só os lobos da estrada é que espantam os mercadores de fora.", ""]],
+		[["heroina", "Volto mais tarde, então.", ""], ["vendedor", "Volte mesmo! E diga aos amigos que a %s tem o melhor preço da cidade." % loja, ""]],
+	]
 
 # mostra a fala atual (legenda + voz); sem voz, fica o tempo de leitura
 func _mostrar_fala() -> void:
@@ -294,6 +309,11 @@ func _process(_d: float) -> void:
 	if perto == null:
 		for fr in m.freiras:
 			if fr.global_position.distance_to(m.jogador.global_position) < (5.0 if not _falando else 12.0): perto = fr; tipo = "freira"
+	if perto == null:
+		var md := 3.6 if not _falando else 12.0
+		for vd in m.vendedores:
+			var dv: float = vd.global_position.distance_to(m.jogador.global_position)
+			if dv < md: perto = vd; tipo = "vendedor"; md = dv
 	if perto != npc:
 		if npc and _falando: _fechar()
 		if m.loja_ui and m.loja_ui.aberta: m.loja_ui.fechar()
@@ -305,7 +325,7 @@ func _process(_d: float) -> void:
 		npc = perto; _tipo_npc = tipo
 	var livre: bool = npc != null and not _falando and not (m.loja_ui != null and m.loja_ui.aberta)
 	painel.visible = livre and _tipo_npc == "ferreiro"
-	painel_estabulo.visible = livre and (_tipo_npc == "cavalarico" or _tipo_npc == "freira")
+	painel_estabulo.visible = livre and (_tipo_npc == "cavalarico" or _tipo_npc == "freira" or _tipo_npc == "vendedor")
 	var na_barraca := perto_da_barraca() and not _dormindo
 	painel_barraca.visible = na_barraca and npc == null
 	_t_baga -= _d

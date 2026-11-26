@@ -41,8 +41,9 @@ const X_MERCADO := -100000.0                              # (sem degrau no meio 
 const X_PORTO := 2196.5                                   # degrau para o porto (leste)
 const CASTELO := Vector2(2013.8, -27.8)                   # topo do morro da fortaleza
 const ALTURA_CASTELO := 16.0
-const PRACA := Vector2(2080.5, 146.2)                     # praça do mercado (bairro comercial, ao sul)
-const ILHA_CATEDRAL := Vector2(2095.0, 50.5)
+const PRACA := Vector2(2095.0, 150.0)                     # praça do mercado (retângulo, ao sul da catedral)
+const PRACA_TAM := Vector2(44.0, 40.0)
+const ILHA_CATEDRAL := Vector2(2095.0, 70.8)               # no eixo da avenida do portão
 const RAIO_ILHA := 29.0                                   # o canal em volta vai de 52 a 62 m
 const PORTAO := Vector2(1973.2, 70.8)                     # Portão Oeste
 # muralha (contorno no sentido horário); a beira do mar (leste) fica aberta para o porto
@@ -50,20 +51,27 @@ const MURALHA := [Vector2(1973.2, 70.8), Vector2(1979.0, 4.1), Vector2(1984.8, -
 	Vector2(2106.6, -65.5), Vector2(2170.4, -59.7), Vector2(2211.0, -36.5), Vector2(2219.7, -7.5)]
 const MURALHA_SUL := [Vector2(2216.8, 172.3), Vector2(2164.6, 198.4), Vector2(2100.8, 204.2), Vector2(2037.0, 195.5),
 	Vector2(1990.6, 157.8), Vector2(1973.2, 70.8)]
-# ruas principais (linhas): avenida do portão, rua da fortaleza, rua dos magos, rua do mercado, rua do porto, rua velha
+# ruas (retas, em grade): eixo de cada uma, meia largura da pista (cavalos e carroças no meio) e a calçada dos
+# dois lados (pedestres). Avenida Real (portão → ilha), Rua do Porto, Rua Norte, Rua do Mercado (atravessa a praça),
+# Rua do Castelo, Rua dos Magos, Rua dos Ofícios, Rua das Lojas (sul da praça), Rua Velha (norte) e Rua Leste.
 const RUAS := [
-	[Vector2(1926.8, 70.8), Vector2(2061.4, 70.8)],
-	[Vector2(2042.8, 70.8), Vector2(2039.9, 27.3), Vector2(2019.6, 1.2)],
-	[Vector2(2031.2, 70.8), Vector2(2019.6, 114.3), Vector2(2013.8, 152.0)],
-	[Vector2(2086.3, 88.2), Vector2(2080.5, 146.2), Vector2(2089.2, 183.9)],
-	[Vector2(2129.8, 70.8), Vector2(2187.8, 70.8), Vector2(2237.1, 70.8)],
-	[Vector2(2158.8, 70.8), Vector2(2155.9, 9.9), Vector2(2147.2, -48.1)],
-	[Vector2(2080.5, 146.2), Vector2(2147.2, 137.5), Vector2(2211.0, 128.8)],
-	[Vector2(2095.0, 20.3), Vector2(2100.8, -19.1), Vector2(2077.6, -53.9)],
+	[Vector2(1960.0, 70.8), Vector2(2054.0, 70.8)],
+	[Vector2(2136.0, 70.8), Vector2(2199.0, 70.8)],
+	[Vector2(2095.0, 30.0), Vector2(2095.0, -58.0)],
+	[Vector2(2095.0, 112.0), Vector2(2095.0, 198.0)],
+	[Vector2(2013.8, 70.8), Vector2(2013.8, -4.0)],
+	[Vector2(2030.0, 70.8), Vector2(2030.0, 176.0)],
+	[Vector2(1993.0, 122.0), Vector2(2192.0, 122.0)],
+	[Vector2(2030.0, 176.0), Vector2(2165.0, 176.0)],
+	[Vector2(2044.0, -25.0), Vector2(2205.0, -25.0)],
+	[Vector2(2160.0, -25.0), Vector2(2160.0, 122.0)],
 ]
-# canais: o anel em volta da ilha da catedral é feito à parte; este leva a água do anel até o mar
-const CANAIS := [[Vector2(2128.6, 41.8), Vector2(2176.2, 34.3), Vector2(2245.8, 30.2)],
-	[Vector2(2064.8, 38.9), Vector2(2031.2, 44.7), Vector2(2002.2, 50.5)]]
+const LARG_RUAS := [4.5, 4.5, 3.5, 4.0, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5]      # meia largura da pista (m)
+const CALCADA := 2.5
+# canal: o anel em volta da ilha da catedral é feito à parte; este leva a água do anel até o mar
+const CANAIS := [[Vector2(2124.0, 52.0), Vector2(2176.0, 42.0), Vector2(2245.8, 38.0)]]
+static func na_praca(q: Vector2, folga := 0.0) -> bool:
+	return absf(q.x - PRACA.x) < PRACA_TAM.x * 0.5 + folga and absf(q.y - PRACA.y) < PRACA_TAM.y * 0.5 + folga
 static func _dist_linha(q: Vector2, l: Array) -> float:
 	var d := INF
 	for i in l.size() - 1: d = minf(d, q.distance_to(Geometry2D.get_closest_point_to_segment(q, l[i], l[i + 1])))
@@ -556,9 +564,6 @@ func cor(x: float, z: float, h: float, ny: float, gruta := true) -> Color:
 		c = Color(0.4, 0.33, 0.22); tipo = 0.5                                 # margem de lama
 	if na_cidade(x, z) and not parque(x, z):
 		c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1); tipo = 0.0                # calçamento de pedra da cidade
-		var dr_c := rua_cidade(x, z)
-		if dr_c < 3.0: c = Color(0.66, 0.64, 0.6) * (0.94 + n * 0.08)            # rua principal de pedra clara
-		elif dr_c < 4.4: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)          # calçada de tijolo vermelho
 	if acesso_ponte(x, z) > 0.0 and x > FOSSO_X - 95.0:                         # calçamento da ponte até o portão
 		var dzp := absf(z - CIDADE_C.y)
 		if dzp < 11.0: tipo = 0.0

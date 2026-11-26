@@ -125,6 +125,7 @@ const TIPOS_PACOTE := {"fem": "SM_Chr_Peasant_Female_01", "gorda": "SM_Chr_Barte
 var _ap: AnimationPlayer
 func _montar_pacote(alt: float) -> void:
 	var nome: String = PAPEIS.get(profissao, TIPOS_PACOTE.get(tipo, ""))
+	if has_meta("modelo"): nome = String(get_meta("modelo"))           # vendedores: o personagem escolhido
 	if nome == "": nome = ["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Merchant_01", "SM_Chr_Peasant_Male_01", "SM_Chr_Hermit_01"][rng.randi() % 5]
 	if profissao == "fazendeiro" and rng.randf() < 0.4: nome = "SM_Chr_Peasant_Female_01"
 	var n: Node3D = load(Cidadao.ARQ).instantiate(); visual.add_child(n)
@@ -299,7 +300,7 @@ func _physics_process(delta: float) -> void:
 					var o := par; _prox_conversa = rng.randf_range(15.0, 30.0); _proxima_coisa()
 					if is_instance_valid(o) and o.par == self: o._prox_conversa = rng.randf_range(15.0, 30.0); o._proxima_coisa()
 	move_and_slide()
-	global_position.y = m.altura_malha(global_position.x, global_position.z)
+	global_position.y = float(get_meta("y_fixo")) if has_meta("y_fixo") else m.altura_malha(global_position.x, global_position.z)
 	# travou (andando sem sair do lugar): desiste e escolhe outra coisa — nunca "anda parado"
 	var vel_real := Vector2(get_real_velocity().x, get_real_velocity().z).length()
 	_corre = lerp(_corre, clampf((vel_real - 1.6) / 1.2, 0.0, 1.0), 1.0 - exp(-6.0 * delta))

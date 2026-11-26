@@ -18,6 +18,8 @@ var centro := Vector2.ZERO
 var raio := 30.0
 var fixo := false                  # fica parado no lugar (guardas, vendedores)
 var olhar := Vector2.ZERO
+var linha := []                    # [a, b]: anda só por esse segmento (a calçada), de um ponto a outro
+var dy := 0.0                      # altura acima do chão (calçada)
 var _ap: AnimationPlayer
 var _alvo := Vector2.ZERO
 var _espera := 0.0
@@ -63,14 +65,17 @@ func _physics_process(delta: float) -> void:
 		return
 	var d := _alvo - p
 	if d.length() < 0.6:
-		_espera = _rng.randf_range(2.0, 8.0); _ap.play("parado", 0.3); return
+		_espera = _rng.randf_range(0.5, 3.0) if not linha.is_empty() else _rng.randf_range(2.0, 8.0); _ap.play("parado", 0.3); return
 	var passo := d.normalized() * _vel * delta
 	var q := p + passo
-	if m.perto_de_casa(q.x, q.y, 0.6): _espera = 0.5; _alvo = p; return
-	position = Vector3(q.x, m.reg.altura(q.x, q.y), q.y)
+	if linha.is_empty() and m.perto_de_casa(q.x, q.y, 0.6): _espera = 0.5; _alvo = p; return
+	position = Vector3(q.x, m.reg.altura(q.x, q.y) + dy, q.y)
 	rotation.y = lerp_angle(rotation.y, atan2(d.x, d.y), 1.0 - exp(-8.0 * delta))
 
 func _novo_alvo() -> void:
+	if not linha.is_empty():
+		var a: Vector2 = linha[0]; var b: Vector2 = linha[1]
+		_alvo = a.lerp(b, _rng.randf()); _ap.play("andar", 0.3); _ap.speed_scale = _vel / 1.4; return
 	for t in 12:
 		var a := _rng.randf() * TAU; var r := _rng.randf_range(4.0, raio)
 		var q := centro + Vector2(cos(a), sin(a)) * r
