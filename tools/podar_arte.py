@@ -23,6 +23,7 @@ if os.path.exists(mf + '/materiais.json'):
         if any(no.startswith(n) for n in nomes):
             for m in ml:
                 if mats.get(m, {}).get('tex'): tex.add(mats[m]['tex'])
+    tex |= set(re.findall(r'([A-Za-z0-9_]+\.(?:png|tga))', txt))     # texturas citadas no código (casca da bétula)
     for f in glob.glob(mf + '/texturas/*'):
         if os.path.basename(f) not in tex: os.remove(f); apagados += 1
 for f in glob.glob(f'{raiz}/arte/fk/texturas/*'):
