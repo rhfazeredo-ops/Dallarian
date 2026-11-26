@@ -53,6 +53,8 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 	_arq = arq
 	_montar_ap.call_deferred()
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	if arq.begins_with("mh:"):
+		_montar_mh(arq.trim_prefix("mh:"), no_mundo); return
 	mod = load(arq).instantiate(); add_child(mod)
 	k = 1.68 / 0.98
 	mod.scale = Vector3.ONE * k; mod.rotation_degrees.y = 90           # o modelo olha para +X → -Z
@@ -82,15 +84,76 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 	mao_e = _presa("L_Hand", "L_Mid1", Basis(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0)), 1.0)
 	# fora de combate: espada na cintura, do lado esquerdo (a mão direita puxa cruzando o corpo), cabo para a frente e
 	# lâmina para trás e para baixo, face para fora; escudo no meio das costas, frente para trás
-	var lam := Vector3(-0.8, -0.6, 0.0).normalized(); var face := Vector3(0, 0, -1)
+	var lam := Vector3(-0.4, -0.92, 0.0).normalized(); var face := Vector3(0, 0, -1)
 	costas_d = _no_osso("Hip", Vector3(0.03, -0.01, -0.115), Basis(lam.cross(face), lam, face), 0.85)
 	costas_e = _no_osso("Spine02", Vector3(-0.075, 0.0, 0.0), Basis(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
 	_braco = BracoSacar.new(); _braco.c = self; esq.add_child(_braco)
+
+# ---------- heróis do pacote Modular Fantasy Hero (esqueleto da Synty; olha para +Z) ----------
+const MH_ARQ := "res://arte/mh/ModularCharacters.fbx"
+const MH_TEX := "res://arte/mh/PolygonFantasyHero_Texture_01_A.png"
+static func mh_partes(g: String, roupa := "01", cabelo := "") -> Array:
+	if cabelo == "": cabelo = "Chr_Hair_03" if g == "Male" else "Chr_Hair_20"
+	return ["Chr_Head_%s_00" % g, "Chr_Eyebrow_%s_00" % g, "Chr_Torso_%s_%s" % [g, roupa], "Chr_ArmUpperRight_%s_%s" % [g, roupa],
+		"Chr_ArmUpperLeft_%s_%s" % [g, roupa], "Chr_ArmLowerRight_%s_%s" % [g, roupa], "Chr_ArmLowerLeft_%s_%s" % [g, roupa],
+		"Chr_HandRight_%s_%s" % [g, roupa], "Chr_HandLeft_%s_%s" % [g, roupa], "Chr_Hips_%s_%s" % [g, roupa],
+		"Chr_LegRight_%s_%s" % [g, roupa], "Chr_LegLeft_%s_%s" % [g, roupa], cabelo]
+var mh := false
+# direção no espaço do esqueleto do Tripo (+X frente, +Y cima, +Z direita) → no da Synty (+Z frente, +Y cima, -X direita)
+func _cv(v: Vector3) -> Vector3: return Vector3(-v.z, v.y, v.x) if mh else v
+func _osso(n: String) -> String:
+	if not mh: return n
+	return {"R_Hand": "Hand_R", "R_Mid1": "Finger_01_2", "L_Hand": "Hand_L", "L_Mid1": "Finger_01", "Hip": "Hips", "Spine02": "Spine_03",
+		"R_Upperarm": "Shoulder_R", "R_Forearm": "Elbow_R"}.get(n, n)
+func _montar_mh(g: String, no_mundo: bool) -> void:
+	mh = true; k = 1.0
+	mod = load(MH_ARQ).instantiate(); add_child(mod); mod.rotation_degrees.y = 180
+	esq = mod.find_children("*", "Skeleton3D", true, false)[0]
+	var partes := mh_partes(g)
+	var mt: Material
+	if no_mundo:
+		var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/ps1.gdshader"); sm.set_shader_parameter("tex", load(MH_TEX))
+		sm.set_shader_parameter("sem_cor_vertice", true)
+		var cena: Node = get_tree().current_scene
+		if cena and "NEBLINA" in cena: sm.set_shader_parameter("neblina", cena.NEBLINA)
+		mt = sm
+	else:
+		var st := StandardMaterial3D.new(); st.albedo_texture = load(MH_TEX); st.albedo_color = Color(0.85, 0.83, 0.83); mt = st
+	for c in mod.find_children("*", "MeshInstance3D", true, false):
+		if not c.name in partes: c.queue_free()
+		else: (c as MeshInstance3D).material_override = mt
+	var B := func(a: Vector3, b: Vector3, c: Vector3) -> Basis: return Basis(_cv(a), _cv(b), _cv(c))
+	mao_d = _presa("R_Hand", "R_Mid1", B.call(Vector3(0, -1, 0), Vector3(1, 0, 0), Vector3(0, 0, 1)), 0.85)
+	mao_e = _presa("L_Hand", "L_Mid1", B.call(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0)), 1.0)
+	var lam := Vector3(-0.4, -0.92, 0.0).normalized(); var face := Vector3(0, 0, -1)
+	costas_d = _no_osso("Hip", _cv(Vector3(0.03, -0.01, -0.115)), B.call(lam.cross(face), lam, face), 0.85)
+	costas_e = _no_osso("Spine02", _cv(Vector3(-0.075, 0.0, 0.0)), B.call(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
+	_braco = BracoSacar.new(); _braco.c = self; esq.add_child(_braco)
+	_sentar = Sentar.new(); esq.add_child(_sentar)
+var _sentar: Sentar
+
+# montado (herói da Synty): coxas para a frente e abertas, canelas para baixo (direções no espaço do esqueleto, +Z frente)
+class Sentar extends SkeletonModifier3D:
+	var peso := 0.0
+	const ALVO := [["UpperLeg_L", "LowerLeg_L", Vector3(0.45, -0.3, 0.85)], ["UpperLeg_R", "LowerLeg_R", Vector3(-0.45, -0.3, 0.85)],
+		["LowerLeg_L", "Ankle_L", Vector3(0.25, -1.0, -0.1)], ["LowerLeg_R", "Ankle_R", Vector3(-0.25, -1.0, -0.1)]]
+	func _process_modification() -> void:
+		var sk := get_skeleton()
+		if sk == null or peso <= 0.001: return
+		for a in ALVO:
+			var i := sk.find_bone(a[0]); var f := sk.find_bone(a[1])
+			if i < 0 or f < 0: continue
+			var g := sk.get_bone_global_pose(i)
+			var atual := (sk.get_bone_global_pose(f).origin - g.origin).normalized()
+			var q := Quaternion.IDENTITY.slerp(Quaternion(atual, (a[2] as Vector3).normalized()), peso)
+			var pg := sk.get_bone_global_pose(sk.get_bone_parent(i))
+			sk.set_bone_pose_rotation(i, (pg.basis.inverse() * (Basis(q) * g.basis)).get_rotation_quaternion())
 
 var costas_d: Node3D               # espada guardada (na cintura)
 var costas_e: Node3D               # escudo guardado (nas costas)
 var _braco: BracoSacar
 func _no_osso(osso: String, desvio: Vector3, b: Basis, esc: float) -> Node3D:
+	osso = _osso(osso)
 	var i := esq.find_bone(osso)
 	var at := BoneAttachment3D.new(); at.bone_name = osso; esq.add_child(at)
 	var r := esq.get_bone_global_rest(i)
@@ -106,6 +169,7 @@ func armas_na_mao(sim: bool) -> void:
 		for c in de.get_children(): c.reparent(para, false)
 
 func _presa(osso: String, dedo: String, b: Basis, esc: float) -> Node3D:
+	osso = _osso(osso); dedo = _osso(dedo)
 	var i := esq.find_bone(osso)
 	var at := BoneAttachment3D.new(); at.bone_name = osso; esq.add_child(at)
 	var rh := esq.get_bone_global_rest(i)
@@ -137,7 +201,11 @@ func animar(delta: float) -> void:
 	_yaw = lerp_angle(_yaw, frente, 1.0 - exp(-(16.0 if luta else 10.0) * delta)) if vira else _yaw
 	rotation.y = _yaw - j.rotation.y + giro_teste                       # o corpo é filho do jogador
 	# animações de verdade (pacote Sword and Shield, convertidas para o nosso esqueleto); montado: as de código
-	if _ap and not j.montado:
+	if _ap and mh and j.montado:                                        # no cavalo: parado, pernas abertas no lombo
+		rotation.x = 0.0; position.y = 0.95; _braco.peso = 0.0; _sentar.peso = 1.0
+		_tocar("calmo_parado", 1.0, 0.25); return
+	if _sentar: _sentar.peso = 0.0
+	if _ap and (not j.montado or mh):
 		rotation.x = 0.0; position.y = 0.0
 		_clipes(vel, vh, no_chao, para_tras, luta)
 		return
@@ -260,6 +328,7 @@ var _atual := ""
 var _acao_ant := ""
 func _montar_ap() -> void:
 	var lib := "res://arte/animacoes/heroi_m.res" if _arq.ends_with("humano.glb") else "res://arte/animacoes/heroi.res"
+	if mh: lib = "res://arte/animacoes/heroi_mh_%s.res" % ("Masc" if _arq.ends_with("Male") else "Femn")
 	if not ResourceLoader.exists(lib) or mod == null: return
 	_ap = AnimationPlayer.new(); mod.add_child(_ap); _ap.root_node = NodePath("..")
 	_ap.add_animation_library("", load(lib))
@@ -411,14 +480,14 @@ class BracoSacar extends SkeletonModifier3D:
 	func _process_modification() -> void:
 		var sk := get_skeleton()
 		if sk == null or peso <= 0.001: return
-		var e := sk.find_bone("Spine02")
+		var e := sk.find_bone(c._osso("Spine02"))
 		if e >= 0:                         # o tronco vira um pouco para a esquerda, junto com o braço
 			sk.set_bone_pose_rotation(e, sk.get_bone_pose_rotation(e) * Quaternion(Vector3.UP, 0.3 * peso))
 		for b in ["R_Upperarm", "R_Forearm"]:
-			var i := sk.find_bone(b); var f := sk.find_bone(CorpoHeroi.BRACOS[b])
+			var i := sk.find_bone(c._osso(b)); var f := sk.find_bone(c._osso(CorpoHeroi.BRACOS[b]))
 			if i < 0 or f < 0: continue
 			var g := sk.get_bone_global_pose(i)
 			var atual := (sk.get_bone_global_pose(f).origin - g.origin).normalized()
-			var q := Quaternion.IDENTITY.slerp(Quaternion(atual, (ALVO[b] as Vector3).normalized()), peso)
+			var q := Quaternion.IDENTITY.slerp(Quaternion(atual, c._cv(ALVO[b] as Vector3).normalized()), peso)
 			var pg := sk.get_bone_global_pose(sk.get_bone_parent(i))
 			sk.set_bone_pose_rotation(i, (pg.basis.inverse() * (Basis(q) * g.basis)).get_rotation_quaternion())

@@ -40,7 +40,11 @@ static func nome_existe(nome: String) -> bool:
 	return false
 
 static func masculino(h: Dictionary) -> bool: return String(h.get("raca", "Humana")) == "Humano"
+# heróis do pacote Modular Fantasy Hero (repositório de arte); sem ele, os modelos antigos do Tripo
 static func modelo(h: Dictionary) -> String:
+	if ResourceLoader.exists(CorpoHeroi.MH_ARQ): return "mh:Male" if masculino(h) else "mh:Female"
+	return modelo_glb(h)
+static func modelo_glb(h: Dictionary) -> String:
 	return "res://assets/modelos/humano.glb" if masculino(h) else "res://assets/modelos/humana.glb"
 static func retrato(h: Dictionary) -> String:
 	return "res://assets/ui/racas/1_m.png" if masculino(h) else "res://assets/ui/racas/1_f.png"

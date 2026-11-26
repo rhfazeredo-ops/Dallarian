@@ -155,7 +155,7 @@ func _cena_campo() -> void:
 		var gr := Gradient.new(); gr.set_color(0, Color(0.05, 0.1, 0.02, 0.55)); gr.set_color(1, Color(0.05, 0.1, 0.02, 0.0)); gt.gradient = gr
 		ms.albedo_texture = gt; dm.material = ms; somb.position = Vector3(0.08, 0.01, 0.05); vp.add_child(somb)
 	# o herói em pé na grama (no arquivo o modelo tem 0,98 de altura, de -0,49 a 0,49)
-	_vp = vp; _por_modelo("res://assets/modelos/humana.glb")
+	_vp = vp; _por_modelo(Herois.modelo({"raca": "Humana"}))
 	var cam := Camera3D.new(); cam.fov = 40.0; cam.position = Vector3(0.0, 1.25, 3.3); vp.add_child(cam); cam.look_at(Vector3(0.0, 0.92, 0)); cam.current = true   # perto: herói grande
 
 var _vp: Node
@@ -166,7 +166,7 @@ func _por_modelo(arq: String) -> void:
 func _escolher(r: int, sx: int) -> void:
 	if not RACAS[r][2][sx]: return
 	_raca = r; _sexo = sx
-	if _vp: _por_modelo("res://assets/modelos/humano.glb" if sx == 0 else "res://assets/modelos/humana.glb")
+	if _vp: _por_modelo(Herois.modelo({"raca": "Humano" if sx == 0 else "Humana"}))
 	_lore_tit.text = RACAS[r][0]; _lore.text = RACAS[r][1]
 	for bt in _botoes:
 		var sel: bool = bt[1] == r and bt[2] == sx

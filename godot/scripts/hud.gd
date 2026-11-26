@@ -33,7 +33,7 @@ func _tirar_retrato() -> void:
 	if ResourceLoader.exists(arq): retrato = load(arq); queue_redraw(); return
 	var vp := SubViewport.new(); vp.size = Vector2i(256, 256); vp.transparent_bg = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS; vp.own_world_3d = true; add_child(vp)
-	var mod: Node3D = load(Herois.modelo(Herois.ativo)).instantiate(); vp.add_child(mod)
+	var mod: Node3D = load(Herois.modelo_glb(Herois.ativo)).instantiate(); vp.add_child(mod)
 	mod.rotation_degrees.y = -90                      # o modelo olha para +X; assim olha para +Z (para a câmera)
 	var luz := DirectionalLight3D.new(); luz.rotation_degrees = Vector3(-25, 35, 0); luz.light_energy = 1.1; vp.add_child(luz)
 	var amb := WorldEnvironment.new(); var env := Environment.new(); env.background_mode = Environment.BG_CLEAR_COLOR

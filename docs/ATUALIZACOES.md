@@ -1,5 +1,16 @@
 # Dallarian — Log de atualizações
 
+## 26/11
+
+**Heróis novos do pacote Modular Fantasy Hero**
+- A Rachel e o Humano agora são os humanos base do pacote **POLYGON Modular Fantasy Hero** (mulher e homem, roupa
+  de aventureiro 01), no jogo, na seleção e na criação de herói.
+- As animações foram convertidas para o esqueleto deles: o combate continua com as do Sword and Shield (guarda,
+  golpes, escudada, morte) e fora de combate as da Synty (parado, andar, correr, pulos). Agora encaixam direito.
+- Escudo nas costas e espada na cintura fora de combate; atacar saca as duas, como antes.
+- Montado: o herói fica sentado no cavalo, com as pernas abertas no lombo.
+- Sem o repositório de arte (versão de teste), o jogo volta para os modelos antigos sozinho.
+
 ## 25/11 (hoje)
 
 **Animações de verdade no herói**
