@@ -18,6 +18,9 @@ global uniform float neb_fim;
 uniform float escala_uv = 1.0;
 uniform sampler2D tex_rocha : source_color, filter_linear_mipmap, repeat_enable;
 uniform float tam_rocha = 7.0;                    // metros por repetição da rocha
+uniform sampler2D tex_det : source_color, filter_linear_mipmap, repeat_enable;   // detalhe do chão (textura da Synty)
+uniform bool usa_det = false;
+uniform float tam_det = 5.0;                      // metros por repetição do detalhe
 varying vec3 luz0;                                // luz sem a cor do vértice (a rocha usa a cor da textura)
 varying vec3 pmundo;
 varying vec3 nmundo;
@@ -44,6 +47,10 @@ void vertex() {
 }
 void fragment() {
   vec3 base = cor.rgb * (usa_tex ? texture(tex, UV).rgb : vec3(1.0));
+  if (usa_det) {                                  // a cor pintada do chão com o relevo da textura do pacote
+    vec3 d = texture(tex_det, pmundo.xz / tam_det).rgb;
+    base = cor.rgb * mix(1.0, dot(d, vec3(0.3, 0.59, 0.11)) / 0.42, 0.75);
+  }
   vec3 c = base * luz;
   vec3 nn = normalize(nmundo);
   float pedra = 1.0 - smoothstep(0.62, 0.8, nn.y);                              // íngreme → rocha

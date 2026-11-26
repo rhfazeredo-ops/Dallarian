@@ -54,6 +54,7 @@ func _ready() -> void:
 	if args.has("gerar_terreno"): return               # só gerando o terreno pronto (workflow do APK)
 	if args.has("carga"): print("CARGA terreno ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	for f in _depois: f.call()        # cercas, muros e blocos: assentados na malha final do terreno
+	Synty.finalizar(self)             # modelos da Synty juntados por pedaço do mapa (perto completos, longe simples)
 	if args.has("carga"): print("CARGA depois ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_agua_feita = false
 	_agua()
@@ -64,7 +65,8 @@ func _ready() -> void:
 	if args.has("carga"): print("CARGA juntar ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	var fl := Floresta.new(); raiz.add_child(fl); fl.montar(self); floresta = fl
 	if args.has("carga"): print("CARGA floresta ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
-	var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
+	if not Synty.existe("SM_Env_Grass_Tuft_01"):        # (mapa novo da Synty: sem as manchinhas de pixel no chão)
+		var chao := ChaoSplat.new(); raiz.add_child(chao); chao.montar(self)
 	if args.has("carga"): print("CARGA chao ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	var grama := Grama.new(); raiz.add_child(grama); grama.montar(self)
 	if args.has("carga"): print("CARGA grama ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
@@ -1214,6 +1216,7 @@ func _juntar_estaticos() -> void:
 	var tirar := []
 	for c in raiz.get_children():
 		if not (c is MeshInstance3D) or pular.has(c) or c.get_child_count() > 0 or c.mesh == null: continue
+		if c.has_meta("synty"): continue
 		var mi: MeshInstance3D = c
 		if not mi.visible or mi.mesh is PrimitiveMesh: continue
 		var mats := []
@@ -1625,7 +1628,11 @@ func mat(textura: String, escala := 1.0, cor := Color.WHITE) -> ShaderMaterial:
 	var k := "%s|%s|%s" % [textura, escala, cor]
 	if _mats.has(k): return _mats[k]
 	var m := ShaderMaterial.new(); m.shader = load("res://shaders/terreno.gdshader" if textura == "terreno" else "res://shaders/ps1.gdshader")
-	if textura == "terreno": m.set_shader_parameter("tex_rocha", Texturas.pegar("rocha_montanha"))   # montanhas com a rocha da entrada da gruta
+	if textura == "terreno":
+		m.set_shader_parameter("tex_rocha", Texturas.pegar("rocha_montanha"))   # montanhas com a rocha da entrada da gruta
+		if ResourceLoader.exists("res://arte/fk/texturas/PFK_Texture_Ground_Grass_02.png"):      # mapa novo: chão com a textura da Synty
+			m.set_shader_parameter("usa_det", true); m.set_shader_parameter("tex_det", load("res://arte/fk/texturas/PFK_Texture_Ground_Grass_02.png"))
+			m.set_shader_parameter("tex_rocha", load("res://arte/fk/texturas/PFK_Texture_Ground_Mud_03.png")); m.set_shader_parameter("tam_rocha", 9.0)
 	if textura == "": m.set_shader_parameter("usa_tex", false)
 	else: m.set_shader_parameter("tex", Texturas.pegar(textura))
 	m.set_shader_parameter("escala_uv", escala); m.set_shader_parameter("cor", cor)

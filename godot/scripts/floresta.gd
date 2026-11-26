@@ -130,6 +130,24 @@ func montar(mundo) -> void:
 		"morta": [_tronco_copa(Color(0.55, 0.52, 0.48)), null],
 		"fruta": [_tronco_copa(), _cartoes_copa(7, "fruta"), _cartoes_copa(7, "fruta", 9)],
 	}
+	# mapa novo: árvores, arbustos e flores do pacote Fantasy Kingdom (Synty). A escala do sorteio (s ≈ 0,4–2,1)
+	# era para as copas antigas (~6 m): aqui cada modelo já vem no tamanho certo para s = 1.
+	if Synty.existe("SM_Env_Tree_Round_02"):
+		var N: Color = m.NEBLINA
+		malhas = {
+			"copa_a": [null, Synty.malha("SM_Env_Tree_Round_02", N, 1.0)],
+			"copa_b": [null, Synty.malha("SM_Env_Tree_Round_03", N, 1.0)],
+			"copa_c": [null, Synty.malha("SM_Env_Tree_Round_04", N, 1.0)],
+			"copa_d": [null, Synty.malha("SM_Env_Tree_Large_01", N, 0.5)],
+			"pinho": [null, Synty.malha("SM_Env_Tree_Pine_Cluster_05", N, 0.6)],
+			"arbusto": [null, Synty.malha("SM_Env_Bush_01", N, 0.55)],
+			"flor_a": [null, Synty.malha("SM_Env_Bush_Flowers_04", N, 0.7)],
+			"flor_b": [null, Synty.malha("SM_Env_Bush_Flowers_03", N, 0.8)],
+			"flor_c": [null, Synty.malha("SM_Env_Bush_Flowers_06", N, 0.7)],
+			"samambaia": [null, Synty.malha("SM_Env_Bush_Small_05", N, 1.0)],
+			"morta": [null, Synty.malha("SM_Env_Tree_Dead_02", N, 1.0)],
+			"fruta": [null, Synty.malha("SM_Env_Tree_Round_01", N, 1.0)],
+		}
 	# pedaços montados aos poucos em volta da Rachel (o mapa é grande: montar tudo no começo demora demais)
 	_nx = int(ceil((Regiao.X1 - Regiao.X0) / PED)); _nz = int(ceil((Regiao.Z1 - Regiao.Z0) / PED))
 	_montar_perto(true)
@@ -478,7 +496,7 @@ func _tex_junco(w: int, h: int, seed: int) -> ImageTexture:
 # ---------- beira d'água: taboas e juncos em touceiras ao longo do rio e em volta do lago ----------
 func _beira_agua() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 555
-	var junco := _cartoes_junco(41)
+	var junco: Mesh = Synty.malha("SM_Env_Grass_Tuft_01", m.NEBLINA, 2.2) if Synty.existe("SM_Env_Grass_Tuft_01") else _cartoes_junco(41)
 	var por_ped := {}                 # Vector2i → itens
 	var pontos := []                  # [posição, meia largura da água]
 	for i in reg.rio.size() - 1:
@@ -529,7 +547,8 @@ func _arvores_cidade() -> void:
 	for t in lista:
 		var s: float = t[1]
 		itens.append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), t[0]), _verde(rng, 0.0)])
-	add_child(_mm(malhas["copa_a"][0], itens, false)); add_child(_mm(malhas["copa_a"][1], itens, true))
+	if malhas["copa_a"][0]: add_child(_mm(malhas["copa_a"][0], itens, false))
+	add_child(_mm(malhas["copa_a"][1], itens, true))
 
 # em volta da entrada da Gruta dos Lodosos: pinheiros nas encostas dos lados, árvores e moitas no vale, samambaias
 # e arbustos floridos encostados nas rochas da boca — deixando livre a passagem até a entrada

@@ -11,6 +11,9 @@ static var _pecas := {}          # nome → [[malha, transform local], ...]
 static var _caixas := {}         # nome → AABB (no espaço do modelo)
 static var _mat: ShaderMaterial
 static var _mats := {}            # tipo de superfície → material
+const CEL := 96.0                 # tamanho do pedaço do mapa (m) em que as peças repetidas são agrupadas
+const PERTO := 85.0               # até aqui a versão completa; depois a simplificada
+static var _lote := {}            # [pedaço, malha, tipo, modo] → [malha, [transform, ...]]
 # superfícies do castelo (shader "CastleSHD" no Unity): textura de tijolos que se repete; o resto usa o atlas
 const TEXTURAS := {"castelo": "res://arte/fk/texturas/PolygonFantasyKingdon_Texture_Wall_Brick_01.png"}
 
@@ -21,6 +24,7 @@ static func material(neblina: Color, tipo := "atlas") -> ShaderMaterial:
 	if _mats.has(tipo): return _mats[tipo]
 	var mt := ShaderMaterial.new(); mt.shader = load("res://shaders/ps1.gdshader")
 	mt.set_shader_parameter("tex", load(TEXTURAS.get(tipo, ATLAS))); mt.set_shader_parameter("neblina", neblina)
+	if tipo == "longe": mt.set_shader_parameter("usa_tex", false)          # versão de longe: só a cor dos vértices
 	_mats[tipo] = mt
 	return mt
 
@@ -41,8 +45,9 @@ static func pecas(nome: String) -> Array:
 			var t: Transform3D = base * _global(mi, n)
 			# uma malha por superfície (cada uma com o seu material: atlas ou tijolo do castelo)
 			for si in mi.mesh.get_surface_count():
-				var am := ArrayMesh.new()
-				am.add_surface_from_arrays(mi.mesh.surface_get_primitive_type(si), mi.mesh.surface_get_arrays(si))
+				var arr: Array = mi.mesh.surface_get_arrays(si)
+				arr[Mesh.ARRAY_COLOR] = null           # a Synty guarda o "vento" nas cores dos vértices (deixava as árvores pretas)
+				var am := ArrayMesh.new(); am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 				lista.append([am, t, "castelo" if nome.begins_with("SM_Bld_Castle_") else _tipo(mi.mesh.surface_get_material(si))])
 			var b: AABB = t * mi.mesh.get_aabb()
 			cx = b if primeiro else cx.merge(b); primeiro = false
@@ -74,9 +79,13 @@ static func por3(m: Object, nome: String, pos: Vector3, ang: float, esc: Vector3
 	var desl := Vector3.ZERO
 	if centro: desl = -Vector3(cx.get_center().x, 0.0, cx.get_center().z)
 	var t := Transform3D(Basis(Vector3.UP, ang) * Basis.from_scale(esc), pos) * Transform3D(Basis(), desl)
-	for p in ps:
-		var mi := MeshInstance3D.new(); mi.mesh = p[0]; mi.material_override = material(m.NEBLINA, p[2])
-		mi.transform = t * (p[1] as Transform3D); m.raiz.add_child(mi)
+	# as peças vão para o lote do pedaço do mapa (juntadas no fim por finalizar(): perto a completa, longe a simples)
+	var cel := Vector2i(floori(pos.x / CEL), floori(pos.z / CEL))
+	# construções com versão de longe (ferramentas/longe_fk.gd): perto o modelo completo, longe a colisão pintada
+	var lg := "res://arte/fk/longe/%s.res" % nome
+	var tem_longe := ResourceLoader.exists(lg)
+	for p in ps: _no_lote(cel, p[0], p[2], 1 if tem_longe else 0, t * (p[1] as Transform3D))
+	if tem_longe: _no_lote(cel, load(lg), "longe", 2, t)
 	if not colisao: return
 	var corpo := StaticBody3D.new(); m.raiz.add_child(corpo)
 	var col := nome + "_Collision"
@@ -106,3 +115,39 @@ static func casa_para(w: float, d: float, semente: int) -> String:
 	if notas.is_empty(): return ""
 	notas.sort_custom(func(a, b): return a[0] < b[0])
 	return notas[absi(semente) % mini(3, notas.size())][1]
+
+# o modelo inteiro numa malha só (uma superfície, material do atlas) para MultiMesh (árvores, arbustos, grama).
+# "esc" muda o tamanho base; "variante" escolhe entre vários nomes.
+static var _malhas := {}
+static func malha(nome: String, neblina: Color, esc := 1.0) -> ArrayMesh:
+	var k := "%s|%s" % [nome, esc]
+	if _malhas.has(k): return _malhas[k]
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var tem := false
+	for p in pecas(nome):
+		st.append_from(p[0], 0, Transform3D(Basis.from_scale(Vector3.ONE * esc), Vector3.ZERO) * (p[1] as Transform3D)); tem = true
+	if not tem: return null
+	var am := st.commit(); am.surface_set_material(0, material(neblina, "atlas"))
+	_malhas[k] = am
+	return am
+
+# desenha as peças postas, por pedaço do mapa: cada peça repetida vira um MultiMesh (a malha vai uma vez só para a
+# placa de vídeo) — perto a completa, longe a simplificada. Montar é instantâneo (antes juntava tudo: 12 s).
+# modo: 0 sempre, 1 só perto, 2 só longe
+static func _no_lote(cel: Vector2i, malha: Mesh, tipo: String, modo: int, t: Transform3D) -> void:
+	var k := [cel, malha.get_instance_id(), tipo, modo]
+	if not _lote.has(k): _lote[k] = [malha, []]
+	_lote[k][1].append(t)
+
+static func finalizar(m: Object) -> void:
+	for k in _lote.keys():
+		var malha: Mesh = _lote[k][0]; var lista: Array = _lote[k][1]
+		var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = malha; mm.instance_count = lista.size()
+		for i in lista.size(): mm.set_instance_transform(i, lista[i])
+		var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = material(m.NEBLINA, k[2])
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if k[3] == 1: mi.visibility_range_end = PERTO
+		elif k[3] == 2: mi.visibility_range_begin = PERTO
+		m.raiz.add_child(mi)
+	_lote.clear()

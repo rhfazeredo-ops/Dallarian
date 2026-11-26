@@ -15,6 +15,7 @@ func _initialize() -> void:
 		raiz = Node3D.new(); vp.add_child(raiz)
 		var we := WorldEnvironment.new(); var env := Environment.new(); env.background_mode = Environment.BG_COLOR; env.background_color = Color(0.55, 0.65, 0.8); we.environment = env; raiz.add_child(we)
 		Synty.por(self, nomes[i], Vector3.ZERO, deg_to_rad(float(a.get("giro", "0"))), 1.0, false)
+		Synty.finalizar(self)
 		var cx: AABB = Synty.caixa(nomes[i]); var r := maxf(cx.size.length() * 0.6, 1.0)
 		var cam := Camera3D.new(); raiz.add_child(cam)
 		cam.position = Vector3(0, cx.size.y * 0.5 + r * 0.25, r * 1.5); cam.look_at(Vector3(0, cx.position.y + cx.size.y * 0.5, 0)); cam.current = true

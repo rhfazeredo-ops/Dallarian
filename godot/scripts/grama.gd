@@ -9,6 +9,7 @@ class_name Grama
 var m
 var mat: ShaderMaterial
 var malhas := {}
+var _synty := false       # tufos da Synty: já vêm verdes da textura (a cor do chão só tinge)
 var camadas := [
 	{ "bloco": 12, "raio": 17.0, "dens": 3.8, "esc": 1.05, "malha": "perto", "ativos": {} },
 	{ "bloco": 24, "raio": 40.0, "dens": 0.6, "esc": 1.45, "malha": "longe", "ativos": {} },
@@ -23,6 +24,11 @@ func montar(mundo) -> void:
 	# folhas por tufo: perto mais folhas finas; longe menos folhas, um pouco mais largas
 	malhas = { "perto": [_malha_tufo(7, 0.018, false, 1), _malha_tufo(5, 0.014, true, 2)],
 		"longe": [_malha_tufo(4, 0.027, false, 3), _malha_tufo(4, 0.02, true, 4)] }
+	if Synty.existe("SM_Env_Grass_Tuft_01"):           # mapa novo: tufos de grama da Synty (trigo: o tufo comprido, dourado)
+		mat = Synty.material(m.NEBLINA)
+		malhas = { "perto": [Synty.malha("SM_Env_Grass_Tuft_01", m.NEBLINA, 0.9), Synty.malha("SM_Env_Grass_Tuft_03", m.NEBLINA, 1.6)],
+			"longe": [Synty.malha("SM_Env_Grass_Tuft_02", m.NEBLINA, 1.4), Synty.malha("SM_Env_Grass_Tuft_03", m.NEBLINA, 1.6)] }
+		camadas[0].dens *= 0.45; camadas[1].dens *= 0.6; _synty = true
 
 # um tufo: folhas retangulares de ponta quadrada (estilo pixel), cada uma um retângulo só (2 triângulos),
 # inclinado para um lado. Bem mais leve que folha curva.
@@ -133,6 +139,7 @@ func _itens(c: Dictionary, k: Vector2i) -> Array:
 		var tons := [Color(1.0, 1.0, 1.0), Color(0.9, 1.05, 0.85), Color(1.1, 1.05, 0.8), Color(0.85, 0.95, 1.0)]
 		var tom: Color = tons[rng.randi() % tons.size()]
 		var cc := Color(cor.r * tom.r, cor.g * tom.g, cor.b * tom.b) * rng.randf_range(0.9, 1.1)
+		if _synty: cc = Color(1, 1, 1).lerp(cc * 2.0, 0.35); alt *= 2.2; larg *= 1.4
 		if not eh_trigo: cc = cc.lerp(Color(0.42, 0.6, 0.24), 0.35)    # grama um pouco mais verde e viva
 		(trigo if eh_trigo else verde).append([t, cc])
 	return [verde, trigo]
