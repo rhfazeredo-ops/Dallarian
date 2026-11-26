@@ -14,6 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # arte comprada (modelos da Synty): fica num repositório PRIVADO e só entra na hora de gerar o jogo
+      - uses: actions/checkout@v4
+        with:
+          repository: rhfazeredo-ops/dallarian-arte
+          token: ${{ secrets.ARTE_TOKEN }}
+          path: godot/arte
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - uses: actions/cache@v4

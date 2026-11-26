@@ -15,6 +15,12 @@ jobs:
     environment: { name: github-pages, url: "${{ steps.d.outputs.page_url }}" }
     steps:
       - uses: actions/checkout@v4
+      # arte comprada (modelos da Synty): fica num repositório PRIVADO e só entra na hora de gerar o jogo
+      - uses: actions/checkout@v4
+        with:
+          repository: rhfazeredo-ops/dallarian-arte
+          token: ${{ secrets.ARTE_TOKEN }}
+          path: godot/arte
       - uses: actions/cache@v4
         continue-on-error: true
         with: { path: "~/godot-4.5-stable\n~/.local/share/godot/export_templates", key: godot-4.5-stable }

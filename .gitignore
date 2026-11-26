@@ -4,3 +4,4 @@ dist/
 node_modules/
 godot/dados/terreno_longe.bin
 godot/_anim_src/
+godot/arte/

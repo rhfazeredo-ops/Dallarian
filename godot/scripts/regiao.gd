@@ -285,7 +285,7 @@ func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a mo
 	if ds > 0.0: h += _serra(ds, 35.0) * var_m
 	if not planos.is_empty(): h = _planos(x, z, h)
 	h += monte_gruta(x, z)                                     # montanha grande por cima da Gruta dos Lodosos
-	if cavar and GRUTA_BB.grow(14.0).has_point(Vector2(x, z)):           # Gruta dos Lodosos: cânion com o chão da gruta
+	if SEM_GRUTA == false and cavar and GRUTA_BB.grow(14.0).has_point(Vector2(x, z)):           # Gruta dos Lodosos: cânion com o chão da gruta
 		var dg := gruta_d(x, z)
 		# o chão continua reto até 3 m atrás da parede (a malha do terreno é mais grossa que a parede: se subisse
 		# logo na borda, a encosta atravessava para dentro da gruta)
@@ -371,6 +371,7 @@ func _planos(x: float, z: float, h: float) -> float:
 # ---------- Gruta dos Lodosos (DG aberta na montanha do norte, a oeste do rio do leste) ----------
 # O chão da gruta é o próprio terreno, cavado num cânion com o formato dos túneis e salas (assim monstros, saque e
 # tudo que usa a altura do terreno funcionam lá dentro); paredes e teto de pedra são montados em mundo.gd.
+const SEM_GRUTA := true                 # a Gruta dos Lodosos (DG) saiu do jogo no mapa novo
 const GRUTA_Y := 13.0                  # altura do chão (o vale na frente da montanha)
 const GRUTA_TETO := 6.5
 const GRUTA_COBERTA_Z := -913.0        # daqui para o norte tem teto: a boca fica onde a encosta já é mais alta que o teto
@@ -414,8 +415,8 @@ func caminho_gruta(x: float, z: float) -> float:
 	var meia := 1.9 + ruido.get_noise_2d(z * 3.0, 7.0) * 0.6 + smoothstep(-905.0, -920.0, z) * 2.0   # alarga ao entrar
 	var cxz := GRUTA_ENTRADA.x + ruido.get_noise_2d(z * 1.5, 3.0) * 1.2 * smoothstep(-905.0, -880.0, z)  # curvinha lá fora
 	return (1.0 - smoothstep(meia - 0.6, meia + 0.4, absf(x - cxz))) * smoothstep(-934.0, -918.0, z) * (1.0 - smoothstep(-874.0, -866.0, z))
-func na_gruta(x: float, z: float, folga := 0.0) -> bool: return gruta_d(x, z) < folga
-func gruta_coberta(x: float, z: float) -> bool: return z < GRUTA_COBERTA_Z and gruta_d(x, z) < 0.0
+func na_gruta(x: float, z: float, folga := 0.0) -> bool: return not SEM_GRUTA and gruta_d(x, z) < folga
+func gruta_coberta(x: float, z: float) -> bool: return not SEM_GRUTA and z < GRUTA_COBERTA_Z and gruta_d(x, z) < 0.0
 func gruta_piso(x: float, z: float) -> float: return GRUTA_Y + ruido.get_noise_2d(x * 6.0, z * 6.0) * 0.35
 func gruta_teto(x: float, z: float) -> float: return GRUTA_Y + GRUTA_TETO + ruido.get_noise_2d(x * 5.0 + 9.0, z * 5.0) * 1.3 \
 	+ (4.0 * (1.0 - smoothstep(6.0, 17.0, Vector2(x, z).distance_to(GRUTA_CAMARA)))) \
