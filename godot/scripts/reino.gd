@@ -11,6 +11,7 @@ func construir(mundo) -> void:
 	m = mundo; rng.seed = 2026
 	_altamar()
 	_vila()
+	_vila_norte()
 	_estabulo()
 	_cercas_dos_campos()
 	_enfeitar_cidade()
@@ -115,15 +116,15 @@ func _altamar() -> void:
 		else: _muro(a, b, yk, 2.4)
 	m.lugares.append([cs, 70.0])
 	# ---- catedral (nível alto, ao norte da avenida) com praça na frente
-	var cat := Vector2(1860.0, 30.0)
+	var cat := cat_pos()
 	m._casa(Vector3(cat.x, Regiao.ALTURA_CIDADE, cat.y), 0.0, 19.0, 33.0, 15.0, null, null, true, "SM_Bld_Preset_Church_01_B_Optimized", 3.0)
 	m._freira("Irmã Odília", cat + Vector2(0, 21.0), Vector2(0, 1), Regiao.ALTURA_CIDADE, 4343)
 	m.lugares.append([cat + Vector2(0, 28.0), 14.0])
 	# ---- bairro dos magos (nível alto, ao sul): torre grande e duas menores
-	var tm := Vector2(1830.0, 215.0)
+	var tm := tm_pos()
 	Synty.por(m, "SM_Bld_Preset_Tower_01_Optimized", Vector3(tm.x, Regiao.ALTURA_CIDADE - 1.0, tm.y), 0.0, 2.0, true)
 	m._particulas_magia(Vector3(tm.x, Regiao.ALTURA_CIDADE + 46.0, tm.y))
-	for q in [tm + Vector2(40, 30), tm + Vector2(-35, 35)]:
+	for q in [tm + Vector2(30, 18)]:
 		Synty.por(m, "SM_Bld_Preset_Tower_01_Optimized", Vector3(q.x, Regiao.ALTURA_CIDADE - 1.0, q.y), rng.randf() * TAU, 1.2, true)
 	m.lugares.append([tm, 26.0])
 	# ---- praça do mercado: chafariz, barracas em roda, bancos e floreiras
@@ -143,7 +144,7 @@ func _altamar() -> void:
 		_por("SM_Prop_Bench_Seat_01", q, _virado(q, pr) + PI * 0.5, 1.0, false, yp)
 	m.lugares.append([pr, 25.0])
 	# ---- taverna (Cidade Velha, ao sul da praça) e o porto
-	m.taverna_pos = Vector2(2000.0, 160.0)
+	m.taverna_pos = Vector2(2030.0, 150.0)
 	m._casa(Vector3(m.taverna_pos.x, Regiao.NIVEL_MERCADO, m.taverna_pos.y), PI, 14.0, 14.0, 9.0, null, null, true, "SM_Bld_Preset_Tavern_01_Optimized", 1.0)
 	m._placa(Vector3(m.taverna_pos.x, Regiao.NIVEL_MERCADO, m.taverna_pos.y), PI, 14.0, 14.0, 9.0, "taverna")
 	m.cidade_lojas.append(["taverna", m.taverna_pos + Vector2(0, -9.0)])
@@ -190,8 +191,8 @@ func _rumo_rua(q: Vector2) -> float:
 		if absf(q.x - rx) < melhor: melhor = absf(q.x - rx); alvo = Vector2(rx, q.y)
 	return _virado(q, alvo)
 
-func cat_pos() -> Vector2: return Vector2(1860.0, 30.0)
-func tm_pos() -> Vector2: return Vector2(1830.0, 215.0)
+func cat_pos() -> Vector2: return Vector2(1910.0, 120.0)
+func tm_pos() -> Vector2: return Vector2(1870.0, 205.0)
 
 func _ao_longo(a: Vector2, b: Vector2, passo: float) -> Array:
 	var r := []; var comp := a.distance_to(b); var n := int(comp / passo)
@@ -269,9 +270,9 @@ func _vila() -> void:
 		var acum := 0.0
 		for i in e.size() - 1:
 			var a: Vector2 = e[i]; var b: Vector2 = e[i + 1]
-			if a.distance_to(v) > 150.0: break
-			var b2 := a + (b - a).limit_length(maxf(150.0 - acum, 0.0))
-			_fila(a, b2, 13.0, 15.0, yv, pular)
+			if a.distance_to(v) > 95.0: break
+			var b2 := a + (b - a).limit_length(maxf(95.0 - acum, 0.0))
+			_fila(a, b2, 12.0, 12.0, yv, pular)
 			acum += a.distance_to(b)
 	# píer no rio, a leste da vila
 	var pp := Vector2(444.0, 470.0)
@@ -441,7 +442,7 @@ func _enfeitar_cidade() -> void:
 		if Regiao.rua_cidade(q.x, q.y) < 6.0 or m.perto_de_casa(q.x, q.y, 2.0): continue
 		_por(_sorte(["SM_Veh_Cart_01", "SM_Veh_Cart_02", "SM_Veh_Cart_03", "SM_Veh_Wheelbarrow_01", "SM_Prop_Hay_Cart_01", "SM_Veh_Cart_Fireworks_01_Preset"]), q, rng.randf() * TAU, 1.0, true, Regiao.NIVEL_MERCADO)
 	# praça dos nobres: árvore grande com calçada, cercas-vivas e gazebo
-	var nb := Vector2(2030.0, -30.0)
+	var nb := Vector2(2060.0, -20.0)
 	if not m.perto_de_casa(nb.x, nb.y, 8.0):
 		_por("SM_Env_Big_Tree_Base_Paving_01", nb, 0.0, 1.0, false, Regiao.altura_cidade(nb.x, nb.y))
 		_por("SM_Env_Big_Tree_01", nb, 0.0, 0.8, true, Regiao.altura_cidade(nb.x, nb.y))
@@ -450,7 +451,7 @@ func _enfeitar_cidade() -> void:
 			_por("SM_Env_Hedge_01", q, k * PI * 0.5 + 0.4 + PI * 0.5, 1.0, true, Regiao.altura_cidade(q.x, q.y))
 		m.lugares.append([nb, 13.0])
 	# praça da justiça na Cidade Velha: forca e guilhotina
-	var ju := Vector2(2090.0, 230.0)
+	var ju := Vector2(2120.0, 215.0)
 	if not m.perto_de_casa(ju.x, ju.y, 6.0):
 		_por("SM_Prop_Gallows_Platform_02", ju, 0.0, 1.0, true, Regiao.altura_cidade(ju.x, ju.y))
 		_por("SM_Prop_Guillotine_01", ju + Vector2(9, 0), 0.0, 1.0, true, Regiao.altura_cidade(ju.x, ju.y))
@@ -495,7 +496,7 @@ func _enfeitar_vila_e_campos() -> void:
 # pedras e paredões nas encostas, samambaias na mata, juncos e lírios na água
 func _natureza() -> void:
 	var r: Regiao = m.reg
-	for i in 2600:
+	for i in 7000:
 		var x := rng.randf_range(Regiao.X0 + 60.0, Regiao.X1 - 120.0); var z := rng.randf_range(Regiao.Z0 + 60.0, Regiao.Z1 - 60.0)
 		if r.na_cidade(x, z, 40.0) or r.dist_estrada(x, z) < 8.0 or Vector2(x, z).distance_to(Regiao.VILA) < 150.0 or r.agua(x, z) != 0.0: continue
 		if m.perto_de_lugar(x, z, 8.0) or r.campo_em(x, z) >= 0: continue
@@ -508,7 +509,9 @@ func _natureza() -> void:
 		elif r.floresta(x, z) > 0.4 and rng.randf() < 0.5:
 			_por(_sorte(["SM_Env_Fern_01", "SM_Env_Fern_02", "SM_Env_Fern_03"]), q, rng.randf() * TAU, rng.randf_range(0.9, 1.4), false, h - 0.05)
 		elif r.floresta(x, z) < 0.2 and rng.randf() < 0.4:
-			_por(_sorte(["SM_Env_Flowers_01", "SM_Env_Flowers_04", "SM_Env_Flowers_07", "SM_Env_Flowers_10", "SM_Env_Sunflower_01"]), q, rng.randf() * TAU, 1.0, false, h - 0.05)
+			_por(_sorte(["SM_Env_Flowers_01", "SM_Env_Flowers_04", "SM_Env_Sunflower_01", "MF:SM_Env_Wildflowers_01", "MF:SM_Env_Wildflowers_02", "MF:SM_Env_Wildflowers_03", "MF:SM_Env_Flowers_Flat_01"]), q, rng.randf() * TAU, 1.0, false, h - 0.05)
+		elif r.floresta(x, z) > 0.3 and rng.randf() < 0.35:
+			_por(_sorte(["MF:SM_Prop_Mushroom_Group_02", "MF:SM_Prop_Mushroom_Group_03", "MF:SM_Prop_Mushroom_Sparse_01", "MF:SM_Env_Rock_Pile_03", "MF:SM_Env_Rock_Small_Pile_01", "MF:SM_Prop_Leaves_Pile_01"]), q, rng.randf() * TAU, 1.5, false, h - 0.05)
 	# beira do lago: juncos e lírios
 	var lg := Vector2(Regiao.LAGO.x, Regiao.LAGO.y)
 	for k in 60:
@@ -712,3 +715,25 @@ func _interiores() -> void:
 	_peca_int("SM_Prop_Rug_02_Round", o + Vector3(5.0, 0.02, 5.0))
 	_gente("SM_Chr_Mage_01", o + Vector3(5.0, 0, 2.2), o + Vector3(5.0, 0, 8.0))
 	_porta("Torre dos Magos", tm_pos() + Vector2(0, 10.5), 0.0, d)
+
+# ---------- Vila da Serra (pequena, ao norte, na Estrada do Norte): casas de madeira, serraria, poço ----------
+func _vila_norte() -> void:
+	var v := Regiao.VILA_NORTE
+	_por("SM_Prop_Well_01", v, 0.0, 1.3, true)
+	var tipos := ["SM_Bld_Preset_Hut_01_Optimized", "SM_Bld_Preset_Hut_02_Optimized", "SM_Bld_Preset_House_02_A_Optimized",
+		"SM_Bld_Preset_House_08_Optimized", "SM_Bld_Preset_Shelter_01_Optimized", "SM_Bld_Preset_House_03_Optimized"]
+	for k in 11:
+		var a := TAU * k / 11.0 + rng.randf_range(-0.12, 0.12); var r := rng.randf_range(20.0, 34.0)
+		var q := v + Vector2(cos(a), sin(a)) * r
+		if m.reg.dist_estrada(q.x, q.y) < 8.0 or m.perto_de_casa(q.x, q.y, 6.0): continue
+		m._casa(Vector3(q.x, 0, q.y), _virado(q, v), 7.0, 7.0, 5.0, null, null, false, tipos[k % tipos.size()], 1.0)
+	m._casa(Vector3(v.x + 46.0, 0, v.y - 8.0), _virado(v + Vector2(46, -8), v), 12.0, 10.0, 9.0, null, null, false, "SM_Bld_Preset_Tavern_01_Optimized", 0.85)
+	for k in 12:
+		var q := v + Vector2(rng.randf_range(-40, 40), rng.randf_range(-40, 40))
+		if q.distance_to(v) < 5.0 or not _livre(q, 2.0): continue
+		_por(_sorte(["SM_Prop_Wood_Pile_01", "SM_Prop_Wood_Pile_02", "SM_Prop_Log_01", "SM_Prop_Ground_Logs_01", "SM_Prop_Chopping_Board_01",
+			"SM_Veh_Cart_03", "SM_Prop_Hay_Bale_01", "SM_Prop_Barrel_Stack_01", "SM_Prop_Camp_Firepit_01"]), q, rng.randf() * TAU, 1.0, true)
+	for k in 4: m._poste_em(v + Vector2(cos(k * PI * 0.5 + 0.4), sin(k * PI * 0.5 + 0.4)) * 11.0, v)
+	_multidao(v, 35.0, 9, ["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Hermit_01", "SM_Chr_Blacksmith_Male_01", "SM_Chr_Monk_01"])
+	m.lugares.append([v, 40.0])
+	lugares_bussola.append(["Vila da Serra", v, "vila", 45.0])

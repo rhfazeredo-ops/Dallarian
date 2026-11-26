@@ -28,19 +28,20 @@ const COSTA := 2220.0        # linha da praia (o mar vai daqui até o fim do map
 # cidade grande redonda (centro e raio da muralha); um canal em anel corta a cidade no raio CANAL
 # MAPA NOVO (docs/MAPA_NOVO.md): Altamar é um retângulo na costa leste, em degraus — nível do portão (oeste, 9 m),
 # do mercado (meio, 6 m) e do porto (leste, 3 m), com o castelo num morro no noroeste (24 m)
-const CIDADE := Rect2(1770.0, -120.0, 430.0, 390.0)    # menor e mais cheia (antes 550 × 550 com muito vazio)
-const CIDADE_C := Vector2(1985.0, 75.0)          # a avenida do portão passa em z = 75
-const CIDADE_R := 215.0                          # metade do lado (compatibilidade)
+const CIDADE := Rect2(1840.0, -75.0, 360.0, 315.0)     # compacta (antes 550 × 550 e depois 430 × 390, com vazios)
+const CIDADE_C := Vector2(2020.0, 75.0)          # a avenida do portão passa em z = 75
+const CIDADE_R := 180.0                          # metade do lado (compatibilidade)
 const CANAL := -1000.0                           # (a cidade nova não tem canal em anel)
 const ALTURA_CIDADE := 9.0                       # nível do portão oeste (a estrada, a ponte e o estábulo)
 const NIVEL_MERCADO := 6.0
 const NIVEL_PORTO := 3.0
-const X_MERCADO := 1905.0                        # degrau do portão para o mercado
-const X_PORTO := 2075.0                          # degrau do mercado para o porto
-const CASTELO := Vector2(1835.0, -55.0)          # topo do morro do castelo
+const X_MERCADO := 1955.0                        # degrau do portão para o mercado
+const X_PORTO := 2100.0                          # degrau do mercado para o porto
+const CASTELO := Vector2(1895.0, -25.0)          # topo do morro do castelo
 const ALTURA_CASTELO := 24.0
-const PRACA := Vector2(1990.0, 75.0)             # praça do mercado
+const PRACA := Vector2(2025.0, 75.0)             # praça do mercado
 const VILA := Vector2(250.0, 420.0)              # Vila do Vale (centro da praça)
+const VILA_NORTE := Vector2(470.0, -560.0)       # Vila da Serra (pequena, na Estrada do Norte)
 # O desenho original era de 1,2 km. Para aumentar o mapa sem mexer na vila, tudo até 150 m do centro fica igual
 # e o que está além se afasta ("Ws"/"W": distância/ponto do desenho original → mundo de 2,4 km).
 const PERTO := 150.0
@@ -208,6 +209,8 @@ func altura(x: float, z: float, cavar := true) -> float:     # cavar=false: a mo
 	# vila plana
 	var dv := Vector2(x, z).distance_to(VILA)
 	h = lerp(base(VILA.y) + 0.3, h, smoothstep(30.0, 70.0, dv))
+	var dvn := Vector2(x, z).distance_to(VILA_NORTE)
+	if dvn < 90.0: h = lerp(base(VILA_NORTE.y) + 6.0, h, smoothstep(30.0, 85.0, dvn))
 	# campos planos
 	for c in campos:
 		var dc := Vector2(x - c[0], z - c[1]).length()
@@ -308,6 +311,7 @@ func _calma_relevo(x: float, z: float, dr: float, dl: float) -> float:
 	var c := smoothstep(6.0, 110.0, dist_estrada(x, z))
 	c *= smoothstep(14.0, 120.0, dr) * smoothstep(LAGO.z, LAGO.z + 110.0, dl)
 	c *= smoothstep(70.0, 180.0, Vector2(x, z).distance_to(VILA))            # vila
+	c *= smoothstep(50.0, 140.0, Vector2(x, z).distance_to(VILA_NORTE))
 	c *= smoothstep(30.0, 160.0, _dist_cidade(x, z))
 	c *= smoothstep(10.0, 60.0, dist_rio2(x, z))
 	for cp in campos:
@@ -367,8 +371,8 @@ static func acesso_ponte(x: float, z: float) -> float:
 	return (1.0 - smoothstep(10.0, 20.0, dz)) * smoothstep(FOSSO_X - 120.0, FOSSO_X - 70.0, x)
 # ruas de Altamar: a avenida do portão (leste–oeste, z = 75), a rua do mercado (norte–sul, x = 1950) e as ruas
 # secundárias que fecham os quarteirões
-const RUAS_Z := [-60.0, 15.0, 135.0, 200.0]
-const RUAS_X := [1820.0, 1945.0, 2040.0, 2130.0]
+const RUAS_Z := [15.0, 140.0, 195.0]
+const RUAS_X := [1900.0, 1990.0, 2065.0, 2150.0]
 static func rua_cidade(x: float, z: float) -> float:
 	var d := Vector2(x, z) - PRACA
 	var r := minf(absf(d.x), absf(d.y))
@@ -482,8 +486,9 @@ func floresta(x: float, z: float) -> float:
 	# 0 = aberto, 1 = mata fechada
 	if GRUTA_BB.grow(14.0).has_point(Vector2(x, z)) and gruta_d(x, z) < 10.0: return -1.0
 	var f := ruido_grande.get_noise_2d(x * 1.6 + 300.0, z * 1.6) * 1.6 + 0.35
-	f += 0.25 * smoothstep(400.0, 800.0, Vector2(x, z).distance_to(VILA))   # mais mata longe da vila
+	f += 0.25 * smoothstep(400.0, 800.0, Vector2(x, z).distance_to(VILA)) + 0.22   # mais mata (menos campo vazio)
 	f -= 1.0 - smoothstep(60.0, 160.0, Vector2(x, z).distance_to(VILA))     # vila e arredores abertos
+	f -= 1.0 - smoothstep(40.0, 110.0, Vector2(x, z).distance_to(VILA_NORTE))
 	f -= 1.0 - smoothstep(30.0, 140.0, _dist_cidade(x, z))           # campos abertos em volta da cidade
 	return clampf(f, 0.0, 1.0)
 

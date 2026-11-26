@@ -17,13 +17,35 @@ static var _lote := {}            # [pedaço, malha, tipo, modo] → [malha, [tr
 # superfícies do castelo (shader "CastleSHD" no Unity): textura de tijolos que se repete; o resto usa o atlas
 const TEXTURAS := {"castelo": "res://arte/fk/texturas/PolygonFantasyKingdon_Texture_Wall_Brick_01.png"}
 
+# Segundo pacote: POLYGON Meadow Forest (natureza). Nome com o prefixo "MF:". Cada parte tem a sua textura (folhas
+# recortadas pela transparência); o mapa nó → material saiu dos prefabs do pacote (arte/mf/mapa_materiais.json).
+const PASTA_MF := "res://arte/mf/modelos/"
+static var _mf_mapa = null
+static var _mf_mats = null
+static func _arq(nome: String) -> String:
+	return PASTA_MF + nome.trim_prefix("MF:") + ".fbx" if nome.begins_with("MF:") else PASTA + nome + ".fbx"
 static func existe(nome: String) -> bool:
-	return ResourceLoader.exists(PASTA + nome + ".fbx")
+	return ResourceLoader.exists(_arq(nome))
+static func _tipo_mf(no: String) -> String:
+	if _mf_mapa == null:
+		_mf_mapa = JSON.parse_string(FileAccess.get_file_as_string("res://arte/mf/mapa_materiais.json"))
+		_mf_mats = JSON.parse_string(FileAccess.get_file_as_string("res://arte/mf/materiais.json"))
+	var mat := "PolygonNatureBiomesMeadow_Mat_01"
+	if _mf_mapa.has(no): mat = _mf_mapa[no][0]
+	elif "Grass_Short" in no: return "mf:Grass_Short_01.tga|1"        # (sem prefab: textura da grama pelo nome)
+	elif "Grass_Med" in no or "Grass_Bush" in no: return "mf:Grass_Mid_01.tga|1"
+	var info = _mf_mats.get(mat, null)
+	if info == null or info.tex == null: return "mf:PolygonNatureBiomes_Meadow_Texture_01.png|0"
+	return "mf:%s|%d" % [info.tex, 1 if info.alfa and not String(info.tex).begins_with("PolygonNature") else 0]
 
 static func material(neblina: Color, tipo := "atlas") -> ShaderMaterial:
 	if _mats.has(tipo): return _mats[tipo]
 	var mt := ShaderMaterial.new(); mt.shader = load("res://shaders/ps1.gdshader")
-	mt.set_shader_parameter("tex", load(TEXTURAS.get(tipo, ATLAS))); mt.set_shader_parameter("neblina", neblina)
+	if tipo.begins_with("mf:"):
+		var pz := tipo.trim_prefix("mf:").split("|")
+		mt.set_shader_parameter("tex", load("res://arte/mf/texturas/" + pz[0])); mt.set_shader_parameter("corte", pz[1] == "1")
+	else: mt.set_shader_parameter("tex", load(TEXTURAS.get(tipo, ATLAS)))
+	mt.set_shader_parameter("neblina", neblina)
 	if tipo == "longe": mt.set_shader_parameter("usa_tex", false)
 	if tipo == "personagem": mt.set_shader_parameter("sem_cor_vertice", true)          # versão de longe: só a cor dos vértices
 	_mats[tipo] = mt
@@ -38,10 +60,12 @@ static func pecas(nome: String) -> Array:
 	if _pecas.has(nome): return _pecas[nome]
 	var lista := []; var cx := AABB(); var primeiro := true
 	if existe(nome):
-		var n: Node3D = load(PASTA + nome + ".fbx").instantiate()
+		var n: Node3D = load(_arq(nome)).instantiate()
 		var base := n.transform.affine_inverse()
+		var mf := nome.begins_with("MF:")
 		for c in n.find_children("*", "MeshInstance3D", true, false):
 			var mi: MeshInstance3D = c
+			if mf and "_LOD" in mi.name and not mi.name.ends_with("_LOD0"): continue      # só o nível mais detalhado
 			var t: Transform3D = base * _global(mi, n)
 			# uma malha por superfície (cada uma com o seu material: atlas ou tijolo do castelo)
 			for si in mi.mesh.get_surface_count():
@@ -49,7 +73,8 @@ static func pecas(nome: String) -> Array:
 				arr[Mesh.ARRAY_COLOR] = null           # a Synty guarda o "vento" nas cores dos vértices (deixava as árvores pretas)
 				for ai in [Mesh.ARRAY_BONES, Mesh.ARRAY_WEIGHTS, Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]: arr[ai] = null
 				var am := ArrayMesh.new(); am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-				lista.append([am, t, "castelo" if nome.begins_with("SM_Bld_Castle_") else _tipo(mi.mesh.surface_get_material(si))])
+				var tp := _tipo_mf(mi.name) if mf else ("castelo" if nome.begins_with("SM_Bld_Castle_") else _tipo(mi.mesh.surface_get_material(si)))
+				lista.append([am, t, tp])
 			var b: AABB = t * mi.mesh.get_aabb()
 			cx = b if primeiro else cx.merge(b); primeiro = false
 		n.free()
@@ -123,12 +148,14 @@ static var _malhas := {}
 static func malha(nome: String, neblina: Color, esc := 1.0) -> ArrayMesh:
 	var k := "%s|%s" % [nome, esc]
 	if _malhas.has(k): return _malhas[k]
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var tem := false
+	var por_tipo := {}
 	for p in pecas(nome):
-		st.append_from(p[0], 0, Transform3D(Basis.from_scale(Vector3.ONE * esc), Vector3.ZERO) * (p[1] as Transform3D)); tem = true
-	if not tem: return null
-	var am := st.commit(); am.surface_set_material(0, material(neblina, "atlas"))
+		if not por_tipo.has(p[2]): por_tipo[p[2]] = SurfaceTool.new(); por_tipo[p[2]].begin(Mesh.PRIMITIVE_TRIANGLES)
+		por_tipo[p[2]].append_from(p[0], 0, Transform3D(Basis.from_scale(Vector3.ONE * esc), Vector3.ZERO) * (p[1] as Transform3D))
+	if por_tipo.is_empty(): return null
+	var am := ArrayMesh.new()
+	for tp in por_tipo.keys():
+		por_tipo[tp].commit(am); am.surface_set_material(am.get_surface_count() - 1, material(neblina, tp))
 	_malhas[k] = am
 	return am
 

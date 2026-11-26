@@ -29,6 +29,11 @@ func montar(mundo) -> void:
 		malhas = { "perto": [Synty.malha("SM_Env_Grass_Tuft_01", m.NEBLINA, 0.9), Synty.malha("SM_Env_Grass_Tuft_03", m.NEBLINA, 1.6)],
 			"longe": [Synty.malha("SM_Env_Grass_Tuft_02", m.NEBLINA, 1.4), Synty.malha("SM_Env_Grass_Tuft_03", m.NEBLINA, 1.6)] }
 		camadas[0].dens *= 0.45; camadas[1].dens *= 0.6; _synty = true
+		if Synty.existe("MF:SM_Env_Grass_Med_Clump_01"):   # segundo pacote: touceiras de grama com textura (6 triângulos)
+			mat = null
+			malhas = { "perto": [Synty.malha("MF:SM_Env_Grass_Med_Clump_01", m.NEBLINA, 0.9), Synty.malha("MF:SM_Env_Grass_Tall_Clump_03", m.NEBLINA, 0.9)],
+				"longe": [Synty.malha("MF:SM_Env_Grass_Short_Clump_02", m.NEBLINA, 1.4), Synty.malha("MF:SM_Env_Grass_Tall_Clump_03", m.NEBLINA, 0.9)] }
+			camadas[0].dens *= 2.5; camadas[1].dens *= 2.0
 
 # um tufo: folhas retangulares de ponta quadrada (estilo pixel), cada uma um retângulo só (2 triângulos),
 # inclinado para um lado. Bem mais leve que folha curva.
@@ -60,7 +65,7 @@ var _primeira := true
 func _process(_d: float) -> void:
 	if m == null or m.jogador == null: return
 	var jp: Vector3 = m.jogador.global_position
-	mat.set_shader_parameter("jogador", jp)
+	if mat: mat.set_shader_parameter("jogador", jp)
 	var p := Vector2(jp.x, jp.z)
 	_receber(p)
 	var orcamento := 1000000 if _primeira else 2

@@ -19,6 +19,13 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Segundo pacote (Meadow Forest), cidade e vila mais compactas, Vila da Serra**
+- Pacote POLYGON Meadow Forest: árvores com folhas de verdade (bétulas, árvores do campo, frutíferas) perto do
+  jogador, arbustos, touceiras de grama com textura, flores do campo, cogumelos, montes de pedras e folhas.
+- Altamar ainda mais compacta (360 × 315 m) e a Vila do Vale mais apertada, sem campos vazios em volta; mais mata
+  e mais pedras, flores e cogumelos pelo mapa.
+- Vila da Serra: vilarejo novo e pequeno ao norte, na Estrada do Norte (casinhas, taverna, poço, lenha, moradores).
+
 **Interiores, porto e escadarias**
 - Dá para ENTRAR em 5 lugares (botão ENTRAR na porta; lá dentro, SAIR; no PC a tecla F), montados com as paredes,
   pisos e móveis do pacote e com gente dentro:

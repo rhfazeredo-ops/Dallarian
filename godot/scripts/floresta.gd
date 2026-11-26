@@ -148,6 +148,14 @@ func montar(mundo) -> void:
 			"morta": [null, Synty.malha("SM_Env_Tree_Dead_02", N, 1.0)],
 			"fruta": [null, Synty.malha("SM_Env_Tree_Round_01", N, 1.0)],
 		}
+		# segundo pacote (Meadow Forest): árvores com folhas de verdade PERTO; longe ficam as do Fantasy Kingdom (leves)
+		if Synty.existe("MF:SM_Env_Tree_Birch_02"):
+			var perto := {"copa_a": ["MF:SM_Env_Tree_Meadow_02", 0.75], "copa_b": ["MF:SM_Env_Tree_Birch_02", 0.85],
+				"copa_c": ["MF:SM_Env_Tree_Fruit_02", 1.1], "copa_d": ["MF:SM_Env_Tree_Birch_03", 1.5], "fruta": ["MF:SM_Env_Tree_Fruit_01", 1.0]}
+			for k in perto.keys():
+				malhas[k] = [null, Synty.malha(perto[k][0], N, perto[k][1]), malhas[k][1]]
+			malhas["arbusto"] = [null, Synty.malha("MF:SM_Env_Bush_01", N, 0.6)]
+			malhas["flor_c"] = [null, Synty.malha("MF:SM_Env_Bush_02", N, 0.5)]
 	# pedaços montados aos poucos em volta da Rachel (o mapa é grande: montar tudo no começo demora demais)
 	_nx = int(ceil((Regiao.X1 - Regiao.X0) / PED)); _nz = int(ceil((Regiao.Z1 - Regiao.Z0) / PED))
 	_montar_perto(true)
