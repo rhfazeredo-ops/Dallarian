@@ -28,18 +28,18 @@ const COSTA := 2220.0        # linha da praia (o mar vai daqui até o fim do map
 # cidade grande redonda (centro e raio da muralha); um canal em anel corta a cidade no raio CANAL
 # MAPA NOVO (docs/MAPA_NOVO.md): Altamar é um retângulo na costa leste, em degraus — nível do portão (oeste, 9 m),
 # do mercado (meio, 6 m) e do porto (leste, 3 m), com o castelo num morro no noroeste (24 m)
-const CIDADE := Rect2(1650.0, -200.0, 550.0, 550.0)
-const CIDADE_C := Vector2(1925.0, 75.0)          # centro do retângulo (a avenida do portão passa em z = 75)
-const CIDADE_R := 275.0                          # metade do lado (compatibilidade)
+const CIDADE := Rect2(1770.0, -120.0, 430.0, 390.0)    # menor e mais cheia (antes 550 × 550 com muito vazio)
+const CIDADE_C := Vector2(1985.0, 75.0)          # a avenida do portão passa em z = 75
+const CIDADE_R := 215.0                          # metade do lado (compatibilidade)
 const CANAL := -1000.0                           # (a cidade nova não tem canal em anel)
 const ALTURA_CIDADE := 9.0                       # nível do portão oeste (a estrada, a ponte e o estábulo)
 const NIVEL_MERCADO := 6.0
 const NIVEL_PORTO := 3.0
-const X_MERCADO := 1855.0                        # degrau do portão para o mercado
-const X_PORTO := 2045.0                          # degrau do mercado para o porto
-const CASTELO := Vector2(1740.0, -110.0)         # topo do morro do castelo
+const X_MERCADO := 1905.0                        # degrau do portão para o mercado
+const X_PORTO := 2075.0                          # degrau do mercado para o porto
+const CASTELO := Vector2(1835.0, -55.0)          # topo do morro do castelo
 const ALTURA_CASTELO := 24.0
-const PRACA := Vector2(1950.0, 75.0)             # praça do mercado
+const PRACA := Vector2(1990.0, 75.0)             # praça do mercado
 const VILA := Vector2(250.0, 420.0)              # Vila do Vale (centro da praça)
 # O desenho original era de 1,2 km. Para aumentar o mapa sem mexer na vila, tudo até 150 m do centro fica igual
 # e o que está além se afasta ("Ws"/"W": distância/ponto do desenho original → mundo de 2,4 km).
@@ -142,7 +142,7 @@ func dist_rios(x: float, z: float) -> float: return minf(dist_rio(x, z), dist_ri
 
 # ---------- rio do leste: nasce nas montanhas do norte, passa na frente do portão oeste da cidade e deságua no mar ----------
 var rio2 := PackedVector2Array([Vector2(1500, -1190), Vector2(1530, -950), Vector2(1560, -700), Vector2(1580, -450),
-	Vector2(1590, -200), Vector2(1595, 0), Vector2(1595, 75), Vector2(1600, 200), Vector2(1640, 380), Vector2(1760, 520),
+	Vector2(1640, -250), Vector2(1700, -60), Vector2(1715, 75), Vector2(1712, 200), Vector2(1730, 380), Vector2(1800, 520),
 	Vector2(1950, 600), Vector2(2150, 640), Vector2(2330, 660)])
 var d_rio2 := PackedFloat32Array()
 var t_rio2 := PackedFloat32Array()
@@ -332,7 +332,7 @@ static func altura_cidade(x: float, z: float) -> float:
 func na_cidade(x: float, z: float, folga := 0.0) -> bool: return _dist_cidade(x, z) <= folga
 
 # bairros de Altamar pelo ângulo e pela distância ao centro (leste = 0, sul = PI/2, oeste = PI, norte = -PI/2)
-const FOSSO_X := CIDADE_C.x - CIDADE_R - 42.0
+const FOSSO_X := CIDADE.position.x - 55.0
 const ESTABULO := Vector2(FOSSO_X - 58.0, CIDADE_C.y - 42.0)
 const PATIO_NIVEL := Rect2(FOSSO_X - 112.0, CIDADE_C.y - 78.0, 96.0, 106.0)     # aplainado no nível da estrada
 # terra batida do estábulo: um quadrado certinho pegando o telheiro e o cercado (sem grama nenhuma)...
@@ -367,8 +367,8 @@ static func acesso_ponte(x: float, z: float) -> float:
 	return (1.0 - smoothstep(10.0, 20.0, dz)) * smoothstep(FOSSO_X - 120.0, FOSSO_X - 70.0, x)
 # ruas de Altamar: a avenida do portão (leste–oeste, z = 75), a rua do mercado (norte–sul, x = 1950) e as ruas
 # secundárias que fecham os quarteirões
-const RUAS_Z := [-140.0, -55.0, 10.0, 140.0, 210.0, 285.0]
-const RUAS_X := [1705.0, 1775.0, 1820.0, 2005.0, 2090.0, 2160.0]
+const RUAS_Z := [-60.0, 15.0, 135.0, 200.0]
+const RUAS_X := [1820.0, 1945.0, 2040.0, 2130.0]
 static func rua_cidade(x: float, z: float) -> float:
 	var d := Vector2(x, z) - PRACA
 	var r := minf(absf(d.x), absf(d.y))
@@ -494,29 +494,31 @@ func cor(x: float, z: float, h: float, ny: float, gruta := true) -> Color:
 	var f := floresta(x, z)
 	c = c.lerp(Color(0.3, 0.42, 0.2), f * 0.6)                                 # chão de mata mais escuro
 	c = c.lerp(Color(0.46, 0.33, 0.18), smoothstep(0.45, 0.8, f) * 0.75)     # mata fechada: chão de folhas caídas
+	var tipo := 1.0                     # (vai no alfa) 1 grama, 0,5 terra, 0,25 areia, 0 pedra — texturas do pacote
 	var campo := campo_em(x, z)
 	if campo == 0: c = Color(0.82, 0.68, 0.3) * (0.95 + n * 0.1)
 	elif campo == 1:
 		var faixa := int(floor(Vector2(x, z).rotated(0.2).x / 1.6)) % 2
-		c = Color(0.48, 0.34, 0.22) * (0.9 + 0.12 * faixa)
-	if dist_estrada(x, z) < 2.6 or Vector2(x, z).distance_to(VILA) < 13.0 + n * 3.0: c = Color(0.52, 0.38, 0.24) * (0.95 + n * 0.1)
-	elif dist_trilha(x, z) < 1.3 + n * 0.3: c = Color(0.55, 0.42, 0.27) * (0.95 + n * 0.1)     # trilha de terra
+		c = Color(0.48, 0.34, 0.22) * (0.9 + 0.12 * faixa); tipo = 0.5
+	if dist_estrada(x, z) < 2.8 or Vector2(x, z).distance_to(VILA) < 13.0 + n * 3.0: c = Color(0.52, 0.38, 0.24) * (0.95 + n * 0.1); tipo = 0.5
+	elif dist_trilha(x, z) < 1.3 + n * 0.3: c = Color(0.55, 0.42, 0.27) * (0.95 + n * 0.1); tipo = 0.5     # trilha de terra
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 2.5 or abs(Vector2(x - LAGO.x, z - LAGO.y).length() - LAGO.z) < 4.0:
-		c = Color(0.4, 0.33, 0.22)                                             # margem de lama
+		c = Color(0.4, 0.33, 0.22); tipo = 0.5                                 # margem de lama
 	if na_cidade(x, z) and not parque(x, z):
-		c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1)                            # calçamento de pedra da cidade
+		c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1); tipo = 0.0                # calçamento de pedra da cidade
 		var dr_c := rua_cidade(x, z)
 		if dr_c < 5.5: c = Color(0.66, 0.64, 0.6) * (0.94 + n * 0.08)            # rua principal de pedra clara
 		elif dr_c < 8.5: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)          # calçada de tijolo vermelho
 	if acesso_ponte(x, z) > 0.0 and x > FOSSO_X - 95.0:                         # calçamento da ponte até o portão
 		var dzp := absf(z - CIDADE_C.y)
+		if dzp < 11.0: tipo = 0.0
 		if dzp < 5.5: c = Color(0.66, 0.64, 0.6) * (0.94 + n * 0.08)
 		elif dzp < 8.0: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)
 		elif dzp < 11.0: c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1)
-	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08)  # praia
+	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08); tipo = 0.25  # praia
 	var pe := maxf(patio_estabulo(x, z), patio_casa(x, z) * 0.35)        # na casa: só um gasto leve na grama
-	if pe > 0.0: c = c.lerp(Color(0.5, 0.38, 0.25) * (0.9 + n * 0.14), pe)          # terra batida do estábulo
+	if pe > 0.0: c = c.lerp(Color(0.5, 0.38, 0.25) * (0.9 + n * 0.14), pe); tipo = lerpf(tipo, 0.5, pe)          # terra batida do estábulo
 	var p := zona_pantano(z)
 	if p > 0.0: c = c.lerp(Color(0.3, 0.33, 0.2) * (0.9 + n * 0.15), p)
 	if ny < 0.8: c = c.lerp(Color(0.46, 0.5, 0.6), smoothstep(0.8, 0.65, ny))  # pedra
@@ -529,6 +531,7 @@ func cor(x: float, z: float, h: float, ny: float, gruta := true) -> Color:
 		if cg > 0.0:                                                  # caminho de terra clara (bege), com salpicos
 			var sp := ruido.get_noise_2d(x * 40.0, z * 40.0)
 			c = c.lerp(Color(0.74, 0.62, 0.44) * (0.9 + sp * 0.12), cg)
+	c.a = tipo
 	return c
 
 # dentro do chão de alguma construção (casa, ferraria, moinho...)?

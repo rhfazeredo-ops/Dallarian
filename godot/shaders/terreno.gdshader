@@ -20,6 +20,10 @@ uniform sampler2D tex_rocha : source_color, filter_linear_mipmap, repeat_enable;
 uniform float tam_rocha = 7.0;                    // metros por repetição da rocha
 uniform sampler2D tex_det : source_color, filter_linear_mipmap, repeat_enable;   // detalhe do chão (textura da Synty)
 uniform bool usa_det = false;
+uniform sampler2D tex_terra : source_color, filter_linear_mipmap, repeat_enable;   // estradas, trilhas, campos arados
+uniform sampler2D tex_areia : source_color, filter_linear_mipmap, repeat_enable;   // praia
+uniform sampler2D tex_pedra : source_color, filter_linear_mipmap, repeat_enable;   // calçamento da cidade
+varying float tipo_chao;
 uniform float tam_det = 5.0;                      // metros por repetição do detalhe
 varying vec3 luz0;                                // luz sem a cor do vértice (a rocha usa a cor da textura)
 varying vec3 pmundo;
@@ -35,6 +39,7 @@ void vertex() {
   luz0 = luz; corv = COLOR.rgb;
   luz *= COLOR.rgb;
   pmundo = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; nmundo = n;
+  tipo_chao = COLOR.a;
   vec4 vp = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);
   // montanhas altas aparecem através da névoa (silhueta dos limites)
@@ -47,11 +52,23 @@ void vertex() {
 }
 void fragment() {
   vec3 base = cor.rgb * (usa_tex ? texture(tex, UV).rgb : vec3(1.0));
-  if (usa_det) {                                  // a cor pintada do chão com o relevo da textura do pacote
-    vec3 d = texture(tex_det, pmundo.xz / tam_det).rgb;
-    base = cor.rgb * mix(1.0, dot(d, vec3(0.3, 0.59, 0.11)) / 0.42, 0.75);
+  if (usa_det) {                                  // chão com as texturas do pacote, escolhidas pelo tipo (alfa da cor)
+    vec2 uv = pmundo.xz / tam_det;
+    vec3 gr = texture(tex_det, uv).rgb;
+    vec3 te = texture(tex_terra, uv * 0.8).rgb;
+    vec3 ar = texture(tex_areia, uv).rgb;
+    vec3 pe = texture(tex_pedra, pmundo.xz / 4.0).rgb;
+    float a = tipo_chao;
+    float w_pe = 1.0 - smoothstep(0.05, 0.2, a);
+    float w_ar = (1.0 - smoothstep(0.3, 0.4, a)) * smoothstep(0.1, 0.2, a);
+    float w_te = smoothstep(0.3, 0.45, a) * (1.0 - smoothstep(0.6, 0.8, a));
+    float w_gr = smoothstep(0.6, 0.85, a);
+    // a grama segue a cor pintada (mata mais escura, trigo dourado); as outras são a cor da própria textura
+    vec3 gcol = gr * (corv / vec3(0.45, 0.6, 0.27));
+    vec3 t = (gcol * w_gr + te * w_te + ar * w_ar + pe * w_pe) / max(w_gr + w_te + w_ar + w_pe, 0.001);
+    base = t;
   }
-  vec3 c = base * luz;
+  vec3 c = base * (usa_det ? luz0 : luz);           // (com as texturas do pacote a cor pintada já entrou na base)
   vec3 nn = normalize(nmundo);
   float pedra = 1.0 - smoothstep(0.62, 0.8, nn.y);                              // íngreme → rocha
   if (pedra > 0.0) {

@@ -13,6 +13,7 @@ func construir(mundo) -> void:
 	_vila()
 	_estabulo()
 	_cercas_dos_campos()
+	_cidadaos()
 
 # ---------- ajudas ----------
 func _y(p: Vector2) -> float: return m.reg.altura(p.x, p.y)
@@ -80,6 +81,15 @@ func _altamar() -> void:
 			var q := pg + Vector2(-24.0 - k * 18.0, lado * 9.5)
 			_por("SM_Prop_Statue_Knight_01", q, _virado(q, q + Vector2(0, -lado)), 2.2, true)
 		_por("SM_Prop_Battle_Banner_01", pg + Vector2(6.0, lado * 7.5), PI * 0.5, 2.5, false)
+	# ---- Ponte do Portão sobre o rio do leste (pedra da Synty, pilares e guarda-corpo)
+	var fx := Regiao.FOSSO_X; var yb := Regiao.ALTURA_CIDADE
+	for i in 7:
+		var xx := fx - 19.0 + (i + 0.5) * 38.0 / 7.0
+		Synty.por3(m, "SM_Bld_Bridge_01", Vector3(xx, yb + 0.1, zc), 0.0, Vector3(38.0 / 7.0 / 5.6, 1.5, 14.0 / 5.5), false)
+		for lado in [-1.0, 1.0]:
+			Synty.por3(m, "SM_Bld_Bridge_Railing_01", Vector3(xx, yb + 0.3, zc + lado * 6.6), PI * 0.5, Vector3(1.2, 1.0, 38.0 / 7.0 / 5.0), false)
+	for xx in [fx - 10.0, fx, fx + 10.0]: Synty.por(m, "SM_Bld_Bridge_Pillars_01", Vector3(xx, yb, zc), PI * 0.5, 1.0, false, false)
+	m._colisor_caixa(Vector3(fx, yb - 0.2, zc), Vector3(14.0, 0.6, 38.0), PI * 0.5)
 	# ---- degraus entre os níveis: paredões baixos (com passagem nas ruas)
 	for xd in [Regiao.X_MERCADO, Regiao.X_PORTO]:
 		var segs := [[z0 + 4.0, zc - 9.0], [zc + 9.0, z1 - 4.0]]
@@ -101,15 +111,15 @@ func _altamar() -> void:
 		else: _muro(a, b, yk, 2.4)
 	m.lugares.append([cs, 70.0])
 	# ---- catedral (nível alto, ao norte da avenida) com praça na frente
-	var cat := Vector2(1790.0, 0.0)
+	var cat := Vector2(1860.0, 30.0)
 	m._casa(Vector3(cat.x, Regiao.ALTURA_CIDADE, cat.y), 0.0, 19.0, 33.0, 15.0, null, null, true, "SM_Bld_Preset_Church_01_B_Optimized", 3.0)
 	m._freira("Irmã Odília", cat + Vector2(0, 21.0), Vector2(0, 1), Regiao.ALTURA_CIDADE, 4343)
 	m.lugares.append([cat + Vector2(0, 28.0), 14.0])
 	# ---- bairro dos magos (nível alto, ao sul): torre grande e duas menores
-	var tm := Vector2(1755.0, 250.0)
+	var tm := Vector2(1830.0, 215.0)
 	Synty.por(m, "SM_Bld_Preset_Tower_01_Optimized", Vector3(tm.x, Regiao.ALTURA_CIDADE - 1.0, tm.y), 0.0, 2.0, true)
 	m._particulas_magia(Vector3(tm.x, Regiao.ALTURA_CIDADE + 46.0, tm.y))
-	for q in [tm + Vector2(60, 40), tm + Vector2(-40, 60)]:
+	for q in [tm + Vector2(40, 30), tm + Vector2(-35, 35)]:
 		Synty.por(m, "SM_Bld_Preset_Tower_01_Optimized", Vector3(q.x, Regiao.ALTURA_CIDADE - 1.0, q.y), rng.randf() * TAU, 1.2, true)
 	m.lugares.append([tm, 26.0])
 	# ---- praça do mercado: chafariz, barracas em roda, bancos e floreiras
@@ -129,7 +139,7 @@ func _altamar() -> void:
 		_por("SM_Prop_Bench_Seat_01", q, _virado(q, pr) + PI * 0.5, 1.0, false, yp)
 	m.lugares.append([pr, 25.0])
 	# ---- taverna (Cidade Velha, ao sul da praça) e o porto
-	m.taverna_pos = Vector2(1985.0, 175.0)
+	m.taverna_pos = Vector2(2000.0, 160.0)
 	m._casa(Vector3(m.taverna_pos.x, Regiao.NIVEL_MERCADO, m.taverna_pos.y), PI, 14.0, 14.0, 9.0, null, null, true, "SM_Bld_Preset_Tavern_01_Optimized", 1.0)
 	m._placa(Vector3(m.taverna_pos.x, Regiao.NIVEL_MERCADO, m.taverna_pos.y), PI, 14.0, 14.0, 9.0, "taverna")
 	m.cidade_lojas.append(["taverna", m.taverna_pos + Vector2(0, -9.0)])
@@ -148,11 +158,11 @@ func _altamar() -> void:
 	for xr in Regiao.RUAS_X:
 		_fila(Vector2(xr, z0 + 16.0), Vector2(xr, z1 - 16.0), 13.0, 13.0, yc, pular)
 	# ---- miolo dos quarteirões: mais casas (viradas para a rua mais perto), deixando becos entre elas
-	for xx in range(int(x0) + 20, int(x1) - 14, 14):
-		for zz in range(int(z0) + 20, int(z1) - 14, 14):
+	for xx in range(int(x0) + 18, int(x1) - 12, 12):
+		for zz in range(int(z0) + 18, int(z1) - 12, 12):
 			var q := Vector2(xx + rng.randf_range(-2.0, 2.0), zz + rng.randf_range(-2.0, 2.0))
-			if pular.call(q) or rng.randf() < 0.15: continue
-			if m.perto_de_casa(q.x, q.y, 5.5) or m.perto_de_lugar(q.x, q.y, 5.0): continue
+			if pular.call(q) or rng.randf() < 0.08: continue
+			if m.perto_de_casa(q.x, q.y, 4.8) or m.perto_de_lugar(q.x, q.y, 5.0): continue
 			m._casa(Vector3(q.x, yc.call(q), q.y), _rumo_rua(q), rng.randf_range(7.5, 9.5), rng.randf_range(7.0, 9.0), 6.0, null, null, true)
 	# ---- postes e árvores pelas ruas principais
 	for xx in range(int(x0) + 30, int(x1) - 10, 34):
@@ -162,7 +172,7 @@ func _altamar() -> void:
 	for zz in range(int(z0) + 30, int(z1) - 10, 36):
 		var q := Vector2(pr.x + 8.0, zz)
 		if q.distance_to(pr) > 30.0: m._poste_em(q, Vector2(pr.x, zz))
-	for q in [cat + Vector2(-16, 30), cat + Vector2(16, 30), tm + Vector2(20, -24), tm + Vector2(-24, -20), Vector2(1700, -10), Vector2(1700, 160)]:
+	for q in [cat + Vector2(-16, 30), cat + Vector2(16, 30), tm + Vector2(20, -24), tm + Vector2(-24, -20), Vector2(1790, 110), Vector2(1790, 160)]:
 		m.arvores_cidade.append([Vector3(q.x, Regiao.altura_cidade(q.x, q.y) - 0.2, q.y), rng.randf_range(0.8, 1.1)])
 		m._colisor_cilindro(Vector3(q.x, Regiao.altura_cidade(q.x, q.y), q.y), 0.35, 4.0)
 	m.lugares.append([Regiao.CIDADE_C, 300.0])
@@ -175,6 +185,9 @@ func _rumo_rua(q: Vector2) -> float:
 	for rx in Regiao.RUAS_X + [Regiao.PRACA.x]:
 		if absf(q.x - rx) < melhor: melhor = absf(q.x - rx); alvo = Vector2(rx, q.y)
 	return _virado(q, alvo)
+
+func cat_pos() -> Vector2: return Vector2(1860.0, 30.0)
+func tm_pos() -> Vector2: return Vector2(1830.0, 215.0)
 
 func _ao_longo(a: Vector2, b: Vector2, passo: float) -> Array:
 	var r := []; var comp := a.distance_to(b); var n := int(comp / passo)
@@ -300,3 +313,59 @@ func _cercas_dos_campos() -> void:
 		var q := cc + Vector2(hw + 12.0, 0).rotated(ang)
 		if not m.perto_de_casa(q.x, q.y, 6.0) and m.reg.dist_estrada(q.x, q.y) > 8.0 and m.reg.dist_rio(q.x, q.y) > 14.0:
 			m._casa(Vector3(q.x, 0, q.y), _virado(q, cc), 7.0, 7.0, 5.0)
+
+# ---------- gente do pacote (cidadãos com as animações da Synty) ----------
+const POVO := ["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Merchant_01", "SM_Chr_Hermit_01",
+	"SM_Chr_Monk_01", "SM_Chr_Bartender_01", "SM_Chr_Blacksmith_Male_01", "SM_Chr_Blacksmith_Female_01", "SM_Chr_Rider_01"]
+var _n_cid := 0
+func _cidadao(tipo: String, p: Vector2, centro: Vector2, raio: float, fixo := false, olhar := Vector2.ZERO) -> void:
+	if not Cidadao.existe(): return
+	var c := Cidadao.new(); c.tipo = tipo; c.centro = centro; c.raio = raio; c.fixo = fixo; c.olhar = olhar
+	m.raiz.add_child(c); c.position = Vector3(p.x, m.reg.altura(p.x, p.y), p.y)
+	c.montar(m, 9000 + _n_cid); _n_cid += 1
+
+func _multidao(centro: Vector2, raio: float, n: int, tipos: Array = POVO) -> void:
+	for i in n:
+		for t in 10:
+			var a := rng.randf() * TAU; var q := centro + Vector2(cos(a), sin(a)) * rng.randf_range(2.0, raio)
+			if not m.perto_de_casa(q.x, q.y, 1.2):
+				_cidadao(tipos[rng.randi() % tipos.size()], q, centro, raio); break
+
+func _cidadaos() -> void:
+	var pr := Regiao.PRACA; var zc := Regiao.CIDADE_C.y; var x0 := Regiao.CIDADE.position.x
+	_multidao(pr, 34.0, 22)                                                   # praça do mercado cheia
+	_multidao(Vector2(1840.0, zc), 40.0, 10)                                  # avenida do portão
+	_multidao(Vector2(2120.0, zc), 40.0, 8, ["SM_Chr_Peasant_Male_01", "SM_Chr_Merchant_01", "SM_Chr_Hermit_01", "SM_Chr_Rider_01"])   # porto
+	_multidao(Vector2(2000.0, 185.0), 30.0, 8)                               # Cidade Velha (taverna)
+	_multidao(Regiao.VILA, 60.0, 14, ["SM_Chr_Peasant_Male_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Hermit_01", "SM_Chr_Blacksmith_Male_01", "SM_Chr_Monk_01"])
+	# guardas no Portão Oeste e no castelo
+	for lado in [-1.0, 1.0]:
+		var q := Vector2(x0 + 4.0, zc + lado * 6.5)
+		_cidadao("SM_Chr_Soldier_Male_01" if lado < 0 else "SM_Chr_Soldier_Female_01", q, q, 1.0, true, q + Vector2(-5, 0))
+		var q2 := Vector2(x0 - 10.0, zc + lado * 6.0)
+		_cidadao("SM_Chr_Soldier_Male_01", q2, q2, 1.0, true, q2 + Vector2(-5, 0))
+	var cs := Regiao.CASTELO + Vector2(0, 38.0)
+	for lado in [-1.0, 1.0]: _cidadao("SM_Chr_Soldier_Male_01", cs + Vector2(lado * 6.0, 4.0), cs, 1.0, true, cs + Vector2(lado * 6.0, 12.0))
+	_cidadao("SM_Chr_King_01", Regiao.CASTELO + Vector2(-3, 24), Regiao.CASTELO + Vector2(0, 24), 6.0)
+	_cidadao("SM_Chr_Queen_01", Regiao.CASTELO + Vector2(3, 24), Regiao.CASTELO + Vector2(0, 24), 6.0)
+	_cidadao("SM_Chr_Prince_01", Regiao.CASTELO + Vector2(-8, 28), Regiao.CASTELO + Vector2(0, 26), 12.0)
+	_cidadao("SM_Chr_Princess_01", Regiao.CASTELO + Vector2(8, 28), Regiao.CASTELO + Vector2(0, 26), 12.0)
+	# patrulha pela avenida
+	for k in 2: _cidadao("SM_Chr_Soldier_Male_01", Vector2(1830.0 + k * 100.0, zc + 4.0), Vector2(1900.0, zc), 70.0)
+	# vendedores nas barracas (parados, virados para fora) e figuras da praça
+	for k in 14:
+		var a := TAU * (k + 0.5) / 14.0
+		var q := pr + Vector2(cos(a), sin(a)) * 21.5
+		if absf(q.y - pr.y) < 5.0 or absf(q.x - pr.x) < 5.0 or k % 2 == 1: continue
+		_cidadao("SM_Chr_Merchant_01" if k % 4 == 0 else "SM_Chr_Peasant_Female_01", q, q, 1.0, true, pr)
+	_cidadao("SM_Chr_Jester_01", pr + Vector2(12, 4), pr, 10.0)
+	_cidadao("SM_Chr_FortuneTeller_01", pr + Vector2(-20, -14), pr + Vector2(-20, -14), 1.0, true, pr)
+	_cidadao("SM_Chr_Mage_01", tm_pos() + Vector2(0, -12), tm_pos(), 16.0)
+	_cidadao("SM_Chr_Priest_01", cat_pos() + Vector2(0, 26), cat_pos() + Vector2(0, 30), 8.0)
+	_cidadao("SM_Chr_Nun_01", cat_pos() + Vector2(6, 30), cat_pos() + Vector2(0, 30), 8.0)
+	_cidadao("SM_Chr_Bartender_01", m.taverna_pos + Vector2(3.0, -9.5), m.taverna_pos + Vector2(3.0, -9.5), 1.0, true, m.taverna_pos + Vector2(3.0, -20.0))
+	# camponeses nos campos
+	for c in m.reg.campos:
+		if c[2] < 30: continue
+		var cc := Vector2(c[0], c[1])
+		_cidadao("SM_Chr_Peasant_Male_01" if rng.randf() < 0.6 else "SM_Chr_Peasant_Female_01", cc, cc, c[3] * 0.4)

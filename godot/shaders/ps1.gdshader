@@ -14,6 +14,7 @@ uniform vec3 neblina : source_color = vec3(0.52, 0.54, 0.7);
 global uniform float neb_ini;
 global uniform float neb_fim;
 uniform float escala_uv = 1.0;
+uniform bool sem_cor_vertice = false;          // personagens da Synty: as cores dos vértices não são cor
 global uniform float relampago;
 global uniform float tremor_ps1;
 varying vec3 luz;
@@ -21,7 +22,7 @@ varying float nb;
 void vertex() {
   vec3 n = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
   luz = luz_amb + luz_sol * max(dot(n, normalize(sol)), 0.0) + vec3(0.6, 0.65, 0.9) * relampago;
-  luz *= COLOR.rgb;
+  if (!sem_cor_vertice) luz *= COLOR.rgb;
   vec4 vp = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
   nb = clamp((length(vp.xyz) - neb_ini) / (neb_fim - neb_ini), 0.0, 1.0);
   // montanhas altas aparecem através da névoa (silhueta dos limites)

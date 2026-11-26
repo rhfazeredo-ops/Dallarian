@@ -55,6 +55,7 @@ func _ready() -> void:
 	if args.has("carga"): print("CARGA terreno ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	for f in _depois: f.call()        # cercas, muros e blocos: assentados na malha final do terreno
 	Synty.finalizar(self)             # modelos da Synty juntados por pedaço do mapa (perto completos, longe simples)
+	if args.has("gerar_mapa"): _gerar_mapa(); get_tree().quit(); return      # redesenha assets/ui/mapa.png
 	if args.has("carga"): print("CARGA depois ", Time.get_ticks_msec() - _tc, " ms"); _tc = Time.get_ticks_msec()
 	_agua_feita = false
 	_agua()
@@ -120,7 +121,7 @@ func _ready() -> void:
 # moradores: o mesmo modelo com cores e alturas sorteadas, andando pela vila (e alguns no porto e nas fazendas)
 func _moradores() -> void:
 	var grupos := [[Regiao.VILA, 70.0, 14], [porto_pos + Vector2(-25, 0), 30.0, 5], [Regiao.PRACA, 45.0, 16],
-		[Vector2(1760, 75), 60.0, 8], [Vector2(1950, -60), 60.0, 6], [Vector2(1990, 210), 60.0, 8]]
+		[Vector2(1840, 75), 50.0, 8], [Vector2(2010, -40), 45.0, 6], [Vector2(2000, 190), 45.0, 8]]
 	var n := 0
 	for g in grupos:
 		for i in g[2]:
@@ -1445,7 +1446,7 @@ func _postes() -> void:
 		if bom: lista.append(pp)
 	for pp in lista: _poste_em(pp[0], pp[1])
 	_postes_estrada_real()
-	_estrada_preparar()
+	if not Synty.existe("SM_Env_Tree_Round_02"): _estrada_preparar()     # mapa novo: estradas pintadas no chão com a textura do pacote
 
 # Estrada Real iluminada: poste a cada 18 m, um lado e depois o outro (a luz de cada lanterna alcança ~9 m, então
 # a estrada fica clara a noite toda); começa depois dos postes da vila e para antes da ponte (lá já tem os da cidade).
@@ -1628,6 +1629,9 @@ func mat(textura: String, escala := 1.0, cor := Color.WHITE) -> ShaderMaterial:
 		if ResourceLoader.exists("res://arte/fk/texturas/PFK_Texture_Ground_Grass_02.png"):      # mapa novo: chão com a textura da Synty
 			m.set_shader_parameter("usa_det", true); m.set_shader_parameter("tex_det", load("res://arte/fk/texturas/PFK_Texture_Ground_Grass_02.png"))
 			m.set_shader_parameter("tex_rocha", load("res://arte/fk/texturas/PFK_Texture_Ground_Mud_03.png")); m.set_shader_parameter("tam_rocha", 9.0)
+			m.set_shader_parameter("tex_terra", load("res://arte/fk/texturas/PFK_Texture_Ground_Mud_01.png"))
+			m.set_shader_parameter("tex_areia", load("res://arte/fk/texturas/PFK_Texture_Ground_Sand_01.png"))
+			m.set_shader_parameter("tex_pedra", load("res://arte/fk/texturas/PolygonFantasyKingdon_Texture_Wall_Large_Brick_01.png"))
 	if textura == "": m.set_shader_parameter("usa_tex", false)
 	else: m.set_shader_parameter("tex", Texturas.pegar(textura))
 	m.set_shader_parameter("escala_uv", escala); m.set_shader_parameter("cor", cor)
@@ -3369,3 +3373,32 @@ func _modo_teste() -> void:
 	await get_tree().create_timer(float(args.get("espera", "2"))).timeout
 	get_viewport().get_texture().get_image().save_png(args.shot)
 	get_tree().quit()
+
+# imagem do mapa (assets/ui/mapa.png) desenhada do mundo de verdade: chão com relevo sombreado, água, estradas, ruas
+# e cada casa no lugar (telhado). Rodar quando o mapa mudar: godot --path godot -- --gerar_mapa
+func _gerar_mapa() -> void:
+	var W := 1520; var H := 960
+	var img := Image.create(W, H, false, Image.FORMAT_RGB8)
+	var sx := (Regiao.X1 - Regiao.X0) / W; var sz := (Regiao.Z1 - Regiao.Z0) / H
+	for j in H:
+		for i in W:
+			var x := Regiao.X0 + (i + 0.5) * sx; var z := Regiao.Z0 + (j + 0.5) * sz
+			var h := reg.altura(x, z); var hx := reg.altura(x + sx, z); var hz := reg.altura(x, z + sz)
+			var nrm := Vector3(h - hx, sx, h - hz).normalized()
+			var c := reg.cor(x, z, h, nrm.y, false)
+			var ag := reg.agua(x, z)
+			if (ag != 0.0 and h < ag) or (x > Regiao.COSTA - 30.0 and h < 0.2): c = Color(0.27, 0.5, 0.72).lerp(Color(0.18, 0.36, 0.6), clampf(-h * 0.1, 0.0, 1.0))
+			var luz := clampf(0.82 + (nrm.x - nrm.z) * 1.6, 0.55, 1.25)
+			img.set_pixel(i, j, c * luz)
+	# casas: retângulo do tamanho da casa, cor de telhado
+	for ca in casas:
+		var pos: Vector3 = ca[0]; var ang: float = ca[1]; var w: float = ca[2]; var d: float = ca[3]
+		var tel := Color(0.62, 0.32, 0.2) if int(pos.x + pos.z) % 3 != 0 else Color(0.42, 0.36, 0.34)
+		var r := maxf(w, d) * 0.75
+		for yy in range(int((pos.z - r - Regiao.Z0) / sz), int((pos.z + r - Regiao.Z0) / sz) + 1):
+			for xx in range(int((pos.x - r - Regiao.X0) / sx), int((pos.x + r - Regiao.X0) / sx) + 1):
+				if xx < 0 or yy < 0 or xx >= W or yy >= H: continue
+				var q := Vector2(Regiao.X0 + (xx + 0.5) * sx - pos.x, Regiao.Z0 + (yy + 0.5) * sz - pos.z).rotated(ang)
+				if absf(q.x) < w * 0.5 and absf(q.y) < d * 0.5: img.set_pixel(xx, yy, tel)
+	img.save_png(ProjectSettings.globalize_path("res://assets/ui/mapa.png"))
+	print("MAPA salvo ", W, "x", H, " casas ", casas.size())

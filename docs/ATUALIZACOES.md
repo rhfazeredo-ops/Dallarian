@@ -19,6 +19,16 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Mundo vivo com o pacote**
+- Cidadãos do pacote Fantasy Kingdom (camponeses, mercadores, soldados, freira, padre, monge, ferreiros, taverneiro,
+  rei, rainha, príncipe, princesa, bobo da corte, cartomante, maga) andando e parados com as animações da Synty:
+  praça do mercado cheia, avenida, porto, Cidade Velha, vila, guardas no portão e no castelo, patrulha, vendedores
+  nas barracas e camponeses nos campos.
+- Altamar menor e mais cheia (muralha de 430 × 390 m, quarteirões mais apertados), com a Ponte do Portão.
+- Chão com as texturas do pacote: grama, terra nas estradas e trilhas, areia na praia e lajes de pedra na cidade.
+  Saíram as faixas de estrada e as praças com as texturas antigas.
+- O mapa (botão de mapa) foi redesenhado com o mundo novo: cidade retangular, ruas e cada casa no lugar.
+
 **Mapa recriado do zero (docs/MAPA_NOVO.md)**
 - Altamar mudou de lugar e de forma: cidade retangular na costa leste, em degraus (Portão Oeste no alto, mercado no
   meio, porto embaixo com cais e barcos), castelo num morro no noroeste, catedral, torres dos magos, praça do

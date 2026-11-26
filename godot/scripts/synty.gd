@@ -24,7 +24,8 @@ static func material(neblina: Color, tipo := "atlas") -> ShaderMaterial:
 	if _mats.has(tipo): return _mats[tipo]
 	var mt := ShaderMaterial.new(); mt.shader = load("res://shaders/ps1.gdshader")
 	mt.set_shader_parameter("tex", load(TEXTURAS.get(tipo, ATLAS))); mt.set_shader_parameter("neblina", neblina)
-	if tipo == "longe": mt.set_shader_parameter("usa_tex", false)          # versão de longe: só a cor dos vértices
+	if tipo == "longe": mt.set_shader_parameter("usa_tex", false)
+	if tipo == "personagem": mt.set_shader_parameter("sem_cor_vertice", true)          # versão de longe: só a cor dos vértices
 	_mats[tipo] = mt
 	return mt
 

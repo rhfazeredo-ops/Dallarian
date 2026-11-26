@@ -62,7 +62,20 @@ var ordem_t: Array[String] = []
 
 var MAPA_A: Dictionary
 var DIR_A: Dictionary
+var DIR_TA: Dictionary = DIR_T          # direções dos ossos do ALVO (heróis: nomes do Tripo; cidadãos: nomes da Synty)
+const PERSONAGENS := "res://arte/fk/personagens/FantasyKingdom_Characters.fbx"
+const ANIMS_CID := {"parado": ["A_Idle_Standing", true], "andar": ["A_Walk_F", true]}
 func _initialize() -> void:
+	# --cidadao: os personagens do Fantasy Kingdom (mesmos nomes de ossos da Synty, eixos diferentes) → cidadao_<gen>.res
+	if "--cidadao" in OS.get_cmdline_user_args():
+		var id := {}
+		for k in MAPA_SY.keys(): id[k] = k
+		DIR_TA = DIR_SY.duplicate(); DIR_TA["Hand_R"] = "Finger_01_2"     # (nos personagens o dedo direito é "_2")
+		for gen in ["Masc", "Femn"]:
+			var lc := AnimationLibrary.new()
+			_converter(lc, PERSONAGENS, id, DIR_SY, ANIMS_CID, Basis.IDENTITY, "synty/%s_" + gen, "repouso")
+			print("SALVO cidadao ", gen, " ", ResourceSaver.save(lc, "res://arte/animacoes/cidadao_%s.res" % gen))
+		quit(); return
 	# --masc: o herói (humano.glb, animações "Masc" da Synty) → heroi_m.res; sem: a heroína → heroi.res
 	var masc := "--masc" in OS.get_cmdline_user_args()
 	var lib := AnimationLibrary.new()
@@ -101,13 +114,14 @@ func _converter(lib: AnimationLibrary, modelo: String, mapa: Dictionary, dirs: D
 	var alinha := {}
 	for t in ordem_t:
 		alinha[t] = Quaternion()
-		if DIR_T.has(t):
+		if DIR_TA.has(t):
 			var s: String = inv[t]
-			var dt: Vector3 = (t_rest[DIR_T[t]].origin - t_rest[t].origin).normalized()
+			var dt: Vector3 = (t_rest[DIR_TA[t]].origin - t_rest[t].origin).normalized()
 			var ds: Vector3 = C * (s_tp[dirs[s]].origin - s_tp[s].origin).normalized()
 			alinha[t] = Quaternion(dt, ds)
-	var pelvis: String = inv["Hip"]
-	var alt_s: float = (C * (s_tp[pelvis] as Transform3D).origin).y; var alt_t: float = t_rest["Hip"].origin.y
+	var hip_t := "Hip" if t_rest.has("Hip") else "Hips"           # quadril do alvo (Tripo: Hip; Synty: Hips)
+	var pelvis: String = inv[hip_t]
+	var alt_s: float = (C * (s_tp[pelvis] as Transform3D).origin).y; var alt_t: float = t_rest[hip_t].origin.y
 	for nome in anims.keys():
 		var arq: String = anims[nome][0]
 		var f := _fonte(molde % arq)
@@ -119,7 +133,7 @@ func _converter(lib: AnimationLibrary, modelo: String, mapa: Dictionary, dirs: D
 		var faixas := {}
 		for t in ordem_t:
 			var tr := anim.add_track(Animation.TYPE_ROTATION_3D); anim.track_set_path(tr, caminho + ":" + t); faixas[t] = tr
-		var tr_hip := anim.add_track(Animation.TYPE_POSITION_3D); anim.track_set_path(tr_hip, caminho + ":Hip")
+		var tr_hip := anim.add_track(Animation.TYPE_POSITION_3D); anim.track_set_path(tr_hip, caminho + ":" + hip_t)
 		var n := int(round(dur * 30.0)) + 1
 		ap.play(ap.get_animation_list()[0])
 		for q in n:
@@ -153,7 +167,7 @@ func _converter(lib: AnimationLibrary, modelo: String, mapa: Dictionary, dirs: D
 				anim.rotation_track_insert_key(faixas[t], tempo, loc.get_rotation_quaternion())
 			# quadril: sobe/desce e se mexe junto (em escala do herói)
 			var hp: Vector3 = C * ((raiz_inv * s_pose[pelvis]).origin - (s_tp[pelvis] as Transform3D).origin) * (alt_t / alt_s)
-			var hip_rest := tgt.get_bone_rest(tgt.find_bone("Hip")).origin
+			var hip_rest := tgt.get_bone_rest(tgt.find_bone(hip_t)).origin
 			anim.position_track_insert_key(tr_hip, tempo, hip_rest + hp)
 		lib.add_animation(nome, anim)
 		print("ANIM ", nome, " ", dur, " s, ", n, " quadros")
