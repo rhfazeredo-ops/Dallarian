@@ -29,6 +29,21 @@ func montar() -> void:
 
 # renderiza o rosto da Rachel uma vez numa tela escondida e guarda como imagem
 func _tirar_retrato() -> void:
+	if ResourceLoader.exists(CorpoHeroi.MH_ARQ):          # heróis dos pacotes da Synty: o rosto do próprio modelo
+		var v2 := SubViewport.new(); v2.size = Vector2i(256, 256); v2.transparent_bg = true
+		v2.render_target_update_mode = SubViewport.UPDATE_ALWAYS; v2.own_world_3d = true; add_child(v2)
+		var c := CorpoHeroi.new(); v2.add_child(c); c.montar(null, Herois.modelo(Herois.ativo), false); c.rotation.y = PI
+		var l2 := DirectionalLight3D.new(); l2.rotation_degrees = Vector3(-25, 25, 0); l2.light_energy = 1.0; v2.add_child(l2)
+		var a2 := WorldEnvironment.new(); var e2 := Environment.new(); e2.background_mode = Environment.BG_CLEAR_COLOR
+		e2.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; e2.ambient_light_color = Color(0.8, 0.78, 0.8); e2.ambient_light_energy = 0.7
+		a2.environment = e2; v2.add_child(a2)
+		var sk: Skeleton3D = c.esq; var cab := sk.find_bone("Head")
+		var alt := (sk.global_transform * sk.get_bone_global_rest(cab)).origin.y + 0.1 if cab >= 0 else 1.6
+		var c2 := Camera3D.new(); c2.projection = Camera3D.PROJECTION_ORTHOGONAL; c2.size = 0.42
+		c2.position = Vector3(0.0, alt, 2.0); v2.add_child(c2); c2.current = true
+		for k in 5: await RenderingServer.frame_post_draw
+		retrato = ImageTexture.create_from_image(v2.get_texture().get_image())
+		v2.queue_free(); queue_redraw(); return
 	var arq := Herois.retrato(Herois.ativo)                 # retrato pintado da raça/sexo do herói
 	if ResourceLoader.exists(arq): retrato = load(arq); queue_redraw(); return
 	var vp := SubViewport.new(); vp.size = Vector2i(256, 256); vp.transparent_bg = true

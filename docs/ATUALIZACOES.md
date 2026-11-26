@@ -2,6 +2,16 @@
 
 ## 26/11
 
+**Catálogo com todos os personagens dos pacotes**
+- A criação de herói agora passa por **todos** os personagens dos pacotes da Synty: 61 femininos e 81 masculinos
+  (os prontos do Modular Fantasy Hero e depois os moradores do Fantasy Kingdom: freira, rainha, camponesa,
+  ferreira, rei, monge, bobo da corte...). Numerados: ◀ Feminino base N / 61 ▶.
+- Qualquer um deles pode virar o herói jogável: as animações de combate e de andar foram convertidas também para
+  o esqueleto dos personagens do Fantasy Kingdom.
+- Saíram os modelos e retratos antigos: os botões de sexo mostram HOMEM / MULHER e o retrato do HUD é tirado do
+  rosto do próprio herói.
+- Padrões provisórios (até o dono escolher): Feminino base 35 e Masculino base 57.
+
 **Catálogo de modelos na criação de herói**
 - Embaixo, à esquerda, na criação de herói: ◀ **Feminino base N / 53** ▶ (ou **Masculino base N / 67**). Passa por
   todos os 120 personagens prontos do pacote Modular Fantasy Hero, numerados, para o dono escolher qual vira o

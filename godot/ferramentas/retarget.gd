@@ -78,7 +78,8 @@ func _initialize() -> void:
 		quit(); return
 	# --heroi_mh: os heróis novos (Modular Fantasy Hero, esqueleto da Synty) → heroi_mh_Masc/Femn.res:
 	# espada e escudo (pacote RamsterZ, manequim do Unreal) convertidos + o andar da Synty direto (mesmo esqueleto)
-	if "--heroi_mh" in OS.get_cmdline_user_args():
+	var fk := "--heroi_fk" in OS.get_cmdline_user_args()      # o mesmo para os personagens do Fantasy Kingdom → heroi_fk_*.res
+	if "--heroi_mh" in OS.get_cmdline_user_args() or fk:
 		var mapa_ss := {"pelvis": "Hips", "spine_01": "Spine_01", "spine_02": "Spine_02", "spine_03": "Spine_03", "neck_01": "Neck",
 			"head": "Head", "clavicle_l": "Clavicle_L", "upperarm_l": "Shoulder_L", "lowerarm_l": "Elbow_L", "hand_l": "Hand_L",
 			"clavicle_r": "Clavicle_R", "upperarm_r": "Shoulder_R", "lowerarm_r": "Elbow_R", "hand_r": "Hand_R",
@@ -89,9 +90,10 @@ func _initialize() -> void:
 		DIR_TA = DIR_SY.duplicate(); DIR_TA["Hand_R"] = "Finger_01_2"
 		for gen in ["Masc", "Femn"]:
 			var lh := AnimationLibrary.new()
-			_converter(lh, "res://arte/mh/ModularCharacters.fbx", mapa_ss, DIR_S, ANIMS, C_SS, "SwordAndShield_%s", "")
-			_converter(lh, "res://arte/mh/ModularCharacters.fbx", id, DIR_SY, ANIMS_SY, Basis.IDENTITY, "synty/%s_" + gen, "repouso")
-			print("SALVO heroi_mh ", gen, " ", ResourceSaver.save(lh, "res://arte/animacoes/heroi_mh_%s.res" % gen))
+			var alvo := PERSONAGENS if fk else "res://arte/mh/ModularCharacters.fbx"
+			_converter(lh, alvo, mapa_ss, DIR_S, ANIMS, C_SS, "SwordAndShield_%s", "")
+			_converter(lh, alvo, id, DIR_SY, ANIMS_SY, Basis.IDENTITY, "synty/%s_" + gen, "repouso")
+			print("SALVO heroi ", gen, " ", ResourceSaver.save(lh, "res://arte/animacoes/heroi_%s_%s.res" % ["fk" if fk else "mh", gen]))
 		quit(); return
 	# --masc: o herói (humano.glb, animações "Masc" da Synty) → heroi_m.res; sem: a heroína → heroi.res
 	var masc := "--masc" in OS.get_cmdline_user_args()

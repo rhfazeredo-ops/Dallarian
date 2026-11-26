@@ -21,9 +21,9 @@ static func salvar_lista(l: Array) -> void:
 	var f := FileAccess.open(ARQ, FileAccess.WRITE)
 	if f: f.store_string(JSON.stringify(l.filter(func(h): return h.id != "rachel")))
 
-static func criar(nome: String, raca: String, classe: String, base := 0) -> Dictionary:
+static func criar(nome: String, raca: String, classe: String, visual := "") -> Dictionary:
 	var h := {"id": "h%d" % Time.get_unix_time_from_system(), "nome": nome, "raca": raca, "classe": classe}
-	if base > 0: h["base"] = base
+	if visual != "": h["visual"] = visual
 	var l := lista(); l.append(h); salvar_lista(l)
 	return h
 
@@ -44,8 +44,29 @@ static func masculino(h: Dictionary) -> bool: return String(h.get("raca", "Human
 # heróis do pacote Modular Fantasy Hero (repositório de arte); sem ele, os modelos antigos do Tripo
 static func modelo(h: Dictionary) -> String:
 	if ResourceLoader.exists(CorpoHeroi.MH_ARQ):
-		return ("mh:Male" if masculino(h) else "mh:Female") + (":%d" % int(h.base) if int(h.get("base", 0)) > 0 else "")
+		if h.has("visual"): return String(h.visual)
+		if int(h.get("base", 0)) > 0: return ("mh:Male:%d" if masculino(h) else "mh:Female:%d") % int(h.base)
+		return PADRAO_M if masculino(h) else PADRAO_F
 	return modelo_glb(h)
+
+# todos os personagens dos pacotes da Synty que servem de herói, por gênero, numerados na criação de herói:
+# primeiro os 53/67 prontos do Modular Fantasy Hero, depois os do Fantasy Kingdom
+const PADRAO_F := "mh:Female:35"
+const PADRAO_M := "mh:Male:57"
+static var _cat := {}
+static func catalogo(masc: bool) -> Array:
+	if _cat.has(masc): return _cat[masc]
+	var l := []
+	var g := "Male" if masc else "Female"
+	for i in CorpoHeroi.mh_bases(g).size(): l.append("mh:%s:%d" % [g, i + 1])
+	if Cidadao.existe():
+		for n in ["SM_Chr_Bartender_01", "SM_Chr_Blacksmith_Female_01", "SM_Chr_Blacksmith_Male_01", "SM_Chr_Fairy_01", "SM_Chr_FortuneTeller_01",
+				"SM_Chr_Headsman_01", "SM_Chr_Hermit_01", "SM_Chr_Jester_01", "SM_Chr_King_01", "SM_Chr_Mage_01", "SM_Chr_Merchant_01", "SM_Chr_Monk_01",
+				"SM_Chr_Nun_01", "SM_Chr_Peasant_Female_01", "SM_Chr_Peasant_Male_01", "SM_Chr_Priest_01", "SM_Chr_Prince_01", "SM_Chr_Princess_01",
+				"SM_Chr_Queen_01", "SM_Chr_Rider_01", "SM_Chr_Soldier_Female_01", "SM_Chr_Soldier_Male_01"]:
+			if (n in Cidadao.MULHERES) != masc: l.append("fk:" + n)
+	_cat[masc] = l
+	return l
 static func modelo_glb(h: Dictionary) -> String:
 	return "res://assets/modelos/humano.glb" if masculino(h) else "res://assets/modelos/humana.glb"
 static func retrato(h: Dictionary) -> String:

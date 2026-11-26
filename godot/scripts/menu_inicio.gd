@@ -70,7 +70,7 @@ func _ready() -> void:
 			for bt in sel.find_children("*", "Button", true, false): if bt.text == "INICIAR JOGO": bt.pressed.emit()
 			await get_tree().create_timer(0.5).timeout
 			print("APERTOU INICIAR")
-		if args2.has("--selecao") or args2.has("--criacao"):
+		if (args2.has("--selecao") or args2.has("--criacao")) and not str(args2).contains("--folha="):
 			for k in 8: await RenderingServer.frame_post_draw
 			for x in args2: if x.begins_with("--shot="): get_viewport().get_texture().get_image().save_png(x.trim_prefix("--shot="))
 			get_tree().quit(); return

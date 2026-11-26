@@ -56,6 +56,8 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 	if arq.begins_with("mh:"):
 		var pp := arq.trim_prefix("mh:").split(":")
 		_montar_mh(pp[0], int(pp[1]) if pp.size() > 1 else 0, no_mundo); return
+	if arq.begins_with("fk:"):
+		_montar_mh("", 0, no_mundo, arq.trim_prefix("fk:")); return
 	mod = load(arq).instantiate(); add_child(mod)
 	k = 1.68 / 0.98
 	mod.scale = Vector3.ONE * k; mod.rotation_degrees.y = 90           # o modelo olha para +X → -Z
@@ -94,6 +96,7 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 const MH_ARQ := "res://arte/mh/ModularCharacters.fbx"
 const MH_TEX := "res://arte/mh/PolygonFantasyHero_Texture_01_A.png"
 const MH_PRESETS := "res://arte/mh/presets.json"
+const FK_TEX := "res://arte/fk/texturas/PolygonFantasyKingdom_Texture_01_A.png"
 static var _presets := {}
 # personagens prontos do pacote (120): {"Female": [{preset, partes}], "Male": [...]}; "base N" = o N-ésimo do gênero
 static func mh_bases(g: String) -> Array:
@@ -115,20 +118,22 @@ func _osso(n: String) -> String:
 	if not mh: return n
 	return {"R_Hand": "Hand_R", "R_Mid1": "Finger_01_2", "L_Hand": "Hand_L", "L_Mid1": "Finger_01", "Hip": "Hips", "Spine02": "Spine_03",
 		"R_Upperarm": "Shoulder_R", "R_Forearm": "Elbow_R"}.get(n, n)
-func _montar_mh(g: String, base: int, no_mundo: bool) -> void:
+# fk = nome de um personagem do Fantasy Kingdom (ex.: SM_Chr_Nun_01): mesmo esqueleto da Synty, outra textura
+func _montar_mh(g: String, base: int, no_mundo: bool, fk := "") -> void:
 	mh = true; k = 1.0
-	mod = load(MH_ARQ).instantiate(); add_child(mod); mod.rotation_degrees.y = 180
+	mod = load(Cidadao.ARQ if fk != "" else MH_ARQ).instantiate(); add_child(mod); mod.rotation_degrees.y = 180
 	esq = mod.find_children("*", "Skeleton3D", true, false)[0]
-	var partes := mh_partes(g, base)
+	var partes := [fk] if fk != "" else mh_partes(g, base)
+	var tex: Texture2D = load(FK_TEX if fk != "" else MH_TEX)
 	var mt: Material
 	if no_mundo:
-		var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/ps1.gdshader"); sm.set_shader_parameter("tex", load(MH_TEX))
+		var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/ps1.gdshader"); sm.set_shader_parameter("tex", tex)
 		sm.set_shader_parameter("sem_cor_vertice", true)
 		var cena: Node = get_tree().current_scene
 		if cena and "NEBLINA" in cena: sm.set_shader_parameter("neblina", cena.NEBLINA)
 		mt = sm
 	else:
-		var st := StandardMaterial3D.new(); st.albedo_texture = load(MH_TEX); st.albedo_color = Color(0.85, 0.83, 0.83); mt = st
+		var st := StandardMaterial3D.new(); st.albedo_texture = tex; st.albedo_color = Color(0.85, 0.83, 0.83); mt = st
 	for c in mod.find_children("*", "MeshInstance3D", true, false):
 		if not c.name in partes: c.queue_free()
 		else: (c as MeshInstance3D).material_override = mt
@@ -338,7 +343,9 @@ var _atual := ""
 var _acao_ant := ""
 func _montar_ap() -> void:
 	var lib := "res://arte/animacoes/heroi_m.res" if _arq.ends_with("humano.glb") else "res://arte/animacoes/heroi.res"
-	if mh: lib = "res://arte/animacoes/heroi_mh_%s.res" % ("Masc" if _arq.begins_with("mh:Male") else "Femn")
+	if mh:
+		var fem := _arq.begins_with("mh:Female") or (_arq.begins_with("fk:") and _arq.trim_prefix("fk:") in Cidadao.MULHERES)
+		lib = "res://arte/animacoes/heroi_%s_%s.res" % ["fk" if _arq.begins_with("fk:") else "mh", "Femn" if fem else "Masc"]
 	if not ResourceLoader.exists(lib) or mod == null: return
 	_ap = AnimationPlayer.new(); mod.add_child(_ap); _ap.root_node = NodePath("..")
 	_ap.add_animation_library("", load(lib))

@@ -25,7 +25,7 @@ var _lore_tit: Label
 var _lore: Label
 var _botoes := []                   # [botão, raça, sexo]
 var pode_voltar := true
-var _base := [0, 0]                 # modelo escolhido (masculino, feminino): 0 = o padrão; N = "base N" do pacote
+var _idx := [0, 0]                  # personagem escolhido no catálogo (masculino, feminino)
 var _base_txt: Label
 
 func _ready() -> void:
@@ -77,10 +77,12 @@ func _ready() -> void:
 		bv.anchor_left = 0.25; bv.anchor_right = 0.75; bv.offset_top = 24; bv.offset_bottom = 70; add_child(bv)
 	_seletor_base()
 	_escolher(0, 1)
+	for a in OS.get_cmdline_user_args(): if a.begins_with("--folha="): _folha(a.trim_prefix("--folha="))
 
-# ◀ Feminino base N ▶ : passa por todos os personagens prontos do pacote, numerados (para o dono escolher o padrão)
+# ◀ Feminino base N ▶ : passa por todos os personagens dos pacotes da Synty, numerados (para o dono escolher o padrão)
 func _seletor_base() -> void:
-	if CorpoHeroi.mh_bases("Female").is_empty(): return
+	if Herois.catalogo(false).is_empty(): return
+	_idx = [maxi(0, Herois.catalogo(true).find(Herois.PADRAO_M)), maxi(0, Herois.catalogo(false).find(Herois.PADRAO_F))]
 	var cx := HBoxContainer.new(); cx.add_theme_constant_override("separation", 10)
 	cx.anchor_top = 1; cx.anchor_bottom = 1; cx.offset_left = 20; cx.offset_right = 560; cx.offset_top = -110; cx.offset_bottom = -30; add_child(cx)
 	var ant := UI.botao("◀", func(): _mudar_base(-1), true, 34, 80.0); ant.custom_minimum_size = Vector2(80, 80); cx.add_child(ant)
@@ -89,21 +91,35 @@ func _seletor_base() -> void:
 	_base_txt = UI.rotulo("", 26, Color(1.0, 0.85, 0.4)); _base_txt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_base_txt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; pn.add_child(_base_txt)
 	var prx := UI.botao("▶", func(): _mudar_base(1), true, 34, 80.0); prx.custom_minimum_size = Vector2(80, 80); cx.add_child(prx)
-	for a in OS.get_cmdline_user_args(): if a.begins_with("--base="): _base[1] = int(a.trim_prefix("--base=")); _base[0] = _base[1]   # teste
+	for a in OS.get_cmdline_user_args(): if a.begins_with("--base="): _idx[1] = int(a.trim_prefix("--base=")) - 1; _idx[0] = _idx[1]   # teste
 
-func _g() -> String: return "Male" if _sexo == 0 else "Female"
+func _visual() -> String:
+	var c := Herois.catalogo(_sexo == 0)
+	return c[_idx[_sexo]] if not c.is_empty() else Herois.modelo({"raca": "Humano" if _sexo == 0 else "Humana"})
 func _mudar_base(d: int) -> void:
-	var n := CorpoHeroi.mh_bases(_g()).size() + 1                  # 0 (padrão) + as N bases
-	_base[_sexo] = posmod(_base[_sexo] + d, n)
-	_por_modelo(Herois.modelo({"raca": "Humano" if _sexo == 0 else "Humana", "base": _base[_sexo]})); _texto_base()
+	_idx[_sexo] = posmod(_idx[_sexo] + d, Herois.catalogo(_sexo == 0).size())
+	_por_modelo(_visual()); _texto_base()
 func _texto_base() -> void:
 	if _base_txt == null: return
-	var nome := "Masculino" if _sexo == 0 else "Feminino"
-	var n := CorpoHeroi.mh_bases(_g()).size()
-	_base_txt.text = ("%s padrão" % nome) if _base[_sexo] == 0 else "%s base %d / %d" % [nome, _base[_sexo], n]
+	_base_txt.text = "%s base %d / %d" % ["Masculino" if _sexo == 0 else "Feminino", _idx[_sexo] + 1, Herois.catalogo(_sexo == 0).size()]
+
+# teste: --folha=pasta → foto de cada personagem do catálogo (f_01.png..., m_01.png...)
+func _folha(pasta: String) -> void:
+	for sx in [1, 0]:
+		_sexo = sx
+		for i in Herois.catalogo(sx == 0).size():
+			_idx[sx] = i; _por_modelo(_visual())
+			for q in 4: await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("%s/%s_%03d.png" % [pasta, "m" if sx == 0 else "f", i + 1])
+	get_tree().quit()
 
 # retrato: arte do dono (assets/ui/racas/N_m.png / N_f.png) se existir; senão o rosto do modelo (Rachel) ou um "?"
 func _retrato(r: int, sx: int, livre: bool) -> Control:
+	if livre and ResourceLoader.exists(CorpoHeroi.MH_ARQ):      # heróis novos (pacotes da Synty): sem os retratos antigos
+		var q0 := ColorRect.new(); q0.color = Color(0.12, 0.09, 0.06)
+		var l0 := UI.rotulo("HOMEM" if sx == 0 else "MULHER", 17, Color(1.0, 0.85, 0.4)); l0.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		l0.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; l0.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; q0.add_child(l0)
+		return q0
 	var ic: String = "res://assets/ui/racas/%d_%s.png" % [r + 1, "m" if sx == 0 else "f"]
 	if ResourceLoader.exists(ic):
 		var t := TextureRect.new(); t.texture = load(ic); t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -193,7 +209,7 @@ func _por_modelo(arq: String) -> void:
 func _escolher(r: int, sx: int) -> void:
 	if not RACAS[r][2][sx]: return
 	_raca = r; _sexo = sx
-	if _vp: _por_modelo(Herois.modelo({"raca": "Humano" if sx == 0 else "Humana", "base": _base[sx]}))
+	if _vp: _por_modelo(_visual())
 	_texto_base()
 	_lore_tit.text = RACAS[r][0]; _lore.text = RACAS[r][1]
 	for bt in _botoes:
@@ -214,4 +230,4 @@ func _aceitar() -> void:
 	if re.search(n) == null: _aviso.text = "Use só letras, sem espaços."; return
 	n = n.substr(0, 1).to_upper() + n.substr(1).to_lower()
 	if Herois.nome_existe(n): _aviso.text = "Já existe um herói com esse nome."; return
-	pronto.emit(Herois.criar(n, "Humana" if _sexo == 1 else "Humano", "Guerreira" if _sexo == 1 else "Guerreiro", _base[_sexo]))
+	pronto.emit(Herois.criar(n, "Humana" if _sexo == 1 else "Humano", "Guerreira" if _sexo == 1 else "Guerreiro", _visual()))
