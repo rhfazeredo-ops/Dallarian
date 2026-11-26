@@ -259,7 +259,7 @@ var _arq := ""
 var _atual := ""
 var _acao_ant := ""
 func _montar_ap() -> void:
-	var lib := "res://assets/animacoes/heroi_m.res" if _arq.ends_with("humano.glb") else "res://assets/animacoes/heroi.res"
+	var lib := "res://arte/animacoes/heroi_m.res" if _arq.ends_with("humano.glb") else "res://arte/animacoes/heroi.res"
 	if not ResourceLoader.exists(lib) or mod == null: return
 	_ap = AnimationPlayer.new(); mod.add_child(_ap); _ap.root_node = NodePath("..")
 	_ap.add_animation_library("", load(lib))

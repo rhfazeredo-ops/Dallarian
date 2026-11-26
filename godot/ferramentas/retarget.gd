@@ -1,6 +1,6 @@
 # Converte animações do pacote "Sword and Shield Animations" (esqueleto do manequim do Unreal, FBX em _anim_src/,
 # fora do git) para o esqueleto dos nossos heróis (o do NPC base do Tripo) e grava uma AnimationLibrary em
-# res://assets/animacoes/heroi.res. Para cada quadro: a rotação de cada osso no mundo, relativa à pose T do pacote,
+# res://arte/animacoes/heroi.res. Para cada quadro: a rotação de cada osso no mundo, relativa à pose T do pacote,
 # é convertida de eixo (pacote: esquerda +X, frente +Z → nosso: frente +X, direita +Z) e aplicada sobre a pose de
 # repouso do herói já "alinhada" com a pose T (cada osso de braço/perna gira até a direção do mesmo osso na pose T).
 # Uso: godot --headless --path godot --script res://ferramentas/retarget.gd [-- --masc]
@@ -69,8 +69,8 @@ func _initialize() -> void:
 	_converter(lib, "res://assets/modelos/%s.glb" % ("humano" if masc else "humana"), MAPA, DIR_S, ANIMS, C_SS, "SwordAndShield_%s", "")
 	_converter(lib, "res://assets/modelos/%s.glb" % ("humano" if masc else "humana"), MAPA_SY, DIR_SY, ANIMS_SY, C_SY,
 		"synty/%s_" + ("Masc" if masc else "Femn"), "repouso")
-	DirAccess.make_dir_recursive_absolute("res://assets/animacoes")
-	var saida := "res://assets/animacoes/heroi_m.res" if masc else "res://assets/animacoes/heroi.res"
+	DirAccess.make_dir_recursive_absolute("res://arte/animacoes")
+	var saida := "res://arte/animacoes/heroi_m.res" if masc else "res://arte/animacoes/heroi.res"
 	print("SALVO ", saida, " ", ResourceSaver.save(lib, saida))
 	quit()
 

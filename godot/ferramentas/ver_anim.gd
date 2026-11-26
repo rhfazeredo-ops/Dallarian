@@ -13,7 +13,7 @@ func _initialize() -> void:
 	mod.rotation_degrees.y = 90.0 if a.has("lado") else 0.0       # +X (frente do modelo) → câmera em +Z vê o lado / de frente com -90
 	if not a.has("lado"): mod.rotation_degrees.y = -90.0
 	var ap := AnimationPlayer.new(); mod.add_child(ap); ap.root_node = NodePath("..")
-	ap.add_animation_library("", load("res://assets/animacoes/heroi.res"))
+	ap.add_animation_library("", load("res://arte/animacoes/heroi.res"))
 	var cam := Camera3D.new(); cam.projection = Camera3D.PROJECTION_ORTHOGONAL; cam.size = 1.25; cam.position = Vector3(0, 0.5, 3); vp.add_child(cam); cam.current = true
 	var folha := Image.create(320 * lista.size(), 400, false, Image.FORMAT_RGB8)
 	for i in lista.size():

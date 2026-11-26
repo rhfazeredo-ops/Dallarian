@@ -19,6 +19,16 @@
 - Depois de 10 segundos sem atacar nem defender, guarda as armas sozinho. Ao montar, também guarda.
 - Atacando (e sacando ou guardando) o herói não anda: fica parado no lugar.
 
+**Mapa novo com o Fantasy Kingdom (Synty) — primeira parte**
+- Todas as casas do jogo (vilarejo, cidade, fazendas) são casas prontas do pacote; postes de luz da Synty.
+- Altamar: muralha e torres de pedra do castelo, portões em arco, chafariz, catedral, torre dos magos, castelo
+  com torre de menagem, pontes do canal e a Ponte dos Guardiões, tudo com peças do pacote.
+- Natureza toda da Synty: árvores, pinheiros, árvores secas, arbustos, arbustos floridos e de frutinhas, grama.
+- Chão com a textura de grama e terra do pacote; saíram as manchinhas de pixel.
+- A Gruta dos Lodosos (DG) saiu do jogo.
+- Leve no celular: de longe as construções viram uma versão simples pintada (12× menos triângulos).
+- A arte comprada fica num repositório privado; o GitHub busca na hora de gerar o jogo.
+
 **Sem o filtro PS1**
 - Saíram o filtro de paleta, o pontilhado, o tremido dos vértices e as texturas pixeladas: imagem limpa e suave,
   preparando o mapa novo no visual original da Synty.
