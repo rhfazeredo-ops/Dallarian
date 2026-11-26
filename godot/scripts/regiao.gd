@@ -388,7 +388,6 @@ func patio_casa(x: float, z: float) -> float:
 static func _dist_ret(x: float, z: float, r: Rect2) -> float:
 	var dx := maxf(maxf(r.position.x - x, x - r.end.x), 0.0); var dz := maxf(maxf(r.position.y - z, z - r.end.y), 0.0)
 	return Vector2(dx, dz).length()
-func parque(_x: float, _z: float) -> bool: return false
 # peso (0..1) da estrada calçada que vem da Estrada Real, passa pela Ponte dos Guardiões e entra no portão oeste
 static func acesso_ponte(x: float, z: float) -> float:
 	var dz := absf(z - PORTAO.y)
@@ -529,14 +528,6 @@ func cor(x: float, z: float, h: float, ny: float, gruta := true) -> Color:
 	var dr := dist_rio(x, z)
 	if dr < largura_rio(_amostra(t_rio, x, z)) * 0.5 + 2.5 or abs(Vector2(x - LAGO.x, z - LAGO.y).length() - LAGO.z) < 4.0:
 		c = Color(0.4, 0.33, 0.22); tipo = 0.5                                 # margem de lama
-	if na_cidade(x, z) and not parque(x, z):
-		c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1); tipo = 0.0                # calçamento de pedra da cidade
-	if acesso_ponte(x, z) > 0.0 and x > FOSSO_X - 95.0:                         # calçamento da ponte até o portão
-		var dzp := absf(z - CIDADE_C.y)
-		if dzp < 11.0: tipo = 0.0
-		if dzp < 5.5: c = Color(0.66, 0.64, 0.6) * (0.94 + n * 0.08)
-		elif dzp < 8.0: c = Color(0.62, 0.32, 0.24) * (0.92 + n * 0.1)
-		elif dzp < 11.0: c = Color(0.52, 0.5, 0.48) * (0.92 + n * 0.1)
 	if h < 2.0 and x > COSTA - 120.0: c = Color(0.86, 0.78, 0.56) * (0.95 + n * 0.08); tipo = 0.25  # praia
 	var pe := maxf(patio_estabulo(x, z), patio_casa(x, z) * 0.35)        # na casa: só um gasto leve na grama
 	if pe > 0.0: c = c.lerp(Color(0.5, 0.38, 0.25) * (0.9 + n * 0.14), pe); tipo = lerpf(tipo, 0.5, pe)          # terra batida do estábulo
@@ -576,8 +567,7 @@ func grama(x: float, z: float, h: float, ny: float) -> float:
 	if Vector2(x, z).distance_to(VILA) < 18.0: return 0.0
 	if h < agua(x, z) + 0.15: return 0.0
 	if x > COSTA - 120.0 and h < 2.0: return 0.0
-	if na_cidade(x, z, 2.0) and not parque(x, z): return 0.0
-	if x > FOSSO_X - 95.0 and acesso_ponte(x, z) > 0.0 and absf(z - CIDADE_C.y) < 11.5: return 0.0   # calçamento do portão
+	if na_cidade(x, z, 2.0): return 0.0
 	var campo := campo_em(x, z)
 	if campo == 1: return 0.0
 	if campo == 0: return 1.0

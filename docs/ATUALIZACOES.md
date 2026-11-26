@@ -2,6 +2,11 @@
 
 ## 27/11
 
+**Sai o piso de pedra gigante perto de Altamar**
+- O terreno escondido embaixo da cidade era pintado de calçamento no retângulo inteiro da cidade. Onde a cena da
+  Synty não tem chão (a faixa entre a muralha leste e o mar), aparecia um piso cinza enorme e plano. Agora esse
+  terreno é grama. Saíram também o "calçamento do portão" antigo (não acontecia mais) e a função parque (vazia).
+
 **Casas do vilarejo no chão e só 4 cavalos no estábulo**
 - 58 casas das ruas da Vila do Vale estavam enterradas (4 a 8 m: só o telhado aparecia). A casa em fila era posta
   na altura 0 com "chão já plano", mas a vila fica a ~4 m. Agora cada casa aplaina o chão no tamanho real do
