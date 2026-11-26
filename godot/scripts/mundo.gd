@@ -1499,48 +1499,6 @@ func modelo_ps1(caminho: String) -> Node3D:
 			mi.set_surface_override_material(i, sm)
 	return no
 
-# ---------- vila (no cruzamento das estradas, centro da região) ----------
-func _vila() -> void:
-	var rng := RandomNumberGenerator.new(); rng.seed = 5
-	# VILA REDONDA: casas em dois anéis em volta da praça do poço, viradas para o centro; vãos onde passam as
-	# estradas e as trilhas. A taverna fica no anel de dentro, perto da estrada sul (por onde se chega);
-	# a igreja no anel de fora, ao norte.
-	var espec := {}
-	for anel in [[24.0, 0], [40.0, 1]]:
-		var r: float = anel[0]
-		var a := rng.randf() * 0.3
-		while a < TAU:
-			var w := rng.randf_range(4.8, 6.6); var d := rng.randf_range(4.0, 5.2); var h := rng.randf_range(2.6, 3.3)
-			var parede: Material = null; var telhado: Material = null
-			var am := a + (w * 0.5 + 1.0) / r
-			var q := Vector2(cos(am), sin(am)) * r
-			var e_taverna: bool = anel[1] == 0 and not espec.has("taverna") and q.y > 8.0 and q.x < -6.0
-			var e_igreja: bool = anel[1] == 1 and not espec.has("igreja") and q.y < -20.0 and q.x > 6.0
-			if e_taverna: w = 10.0; d = 7.5; h = 5.2
-			if e_igreja: w = 7.5; d = 12.0; h = 5.0; parede = mat("pedra"); telhado = mat("madeira", 1.0, Color(0.55, 0.5, 0.55))
-			am = a + (w * 0.5 + 1.0) / r; q = Vector2(cos(am), sin(am)) * r
-			a += (w + rng.randf_range(2.2, 4.0)) / r
-			if reg.dist_estrada(q.x, q.y) < w * 0.5 + 4.5 or reg.dist_trilha(q.x, q.y) < w * 0.5 + 2.5: continue
-			if not (e_taverna or e_igreja) and rng.randf() < 0.12: continue        # alguns vãos (quintais)
-			if perto_de_casa(q.x, q.y, maxf(w, d) * 0.5 + 0.8): continue
-			var ang := atan2(-q.x, -q.y)                                         # porta virada para a praça
-			_casa(Vector3(q.x, 0, q.y), ang, w, d, h, parede, telhado)
-			if e_taverna: espec["taverna"] = true
-			if e_igreja: espec["igreja"] = true; _torre_igreja(ang); igreja_vila = [q, Vector2(-q.x, -q.y).normalized(), d]
-	# grupos de casas no fim das trilhas: sítio a oeste, casas a leste, casa de pescador no rio, casa ao norte
-	for g in [[Vector2(-58, -36), 3], [Vector2(-46, -54), 3], [Vector2(-64, -48), 3], [Vector2(38, 50), 1], [Vector2(52, 38), 1],
-			[Vector2(100, -74), 2], [Vector2(32, -88), 3]]:
-		var c: Vector2 = g[0]
-		if perto_de_casa(c.x, c.y, 4.0): continue
-		var fim := _fim_trilha(g[1]); var ang := atan2(fim.x - c.x, fim.y - c.y)
-		_casa(Vector3(c.x, 0, c.y), ang, rng.randf_range(4.6, 6.0), rng.randf_range(4.0, 4.8), rng.randf_range(2.6, 3.0))
-	_pier_rio()
-	_poco(Vector3(0, reg.aplanar(Vector2.ZERO, Vector2(1.6, 1.6), 0.0, 2.0) - 0.1, 0))
-	for b in [[3.5, 2.0], [4.2, 2.6], [-3.0, 3.6], [6.0, -9.0]]:
-		_barril(Vector3(b[0], altura(b[0], b[1]), b[1]))
-	_ferraria()
-	lugares.append([Vector2.ZERO, 16.0])
-
 # ponto a "s" metros ao longo de uma linha (e a direção dela ali)
 func _ponto_na_linha(linha: PackedVector2Array, s_pos: float) -> Array:
 	var acum := 0.0
@@ -1550,125 +1508,11 @@ func _ponto_na_linha(linha: PackedVector2Array, s_pos: float) -> Array:
 		acum += seg
 	return [linha[linha.size() - 1], (linha[linha.size() - 1] - linha[linha.size() - 2]).normalized()]
 
-func _fim_trilha(i: int) -> Vector2:
-	var t: PackedVector2Array = reg.trilhas[i]; return t[t.size() - 1]
-
-func _torre_igreja(ang_ig: float) -> void:
-	var pig: Vector3 = casas[casas.size() - 1][0]
-	var torre := Vector3(pig.x, 0, pig.z) + Vector3(0, 0, -7.5).rotated(Vector3.UP, ang_ig)
-	torre.y = reg.aplanar(Vector2(torre.x, torre.z), Vector2(2.4, 2.4), -ang_ig, 3.0) - 0.3
-	var mesh := ArrayMesh.new(); var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_caixa(st, Vector3(0, 5.0, 0), Vector3(3.6, 10.0, 3.6)); st.set_material(mat("pedra")); st.commit(mesh)
-	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	cilindro(st, Vector3(0, 10.0, 0), 2.7, 0.0, 4.5, 4); st.set_material(mat("madeira", 1.0, Color(0.55, 0.5, 0.55))); st.commit(mesh)
-	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.position = torre; mi.rotation.y = ang_ig + PI / 4.0; raiz.add_child(mi)
-	_colisor_caixa(torre, Vector3(3.6, 10, 3.6), ang_ig)
-	casas.append([torre, ang_ig, 3.6, 3.6])
-
-# píer de madeira no fim da trilha do rio, entrando na água, com um barquinho amarrado
-func _pier_rio() -> void:
-	var ini := _fim_trilha(2) + Vector2(-2, 0)
-	var dir := Vector2(1, 0)
-	var na_agua := ini
-	for k in 40:
-		na_agua = ini + dir * k
-		if reg.dist_rio(na_agua.x, na_agua.y) < reg.largura_rio(0.4) * 0.5 - 1.0: break
-	var comp := ini.distance_to(na_agua) + 4.0
-	var y := maxf(reg.altura(ini.x, ini.y), reg.agua(na_agua.x, na_agua.y)) + 0.45
-	var st := _st()
-	var n := int(comp / 1.2)
-	for i in n:
-		var q := ini + dir * (i * 1.2 + 0.6)
-		_caixa(st, Vector3(q.x, y, q.y), Vector3(1.2, 0.14, 2.2))
-		if i % 2 == 0:
-			for lz in [-1.0, 1.0]: _caixa(st, Vector3(q.x, y - 1.4, q.y + lz), Vector3(0.22, 2.8, 0.22))
-	_peca(st, mat("madeira"), Vector3.ZERO)
-	var meio := ini + dir * comp * 0.5
-	_colisor_caixa(Vector3(meio.x, y - 0.12, meio.y), Vector3(2.2, 0.15, comp), PI / 2)
-	var bp := ini + dir * (comp - 1.0) + Vector2(0, 2.4)
-	st = _st(); _caixa(st, Vector3(0, 0.25, 0), Vector3(3.8, 0.55, 1.4)); _caixa(st, Vector3(2.0, 0.32, 0), Vector3(0.6, 0.4, 0.8))
-	_peca(st, mat("madeira", 1.0, Color(0.75, 0.6, 0.5)), Vector3(bp.x, reg.agua(bp.x, bp.y) - 0.05, bp.y), 0.15)
-	lugares.append([meio, comp * 0.5 + 2.0]); pier_pos = meio
-
 # ferraria: telheiro aberto de madeira (4 esteios e telhado inclinado de tábuas), fornalha de pedra com
 # chaminé e fogo aceso, bigorna sobre um toco, tina d'água, monte de carvão e um suporte de ferramentas.
 # O lugar é escolhido sozinho: livre de casas e longe da estrada, na beira da vila.
 var ferraria_pos := Vector2.ZERO
 var ferraria_ang := 0.0
-func _ferraria() -> void:
-	var c := Vector2(-34, 44)
-	for t in 80:
-		var a := deg_to_rad(120.0 + t * 37.0); var r := 30.0 + (t % 5) * 5.0
-		var q := Vector2(cos(a), sin(a)) * r
-		if not perto_de_casa(q.x, q.y, 6.0) and reg.folga_caminho(q.x, q.y) > 5.0: c = q; break
-	var ang := atan2(-c.x, -c.y)                         # frente aberta virada para a praça
-	var livre := _longe_da_estrada(c, Vector2(4.5, 3.5), ang)
-	c = livre; ferraria_pos = c; ferraria_ang = ang
-	var y := reg.aplanar(c, Vector2(5.0, 4.0), -ang, 3.0)
-	var base := Vector3(c.x, y, c.y)
-	var no := Node3D.new(); no.position = base; no.rotation.y = ang; raiz.add_child(no)
-	var add := func(st: SurfaceTool, mt: Material) -> void:
-		var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = mt; no.add_child(mi)
-	var col := func(pos: Vector3, tam: Vector3) -> void:
-		var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bx := BoxShape3D.new()
-		bx.size = tam; cs.shape = bx; cs.position = pos + Vector3(0, tam.y / 2.0, 0); corpo.add_child(cs); no.add_child(corpo)
-	# piso de pedra batida
-	var st := _st(); _caixa(st, Vector3(0, -0.15, 0), Vector3(9.0, 0.4, 7.0)); add.call(st, mat("pedra", 1.0, Color(0.75, 0.72, 0.7)))
-	# esteios e vigas
-	st = _st()
-	for e in [Vector2(-4.2, 3.2), Vector2(4.2, 3.2), Vector2(-4.2, -3.2), Vector2(4.2, -3.2)]:
-		var alt: float = 3.4 if e.y > 0 else 2.6
-		_caixa(st, Vector3(e.x, alt / 2.0 - 0.3, e.y), Vector3(0.3, alt + 0.6, 0.3))
-		col.call(Vector3(e.x, -0.3, e.y), Vector3(0.32, alt, 0.32))
-	_caixa(st, Vector3(0, 3.2, 3.2), Vector3(8.8, 0.25, 0.25)); _caixa(st, Vector3(0, 2.4, -3.2), Vector3(8.8, 0.25, 0.25))
-	add.call(st, mat("madeira"))
-	# telhado de tábuas inclinado (mais alto na frente)
-	st = _st()
-	_quad(st, Vector3(-4.8, 2.5, -3.8), Vector3(4.8, 2.5, -3.8), Vector3(4.8, 3.45, 3.8), Vector3(-4.8, 3.45, 3.8), 5.0, 4.0)
-	_quad(st, Vector3(4.8, 2.5, -3.8), Vector3(-4.8, 2.5, -3.8), Vector3(-4.8, 3.45, 3.8), Vector3(4.8, 3.45, 3.8), 5.0, 4.0)
-	add.call(st, mat("madeira", 1.0, Color(0.62, 0.55, 0.5)))
-	# fornalha de pedra no fundo, com chaminé atravessando o telhado
-	st = _st()
-	_caixa(st, Vector3(-2.2, 0.75, -2.3), Vector3(2.4, 1.5, 1.8))
-	_caixa(st, Vector3(-2.2, 1.9, -2.6), Vector3(1.6, 0.8, 1.2))
-	_caixa(st, Vector3(-2.2, 3.4, -2.6), Vector3(0.9, 2.6, 0.9))
-	add.call(st, mat("pedra"))
-	col.call(Vector3(-2.2, 0, -2.3), Vector3(2.4, 2.4, 1.8))
-	# boca da fornalha: brasa (escuro + laranja) e fogo em splats
-	st = _st(); _quad(st, Vector3(-2.9, 0.35, -1.38), Vector3(-1.5, 0.35, -1.38), Vector3(-1.5, 1.05, -1.38), Vector3(-2.9, 1.05, -1.38), 1, 1)
-	add.call(st, mat("", 1.0, Color(1.6, 0.55, 0.15)))
-	var boca: Vector3 = no.transform * Vector3(-2.2, 0.36, -1.32)
-	for dx in [-0.42, 0.0, 0.42]:
-		_fogo(boca + no.transform.basis * Vector3(dx, 0, 0), 0.5, 0.62, 2, dx == 0.0, 0.1)
-	# bigorna sobre um toco
-	st = _st(); cilindro(st, Vector3(1.2, -0.1, -0.4), 0.45, 0.42, 0.75, 7, true); add.call(st, mat("casca"))
-	st = _st()
-	_caixa(st, Vector3(1.2, 0.72, -0.4), Vector3(0.38, 0.18, 0.3))
-	_caixa(st, Vector3(1.2, 0.92, -0.4), Vector3(0.75, 0.22, 0.34))
-	_caixa(st, Vector3(1.68, 0.95, -0.4), Vector3(0.25, 0.14, 0.18))      # bico
-	add.call(st, mat("", 1.0, Color(0.3, 0.3, 0.34)))
-	col.call(Vector3(1.2, -0.1, -0.4), Vector3(0.9, 1.05, 0.9))
-	# tina d'água e monte de carvão
-	st = _st(); cilindro(st, Vector3(3.2, -0.1, -2.2), 0.6, 0.65, 0.75, 8); add.call(st, mat("madeira"))
-	st = _st(); _quad(st, Vector3(2.65, 0.55, -2.75), Vector3(3.75, 0.55, -2.75), Vector3(3.75, 0.55, -1.65), Vector3(2.65, 0.55, -1.65), 1, 1)
-	add.call(st, mat("", 1.0, Color(0.2, 0.32, 0.42)))
-	col.call(Vector3(3.2, -0.1, -2.2), Vector3(1.3, 0.85, 1.3))
-	st = _st(); cilindro(st, Vector3(-3.6, -0.1, 1.2), 0.9, 0.0, 0.7, 6); add.call(st, mat("", 1.0, Color(0.13, 0.12, 0.12)))
-	# parede de tábuas no fundo (à direita da fornalha), onde fica o suporte de ferramentas
-	st = _st()
-	_caixa(st, Vector3(1.25, 1.0, -3.3), Vector3(5.9, 2.6, 0.12))
-	for k in 6: _caixa(st, Vector3(-1.4 + k * 1.06, 1.0, -3.22), Vector3(0.09, 2.6, 0.06))      # frestas entre tábuas
-	add.call(st, mat("madeira", 1.0, Color(0.72, 0.62, 0.55)))
-	col.call(Vector3(1.25, -0.3, -3.3), Vector3(5.9, 2.6, 0.2))
-	# suporte de ferramentas preso na parede (tenazes e martelos pendurados)
-	st = _st()
-	_caixa(st, Vector3(1.6, 1.6, -3.15), Vector3(2.2, 0.12, 0.12))
-	for k in 5:
-		var x := 0.8 + k * 0.4
-		_caixa(st, Vector3(x, 1.25, -3.12), Vector3(0.05, 0.7, 0.05))
-		_caixa(st, Vector3(x, 0.92, -3.12), Vector3(0.16, 0.1, 0.08))
-	add.call(st, mat("", 1.0, Color(0.32, 0.3, 0.3)))
-	lugares.append([c, 7.0])
 
 func _colisor_caixa(pos: Vector3, tam: Vector3, ang: float) -> void:
 	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var bx := BoxShape3D.new()
@@ -1679,22 +1523,6 @@ func _colisor_caixa(pos: Vector3, tam: Vector3, ang: float) -> void:
 func _peca(st: SurfaceTool, material: Material, pos: Vector3, ang := 0.0) -> MeshInstance3D:
 	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = material
 	mi.position = pos; mi.rotation.y = ang; raiz.add_child(mi); return mi
-
-# piso fino em grade de 1,5 m que acompanha o chão (um pouco acima, para não brigar com o terreno)
-func _chao_textura(r: Rect2, material: Material, passo := 1.5) -> void:
-	var st := _st()
-	var nx := int(ceil(r.size.x / passo)); var nz := int(ceil(r.size.y / passo))
-	var h := func(x: float, z: float) -> float: return reg.altura(x, z) + 0.06
-	for j in nz:
-		for i in nx:
-			var x0 := r.position.x + i * passo; var z0 := r.position.y + j * passo
-			var x1 := minf(x0 + passo, r.end.x); var z1 := minf(z0 + passo, r.end.y)
-			var a := Vector3(x0, h.call(x0, z1), z1); var b := Vector3(x1, h.call(x1, z1), z1)
-			var c := Vector3(x1, h.call(x1, z0), z0); var d := Vector3(x0, h.call(x0, z0), z0)
-			for v in [[a, b, c], [a, c, d]]:
-				for q: Vector3 in v:
-					st.set_normal(Vector3.UP); st.set_color(Color.WHITE); st.set_uv(Vector2(q.x, q.z) * 0.5); st.add_vertex(q)
-	_peca(st, material, Vector3.ZERO)
 
 func _st() -> SurfaceTool:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES); return st
@@ -1850,7 +1678,6 @@ var freiras := []                 # as irmãs que vendem poções (na frente da 
 var vendedores := []              # barracas do mercado, portas das lojas e o taverneiro (LOJA e CONVERSAR)
 var igreja_vila := []             # [posição da igreja, direção da porta]
 var montaria_ui: Montaria
-var cidade_lojas := []              # [nome, posição da porta] — banco, taverna, lojas (para as interações depois)
 var arvores_cidade := []            # [posição Vector3, escala] — a floresta desenha
 func _mat_tex(arq: String) -> ShaderMaterial:
 	var k := "tex|" + arq
@@ -1870,7 +1697,7 @@ func _freira(nome: String, p: Vector2, olhar: Vector2, y: float, semente: int) -
 	freiras.append(f)
 
 # CAVALO do pacote POLYGON Horse (Synty): um modelo com esqueleto (35 ossos), sela e rédeas; a pelagem é a textura
-# (Horse_01…10, unicórnio com chifre). O pacote não traz animação: cavalo_anim.gd mexe os ossos (passo, trote, galope).
+# (Horse_01…10). O pacote não traz animação: cavalo_anim.gd mexe os ossos (passo, trote, galope).
 # No arquivo a cabeça fica para +Z; aqui gira para -Z (frente do jogador).
 const CAVALO_ARQ := "res://arte/cavalo/SyntyHorse.FBX"
 const CAVALO_ESC := 1.12                       # 2,45 m do focinho ao rabo; a sela fica a ~1,75 m do chão
@@ -1881,13 +1708,6 @@ func cavalo(id: String) -> Node3D:
 	sm.set_shader_parameter("tex", load("res://arte/cavalo/texturas/%s.png" % Bolsa.ITENS[id].get("pelagem", "Horse_02")))
 	sm.set_shader_parameter("neblina", NEBLINA); sm.set_shader_parameter("sem_cor_vertice", true)
 	for n in mod.find_children("*", "MeshInstance3D", true, false): (n as MeshInstance3D).material_override = sm
-	if Bolsa.ITENS[id].get("chifre", false):          # unicórnio: o chifre preso no osso da cabeça
-		var sk: Skeleton3D = mod.find_children("*", "Skeleton3D", true, false)[0]
-		var ba := BoneAttachment3D.new(); ba.bone_name = "Horsi_ Head"; sk.add_child(ba)
-		var chifre: Node3D = load("res://arte/cavalo/SM_Horse_Unicorn_Horn_01.fbx").instantiate()
-		for n in chifre.find_children("*", "MeshInstance3D", true, false): (n as MeshInstance3D).material_override = sm
-		chifre.transform = sk.get_bone_global_rest(sk.find_bone("Horsi_ Head")).affine_inverse() * Transform3D(Basis(), Vector3(0, 1.79, 1.25))   # na testa
-		ba.add_child(chifre)
 	mod.scale = Vector3.ONE * CAVALO_ESC; mod.rotation_degrees.y = 180.0
 	rc.add_child(mod)
 	rc.set_meta("sela_z", -0.06 * CAVALO_ESC)        # o assento da sela fica um pouco à frente do meio do modelo
@@ -2084,13 +1904,14 @@ func _casa(pos: Vector3, ang: float, w: float, d: float, h: float, parede: Mater
 	var x := w / 2.0; var z := d / 2.0; var cume := h + w * 0.55; var beiral := 0.45
 	var livre := _longe_da_estrada(Vector2(pos.x, pos.z), Vector2(x + 0.5, z + 0.5), ang)   # nunca em cima da estrada
 	pos.x = livre.x; pos.z = livre.y
-	if chao_fixo: pos.y -= 0.05                       # cidade: o chão já é plano (não precisa aplanar)
-	else: pos.y = reg.aplanar(Vector2(pos.x, pos.z), Vector2(x + 0.8, z + 0.8), -ang, 4.0) - 0.05
 	# casa pronta do Fantasy Kingdom (Synty) do tamanho mais parecido; "modelo" força uma (taverna, ferraria...)
 	var nome := modelo if modelo != "" else Synty.casa_para(w, d, int(pos.x * 7.0 + pos.z * 13.0))
 	if nome == "": return
 	var cx: AABB = Synty.caixa(nome)
 	var esc := clampf(minf(w / maxf(cx.size.x, 0.1), d / maxf(cx.size.z, 0.1)) * 1.15, 0.7, 1.5) if modelo == "" else esc_modelo
+	# o chão é aplainado no tamanho REAL do modelo (aplainar pelo tamanho pedido deixava quinas enterradas)
+	if chao_fixo: pos.y -= 0.05                       # cidade: o chão já é plano (não precisa aplanar)
+	else: pos.y = reg.aplanar(Vector2(pos.x, pos.z), Vector2(cx.size.x, cx.size.z) * esc * 0.5 + Vector2(0.8, 0.8), -ang, 4.0) - 0.05
 	Synty.por(self, nome, pos, ang, esc, true)
 	w = cx.size.x * esc; d = cx.size.z * esc
 	casas.append([pos, ang, w, d]); lugares.append([Vector2(pos.x, pos.z), max(w, d) * 0.7])
@@ -2113,23 +1934,6 @@ func cilindro(st: SurfaceTool, base: Vector3, r0: float, r1: float, alt: float, 
 		if r1 < 0.001: _tri(st, p1, p0, q0, TAU * r0 / lados, alt / 2.0)
 		else: _quad(st, p1, p0, q0, q1, TAU * r0 / lados, alt / 2.0)
 		if tampa and r1 > 0.001: _tri(st, q1, q0, base + Vector3(0, alt, 0), r1, r1)
-
-func _poco(pos: Vector3) -> void:
-	var mesh := ArrayMesh.new()
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	cilindro(st, Vector3.ZERO, 1.1, 1.1, 0.9, 8, true); st.set_material(mat("pedra")); st.commit(mesh)
-	st = SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_caixa(st, Vector3(-0.95, 1.4, 0), Vector3(0.15, 1.8, 0.15)); _caixa(st, Vector3(0.95, 1.4, 0), Vector3(0.15, 1.8, 0.15))
-	cilindro(st, Vector3(0, 2.3, 0), 1.5, 0.0, 0.9, 4)
-	st.set_material(mat("madeira")); st.commit(mesh)
-	var mi := MeshInstance3D.new(); mi.mesh = mesh; mi.position = pos; raiz.add_child(mi)
-	_colisor_cilindro(pos, 1.15, 2.0)
-
-func _barril(pos: Vector3) -> void:
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	cilindro(st, Vector3(0, -0.15, 0), 0.32, 0.38, 0.6, 8); cilindro(st, Vector3(0, 0.45, 0), 0.38, 0.32, 0.45, 8, true)
-	var mi := MeshInstance3D.new(); mi.mesh = st.commit(); mi.material_override = mat("madeira"); mi.position = pos
-	raiz.add_child(mi); _colisor_cilindro(pos, 0.38, 0.9)
 
 func _colisor_cilindro(pos: Vector3, r: float, h: float) -> void:
 	var corpo := StaticBody3D.new(); var cs := CollisionShape3D.new(); var c := CylinderShape3D.new()
@@ -2338,6 +2142,13 @@ func _modo_teste() -> void:
 			if args.has("dica"):
 				var jan: Control = inventario._janelas.get_child(1)
 				inventario._tocar(0, 0, jan.find_children("*", "Panel", true, false)[0]))
+	if args.has("casas_chao"):     # teste: casas enterradas ou no ar (chão nos cantos × base da casa)
+		get_tree().create_timer(3.0).timeout.connect(func():
+			for c in casas:
+				var p: Vector3 = c[0]; var b := Basis(Vector3.UP, c[1]); var hs := []
+				for cc in [Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(-1, 0, 1), Vector3(1, 0, 1), Vector3.ZERO]:
+					var q: Vector3 = p + b * (cc * Vector3(c[2] * 0.5, 0, c[3] * 0.5)); hs.append(altura_malha(q.x, q.z) - p.y)
+				print("CASA %.0f,%.0f base %.2f chão %s" % [p.x, p.z, p.y, str(hs.map(func(v): return snappedf(v, 0.01)))]))
 	if args.has("tris"):           # teste: triângulos por grupo (perto da câmera)
 		get_tree().create_timer(5.0).timeout.connect(func():
 			var cam := jogador.cam.global_position

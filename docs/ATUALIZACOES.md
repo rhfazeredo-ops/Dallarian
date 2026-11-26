@@ -2,6 +2,15 @@
 
 ## 27/11
 
+**Casas do vilarejo no chão e só 4 cavalos no estábulo**
+- 58 casas das ruas da Vila do Vale estavam enterradas (4 a 8 m: só o telhado aparecia). A casa em fila era posta
+  na altura 0 com "chão já plano", mas a vila fica a ~4 m. Agora cada casa aplaina o chão no tamanho real do
+  modelo, e a parte plana de uma casa não é mais cortada pela rampa da vizinha. Medido em todas as casas do mapa:
+  a maior diferença numa quina é 0,5 m (antes 8 m).
+- Estábulo do Edric: à venda só os 4 cavalos do começo (branco malhado, alazão, dourado e preto). Os outros 7
+  (baio, tordilho, pintado, 3 corcéis de guerra e o unicórnio) saíram do jogo e ficam para o sistema de conquistas
+  (lista no GDD).
+
 **Cavalos do pacote POLYGON Horse**
 - Sai o cavalo feito no Tripo (e o de blocos e o esqueleto automático). Entra o cavalo da Synty, com sela, rédeas e
   esqueleto de verdade; as quatro montarias antigas ganharam a pelagem parecida (branco malhado, alazão, dourado e

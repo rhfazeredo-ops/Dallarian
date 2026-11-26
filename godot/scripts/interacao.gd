@@ -54,7 +54,7 @@ const DIALOGOS_CAVALARICO := [
 	[["heroina", "Como eu chamo o cavalo quando estiver na estrada?", ""],
 	 ["cavalarico", "Um bom cavalo sempre ouve o assobio da dona. Assobia e ele vem. Assobia de novo e ele volta pro pasto.", ""]],
 ]
-const LOJA_ESTABULO := {"nome": "Edric", "cargo": "<Cavalariço>", "itens": ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado", "cavalo_baio", "cavalo_tordilho", "cavalo_pintado", "cavalo_guerra_baio", "cavalo_guerra_branco", "cavalo_guerra_cinza", "unicornio"],
+const LOJA_ESTABULO := {"nome": "Edric", "cargo": "<Cavalariço>", "itens": ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"],
 	"falas_compra": ["Trate bem dele, que ele trata bem de você.", "Escolha boa! Esse aí não refuga estrada."],
 	"falas_venda": ["Hum, isso eu revendo na cidade.", "Fechado. Cobre na mão."]}
 # freiras (Irmã Celina na vila, Irmã Odília na catedral): vendem poções de vida

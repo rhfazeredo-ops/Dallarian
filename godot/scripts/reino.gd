@@ -31,8 +31,8 @@ func _por(nome: String, p: Vector2, ang: float, esc := 1.0, colisao := true, y :
 static func _virado(de: Vector2, alvo: Vector2) -> float:
 	var d := alvo - de; return atan2(d.x, d.y)
 
-# casas em fila dos dois lados de uma rua (porta virada para a rua)
-func _fila(a: Vector2, b: Vector2, recuo: float, passo: float, y_de: Callable, pular: Callable, lojas := []) -> void:
+# casas em fila dos dois lados de uma rua (porta virada para a rua); cada casa aplaina o chão embaixo dela
+func _fila(a: Vector2, b: Vector2, recuo: float, passo: float, pular: Callable) -> void:
 	var dl := (b - a).normalized(); var n := Vector2(-dl.y, dl.x); var comp := a.distance_to(b)
 	var s := passo * 0.5
 	while s < comp:
@@ -42,11 +42,7 @@ func _fila(a: Vector2, b: Vector2, recuo: float, passo: float, y_de: Callable, p
 			if m.perto_de_casa(q.x, q.y, 6.0) or m.perto_de_lugar(q.x, q.y, 5.0): continue
 			var w := rng.randf_range(8.5, 11.0); var d := rng.randf_range(8.0, 10.0)
 			var ang := _virado(q, q - n * lado)
-			m._casa(Vector3(q.x, y_de.call(q), q.y), ang, w, d, 7.0, null, null, true)
-			if not lojas.is_empty():
-				var nome: String = lojas.pop_front()
-				m._placa(Vector3(q.x, y_de.call(q), q.y), ang, w, d, 7.0, nome)
-				m.cidade_lojas.append([nome, q - n * lado * (d * 0.5 + 1.5)])
+			m._casa(Vector3(q.x, 0, q.y), ang, w, d, 7.0)
 		s += passo + rng.randf_range(-1.0, 2.0)
 
 var rede_nos := []
@@ -172,7 +168,6 @@ func _vendedor(nome: String, cargo: String, loja: String, modelo: String, p: Vec
 # ---------- Vila do Vale ----------
 func _vila() -> void:
 	var v := Regiao.VILA
-	var yv := func(q: Vector2) -> float: return 0.0           # _casa aplaina o chão sozinha
 	# praça: poço, barraquinhas e bancos
 	_por("SM_Prop_Well_01", v, 0.0, 1.4, true)
 	for k in 3:
@@ -208,7 +203,7 @@ func _vila() -> void:
 			var a: Vector2 = e[i]; var b: Vector2 = e[i + 1]
 			if a.distance_to(v) > 95.0: break
 			var b2 := a + (b - a).limit_length(maxf(95.0 - acum, 0.0))
-			_fila(a, b2, 12.0, 12.0, yv, pular)
+			_fila(a, b2, 12.0, 12.0, pular)
 			acum += a.distance_to(b)
 	# píer no rio, a leste da vila
 	var pp := Vector2(444.0, 470.0)
@@ -235,8 +230,8 @@ func _estabulo() -> void:
 	for seg in [[Vector2(cx0, cz0 + 5.0), Vector2(cx0, cz1)], [Vector2(cx0, cz1), Vector2(cx1, cz1)], [Vector2(cx1, cz1), Vector2(cx1, cz0)]]:
 		_cerca(seg[0], seg[1], y)
 	for k in 3: _por("SM_Prop_Hay_Bale_01", e + Vector2(10.5, -2.0 + k * 1.4), 0.0, 1.0, true, y)
-	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado", "cavalo_tordilho"]
-	for i in 5:
+	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]
+	for i in 4:
 		var cv: Node3D = m.cavalo(cores[i]); m.raiz.add_child(cv)
 		cv.position = Vector3(e.x - 7.0 + i * 5.5, y, e.y + 7.5 + (i % 2) * 3.0); cv.rotation.y = 0.5 - i * 0.45
 		m._colisor_caixa(Vector3(cv.position.x, y, cv.position.z), Vector3(1.0, 1.8, 2.6), cv.rotation.y)

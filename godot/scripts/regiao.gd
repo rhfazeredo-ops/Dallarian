@@ -410,14 +410,19 @@ func aplanar(c: Vector2, meia: Vector2, ang: float, margem := 4.0) -> float:
 	planos.append([c, meia, ang, h, margem, r * r])
 	return h
 
+# dentro da parte plana de uma construção vale a altura dela (a rampa de uma vizinha não passa por cima: isso
+# enterrava quinas de casas em fila); fora, as rampas se misturam
 func _planos(x: float, z: float, h: float) -> float:
+	var rampas := []
 	for pl in planos:
 		var c: Vector2 = pl[0]
 		var dx := x - c.x; var dz := z - c.y
 		if dx * dx + dz * dz > pl[5]: continue
 		var q := Vector2(dx, dz).rotated(-pl[2]); var meia: Vector2 = pl[1]
 		var d: float = max(abs(q.x) - meia.x, abs(q.y) - meia.y)
-		h = lerp(pl[3], h, smoothstep(0.0, pl[4], d))
+		if d <= 0.0: return pl[3]
+		rampas.append([pl, d])
+	for r in rampas: h = lerp(r[0][3], h, smoothstep(0.0, r[0][4], r[1]))
 	return h
 
 # ---------- Gruta dos Lodosos (DG aberta na montanha do norte, a oeste do rio do leste) ----------

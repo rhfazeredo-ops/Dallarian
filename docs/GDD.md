@@ -312,4 +312,11 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 ## Montarias (cavalos)
 - Modelo: SyntyHorse.FBX (POLYGON Horse), escala 1,12; pelagem = textura Horse_01…10 (campo "pelagem" do item);
   unicórnio com o chifre preso no osso da cabeça. Animação por código (cavalo_anim.gd).
-- À venda no Edric: 4 comuns (80), 3 novos (120), 3 corcéis de guerra (400, raros), Unicórnio (2000).
+- À venda no Edric: só os 4 do começo (branco malhado Horse_04, alazão Horse_02, dourado Horse_01, preto Horse_06), 80 de cobre.
+- Montarias de CONQUISTA (ainda fora do jogo; decidir o que o jogador faz para ganhar cada uma):
+  - baio de crina negra (Horse_03), tordilho (Horse_05), pintado (Horse_09);
+  - corcéis de guerra pintados: baio (Horse_07), branco com a marca vermelha (Horse_08), cinzento (Horse_10);
+  - Unicórnio (Horse_Unicorn_01 + SM_Horse_Unicorn_Horn_01 no osso da cabeça, na testa: 0; 1,79; 1,25 no modelo).
+  As texturas já estão no repositório de arte; o ícone sai da ferramenta ferramentas/icones_cavalos.gd.
+- Animação: o pacote da Synty pede o Horse Animset Pro (Malbers Animations, Unity Asset Store). Sem ele, a
+  animação é feita por código.
