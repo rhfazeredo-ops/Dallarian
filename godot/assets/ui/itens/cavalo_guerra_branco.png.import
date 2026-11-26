@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dmf5peaitlsk3"
-path="res://.godot/imported/cavalo_preto_Color_c3b864f5-2290-4b97-bc75-aaed486bd62e.png-b29198d856bfa9e2189764bd8b49a344.ctex"
+uid="uid://cab5idl1o46td"
+path="res://.godot/imported/cavalo_guerra_branco.png-d7287016f607dbda8250339392bb3162.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "b9a50004a24480f1da7128d239441665"
 }
 
 [deps]
 
-source_file="res://assets/modelos/cavalo_preto_Color_c3b864f5-2290-4b97-bc75-aaed486bd62e.png"
-dest_files=["res://.godot/imported/cavalo_preto_Color_c3b864f5-2290-4b97-bc75-aaed486bd62e.png-b29198d856bfa9e2189764bd8b49a344.ctex"]
+source_file="res://assets/ui/itens/cavalo_guerra_branco.png"
+dest_files=["res://.godot/imported/cavalo_guerra_branco.png-d7287016f607dbda8250339392bb3162.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

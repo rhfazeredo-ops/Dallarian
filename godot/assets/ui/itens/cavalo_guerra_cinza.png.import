@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cfqmrnqi7l8om"
-path="res://.godot/imported/cavalo_vermelho_Color_0aa92655-0d71-4512-bcfa-d196a8f9d56a.png-a62ebb8371fbd9ff0f823e6af3265223.ctex"
+uid="uid://fhmdroedyn44"
+path="res://.godot/imported/cavalo_guerra_cinza.png-383fb2eea95968fdc8a1f0d12370ede5.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "9f66832f16f1f9a0191c76c0da2ff2fa"
 }
 
 [deps]
 
-source_file="res://assets/modelos/cavalo_vermelho_Color_0aa92655-0d71-4512-bcfa-d196a8f9d56a.png"
-dest_files=["res://.godot/imported/cavalo_vermelho_Color_0aa92655-0d71-4512-bcfa-d196a8f9d56a.png-a62ebb8371fbd9ff0f823e6af3265223.ctex"]
+source_file="res://assets/ui/itens/cavalo_guerra_cinza.png"
+dest_files=["res://.godot/imported/cavalo_guerra_cinza.png-383fb2eea95968fdc8a1f0d12370ede5.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

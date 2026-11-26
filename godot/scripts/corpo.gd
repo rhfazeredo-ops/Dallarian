@@ -135,7 +135,7 @@ func animar(delta: float) -> void:
 	# animações do pacote (Sword and Shield e Synty, convertidas para o esqueleto do herói)
 	if _ap == null: return
 	if j.montado:                                                        # no cavalo: parado, pernas abertas no lombo
-		rotation.x = 0.0; position.y = 0.95; _braco.peso = 0.0; _sentar.peso = 1.0
+		rotation.x = 0.0; position.y = 0.86; _braco.peso = 0.0; _sentar.peso = 1.0
 		_tocar("calmo_parado", 1.0, 0.25); return
 	_sentar.peso = 0.0
 	rotation.x = 0.0; position.y = 0.0

@@ -235,8 +235,8 @@ func _estabulo() -> void:
 	for seg in [[Vector2(cx0, cz0 + 5.0), Vector2(cx0, cz1)], [Vector2(cx0, cz1), Vector2(cx1, cz1)], [Vector2(cx1, cz1), Vector2(cx1, cz0)]]:
 		_cerca(seg[0], seg[1], y)
 	for k in 3: _por("SM_Prop_Hay_Bale_01", e + Vector2(10.5, -2.0 + k * 1.4), 0.0, 1.0, true, y)
-	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]
-	for i in 4:
+	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado", "cavalo_tordilho"]
+	for i in 5:
 		var cv: Node3D = m.cavalo(cores[i]); m.raiz.add_child(cv)
 		cv.position = Vector3(e.x - 7.0 + i * 5.5, y, e.y + 7.5 + (i % 2) * 3.0); cv.rotation.y = 0.5 - i * 0.45
 		m._colisor_caixa(Vector3(cv.position.x, y, cv.position.z), Vector3(1.0, 1.8, 2.6), cv.rotation.y)

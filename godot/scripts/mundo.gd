@@ -1869,115 +1869,30 @@ func _freira(nome: String, p: Vector2, olhar: Vector2, y: float, semente: int) -
 	f.montar(self, semente, p, 1.0)
 	freiras.append(f)
 
-# estábulo fora da cidade, do outro lado do rio, ao norte da estrada que chega na ponte: a casinha do cavalariço,
-# o telheiro com as cocheiras ao lado e o cercado com os três cavalos na frente; o Edric fica parado na frente da casa
-func _estabulo() -> void:
-	var e := estabulo_pos
-	var y := reg.aplanar(e + Vector2(-8.0, 3.0), Vector2(26.0, 14.0), 0.0, 6.0)
-	reg.planos[-1].append(false)               # grama em volta da casa e do cercado (só o cercado/telheiro ficam de terra)
-	lugares.append([e + Vector2(-8.0, 3.0), 28.0])
-	var madeira := mat("madeira"); var tel := mat("telha", 1.4)
-	# casinha do cavalariço (à esquerda do telheiro, porta para a estrada)
-	var hc := e + Vector2(-25.0, -5.0)
-	_casa(Vector3(hc.x, y, hc.y), 0.0, 9.0, 7.0, 3.6, mat("parede"), mat("telha", 1.4), true)
-	var lenha := _st()                                                  # lenha empilhada e um banco do lado da casa
-	for k in 3: _caixa(lenha, Vector3(hc.x - 5.6, y + 0.25 + k * 0.4, hc.y - 1.0 + (k % 2) * 0.2), Vector3(0.9, 0.38, 2.6))
-	_caixa(lenha, Vector3(hc.x + 2.2, y + 0.45, hc.y + 4.4), Vector3(1.8, 0.12, 0.5))
-	_caixa(lenha, Vector3(hc.x + 1.5, y + 0.2, hc.y + 4.4), Vector3(0.15, 0.4, 0.45)); _caixa(lenha, Vector3(hc.x + 2.9, y + 0.2, hc.y + 4.4), Vector3(0.15, 0.4, 0.45))
-	_peca(lenha, mat("madeira", 1.0, Color(0.75, 0.55, 0.38)), Vector3.ZERO)
-	# telheiro aberto com cocheiras
-	var st := _st()
-	for q in [Vector2(-9, -5), Vector2(9, -5), Vector2(-9, 5), Vector2(9, 5), Vector2(-3, -5), Vector2(3, -5)]:
-		_caixa(st, Vector3(e.x + q.x, y + 2.2, e.y + q.y - 6.0), Vector3(0.4, 4.4, 0.4))
-	for xx in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(e.x + xx, y + 0.6, e.y - 7.5), Vector3(0.2, 1.2, 6.0))     # divisórias baixas
-	_caixa(st, Vector3(e.x, y + 1.2, e.y - 10.8), Vector3(18.0, 2.4, 0.3))                                # parede do fundo
-	_peca(st, madeira, Vector3.ZERO)
-	st = _st()
-	_quad(st, Vector3(e.x - 10.0, y + 4.4, e.y - 0.4), Vector3(e.x + 10.0, y + 4.4, e.y - 0.4), Vector3(e.x + 10.0, y + 5.8, e.y - 11.2), Vector3(e.x - 10.0, y + 5.8, e.y - 11.2), 5, 3)
-	_peca(st, tel, Vector3.ZERO)
-	st = _st()                                                                                             # fardos de palha e cochos
-	for xx in [-6.0, 0.0, 6.0]: _caixa(st, Vector3(e.x + xx + 3.0, y + 0.3, e.y - 9.8), Vector3(2.2, 0.6, 1.0))
-	_caixa(st, Vector3(e.x + 11.0, y + 0.45, e.y - 3.0), Vector3(1.4, 0.9, 1.0)); _caixa(st, Vector3(e.x + 11.2, y + 1.3, e.y - 3.1), Vector3(1.4, 0.8, 1.0))
-	_peca(st, mat("palha"), Vector3.ZERO)
-	_colisor_caixa(Vector3(e.x, y, e.y - 10.8), Vector3(18.0, 3.0, 0.4), 0.0)
-	# chão de terra batida debaixo do telheiro e no cercado (antes era o terreno liso)
-	_chao_textura(Rect2(e.x - 10.6, e.y - 11.6, 21.2, 11.4), mat("terra", 0.5))      # telheiro
-	_chao_textura(Rect2(e.x - 12.2, e.y + 0.8, 24.4, 14.4), mat("terra", 0.5))       # cercado
-	# cercado na frente do telheiro (aberto do lado da casa, para entrar)
-	var cerca := _st()
-	var cx0 := e.x - 12.0; var cx1 := e.x + 12.0; var cz0 := e.y + 1.0; var cz1 := e.y + 15.0
-	for seg in [[Vector2(cx0, cz0 + 5.0), Vector2(cx0, cz1)], [Vector2(cx0, cz1), Vector2(cx1, cz1)], [Vector2(cx1, cz1), Vector2(cx1, cz0)]]:
-		var a: Vector2 = seg[0]; var bb: Vector2 = seg[1]; var n := int(a.distance_to(bb) / 3.0)
-		for i in n + 1:
-			var p := a.lerp(bb, float(i) / n); _caixa(cerca, Vector3(p.x, y + 0.6, p.y), Vector3(0.25, 1.2, 0.25))
-		var m2 := (a + bb) * 0.5; var comp := a.distance_to(bb); var ang := atan2(bb.x - a.x, bb.y - a.y)
-		for hh in [0.5, 1.0]:
-			var tr := _st(); _caixa(tr, Vector3(0, 0, 0), Vector3(0.12, 0.14, comp))
-			cerca.append_from(tr.commit(), 0, Transform3D(Basis(Vector3.UP, ang), Vector3(m2.x, y + hh, m2.y)))
-		_colisor_caixa(Vector3(m2.x, y, m2.y), Vector3(0.3, 1.3, comp), ang)
-	_peca(cerca, madeira, Vector3.ZERO)
-	# três cavalos no cercado (o modelo provisório de blocos)
-	var cores := ["cavalo_branco", "cavalo_marrom", "cavalo_preto", "cavalo_dourado"]
-	for i in 4:
-		var cv := cavalo(cores[i]); raiz.add_child(cv)
-		cv.position = Vector3(e.x - 7.0 + i * 5.5, y, e.y + 7.5 + (i % 2) * 3.0); cv.rotation.y = 0.5 - i * 0.45
-		_colisor_caixa(Vector3(cv.position.x, y, cv.position.z), Vector3(1.0, 1.8, 2.6), cv.rotation.y)
-	# o cavalariço: parado na frente da casa, do lado do estábulo, olhando para a estrada
-	var npc := Morador.new(); npc.tipo = "forte"; npc.profissao = "cavalarico"
-	npc.posto = hc + Vector2(5.5, 6.0); npc.olhar_posto = npc.posto + Vector2(0.6, 5.0)
-	raiz.add_child(npc); npc.position = Vector3(npc.posto.x, y, npc.posto.y)
-	npc.montar(self, 4242, npc.posto, 1.0)
-	estabulo_npc = npc
-	# placa do estábulo (ferradura) num poste, na quina do cercado virada para a estrada
-	var pp := e + Vector2(13.5, 16.0)
-	var pst := _st(); _caixa(pst, Vector3(pp.x, y + 1.6, pp.y), Vector3(0.25, 3.2, 0.25)); _peca(pst, madeira, Vector3.ZERO)
-	_placa(Vector3(pp.x - 0.3, y - 0.4, pp.y), PI * 0.5, 0.6, 0.6, 4.6, "estabulo")
-
-# cavalo provisório feito de blocos (frente = -Z), na cor da montaria; patas, cabeça e cauda em nós próprios para animar
-const MODELOS_CAVALO := {"cavalo_branco": "cavalo_branco", "cavalo_marrom": "cavalo_vermelho", "cavalo_preto": "cavalo_preto", "cavalo_dourado": "cavalo_dourado"}
+# CAVALO do pacote POLYGON Horse (Synty): um modelo com esqueleto (35 ossos), sela e rédeas; a pelagem é a textura
+# (Horse_01…10, unicórnio com chifre). O pacote não traz animação: cavalo_anim.gd mexe os ossos (passo, trote, galope).
+# No arquivo a cabeça fica para +Z; aqui gira para -Z (frente do jogador).
+const CAVALO_ARQ := "res://arte/cavalo/SyntyHorse.FBX"
+const CAVALO_ESC := 1.12                       # 2,45 m do focinho ao rabo; a sela fica a ~1,75 m do chão
 func cavalo(id: String) -> Node3D:
-	var arq := "res://assets/modelos/%s.glb" % MODELOS_CAVALO.get(id, "")
-	if ResourceLoader.exists(arq):
-		# modelo do Tripo (sem rig ainda): vem de cabeça para +X, ~1 m de comprimento → gira para -Z e escala para 2,6 m
-		var rc := Node3D.new(); rc.name = "Cavalo"
-		var mod := modelo_ps1(arq); mod.name = "Modelo"
-		RigCavalo.montar(mod, arq)                       # esqueleto automático: patas, pescoço e rabo
-		var k := 2.6 / 0.97
-		var ymin := 0.0
-		for n in mod.find_children("*", "MeshInstance3D", true, false): ymin = minf(ymin, (n as MeshInstance3D).get_aabb().position.y)
-		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90.0; mod.position.y = -ymin * k
-		rc.add_child(mod)
-		rc.set_meta("sela_z", 0.1 * k + 0.35)          # a sela fica ~0,27 m atrás do meio do modelo (+ a Rachel no fundo da sela)
-		var an := Node.new(); an.set_script(load("res://scripts/cavalo_anim.gd")); rc.add_child(an)
-		return rc
-	var info: Dictionary = Bolsa.ITENS[id]
-	var cor_m := mat("", 1.0, info.cor); var crina := mat("", 1.0, info.crina); var casco := mat("", 1.0, Color(0.15, 0.12, 0.1))
-	var sela := mat("", 1.0, Color(0.42, 0.24, 0.12))
-	var raizc := Node3D.new(); raizc.name = "Cavalo"
-	var corpo := MeshInstance3D.new(); var st := _st()
-	_caixa(st, Vector3(0, 1.35, 0), Vector3(0.75, 0.8, 2.0))
-	st.set_material(cor_m); var mesh := st.commit()
-	st = _st(); _caixa(st, Vector3(0, 1.78, 0.1), Vector3(0.8, 0.1, 0.8)); _caixa(st, Vector3(0, 1.3, 0.1), Vector3(0.82, 0.8, 0.5)); st.set_material(sela); st.commit(mesh)
-	corpo.mesh = mesh; raizc.add_child(corpo)
-	var pescoco := Node3D.new(); pescoco.name = "Pescoco"; pescoco.position = Vector3(0, 1.6, -0.85); raizc.add_child(pescoco)
-	var mp := MeshInstance3D.new(); st = _st()
-	_caixa(st, Vector3(0, 0.35, -0.25), Vector3(0.42, 0.95, 0.5))                  # pescoço
-	_caixa(st, Vector3(0, 0.75, -0.65), Vector3(0.36, 0.38, 0.8))                  # cabeça
-	_caixa(st, Vector3(-0.12, 1.0, -0.38), Vector3(0.08, 0.2, 0.08)); _caixa(st, Vector3(0.12, 1.0, -0.38), Vector3(0.08, 0.2, 0.08))   # orelhas
-	st.set_material(cor_m); var mesh_p := st.commit()
-	st = _st(); _caixa(st, Vector3(0, 0.6, -0.05), Vector3(0.12, 1.0, 0.25)); st.set_material(crina); st.commit(mesh_p)    # crina
-	st = _st(); _caixa(st, Vector3(0, 0.7, -0.75), Vector3(0.4, 0.06, 0.4)); st.set_material(sela); st.commit(mesh_p)      # cabresto
-	mp.mesh = mesh_p; pescoco.add_child(mp)
-	for i in 4:
-		var perna := Node3D.new(); perna.name = "Perna%d" % i
-		perna.position = Vector3(-0.25 if i % 2 == 0 else 0.25, 1.05, -0.75 if i < 2 else 0.75); raizc.add_child(perna)
-		var ml := MeshInstance3D.new(); st = _st(); _caixa(st, Vector3(0, -0.5, 0), Vector3(0.18, 1.0, 0.2)); st.set_material(cor_m); var mesh_l := st.commit()
-		st = _st(); _caixa(st, Vector3(0, -1.0, 0), Vector3(0.2, 0.12, 0.24)); st.set_material(casco); st.commit(mesh_l)
-		ml.mesh = mesh_l; perna.add_child(ml)
-	var cauda := Node3D.new(); cauda.name = "Cauda"; cauda.position = Vector3(0, 1.6, 1.0); raizc.add_child(cauda)
-	var mc := MeshInstance3D.new(); st = _st(); _caixa(st, Vector3(0, -0.4, 0.12), Vector3(0.16, 0.9, 0.16)); st.set_material(crina); mc.mesh = st.commit(); cauda.add_child(mc)
-	var s := Node.new(); s.set_script(load("res://scripts/cavalo_anim.gd")); raizc.add_child(s)
-	return raizc
+	var rc := Node3D.new(); rc.name = "Cavalo"
+	var mod: Node3D = load(CAVALO_ARQ).instantiate(); mod.name = "Modelo"
+	var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/ps1.gdshader")
+	sm.set_shader_parameter("tex", load("res://arte/cavalo/texturas/%s.png" % Bolsa.ITENS[id].get("pelagem", "Horse_02")))
+	sm.set_shader_parameter("neblina", NEBLINA); sm.set_shader_parameter("sem_cor_vertice", true)
+	for n in mod.find_children("*", "MeshInstance3D", true, false): (n as MeshInstance3D).material_override = sm
+	if Bolsa.ITENS[id].get("chifre", false):          # unicórnio: o chifre preso no osso da cabeça
+		var sk: Skeleton3D = mod.find_children("*", "Skeleton3D", true, false)[0]
+		var ba := BoneAttachment3D.new(); ba.bone_name = "Horsi_ Head"; sk.add_child(ba)
+		var chifre: Node3D = load("res://arte/cavalo/SM_Horse_Unicorn_Horn_01.fbx").instantiate()
+		for n in chifre.find_children("*", "MeshInstance3D", true, false): (n as MeshInstance3D).material_override = sm
+		chifre.transform = sk.get_bone_global_rest(sk.find_bone("Horsi_ Head")).affine_inverse() * Transform3D(Basis(), Vector3(0, 1.79, 1.25))   # na testa
+		ba.add_child(chifre)
+	mod.scale = Vector3.ONE * CAVALO_ESC; mod.rotation_degrees.y = 180.0
+	rc.add_child(mod)
+	rc.set_meta("sela_z", -0.06 * CAVALO_ESC)        # o assento da sela fica um pouco à frente do meio do modelo
+	var an := Node.new(); an.set_script(load("res://scripts/cavalo_anim.gd")); rc.add_child(an)
+	return rc
 
 # placa de loja pendurada numa trave saindo da fachada (desenho em assets/ui/placas/<nome>.png)
 func _placa(pos: Vector3, ang: float, w: float, d: float, h: float, nome: String) -> void:
@@ -2574,7 +2489,11 @@ func _modo_teste() -> void:
 		if args.has("subir"): jogador.global_position.y += float(args.subir); jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.6"))
 	if args.has("empunhar"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("arma", String(args.empunhar)))   # teste: --empunhar=esp_15
 	if args.has("escudo"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("escudo", String(args.escudo)))
-	if args.has("montada"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.montar_em("cavalo_preto", cavalo("cavalo_preto")))
+	if args.has("montada"): get_tree().create_timer(0.5).timeout.connect(func():
+		var id := String(args.get("cavalo", "cavalo_preto")); jogador.montar_em(id, cavalo(id))
+		if args.has("ver_corpo"):         # teste: gira o cavalo junto com o corpo (vista de lado)
+			var g := deg_to_rad(float(args.ver_corpo)); jogador.cavalo.rotation.y = g
+			jogador.cavalo.position = Basis(Vector3.UP, g) * Vector3(0, 0, -float(jogador.cavalo.get_meta("sela_z", 0.1))))
 	if args.has("ver_corpo"):        # teste: --ver_corpo=graus [--corpo_pose=leve1:1:0.5 | bloquear | correr | armado | sacar | pular | pular_correndo | parar | ar]
 		jogador.corpo.giro_teste = deg_to_rad(float(args.ver_corpo))
 		var ps := String(args.get("corpo_pose", "")).split(":")

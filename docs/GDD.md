@@ -308,3 +308,8 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Escudo: defesa = (10 + 5 × ilvl) × qualidade (redução = def / (def + 60 + 12 × nível do atacante));
   chance de bloqueio 5% + ~0,6% por ilvl (bloqueia o golpe inteiro, só de frente). Segurar o escudo continua igual.
 - Cada modelo em 3 níveis (ilvl da tabela, +6, +12); o saque sorteia arma de ilvl entre nível − 2 e nível + 4.
+
+## Montarias (cavalos)
+- Modelo: SyntyHorse.FBX (POLYGON Horse), escala 1,12; pelagem = textura Horse_01…10 (campo "pelagem" do item);
+  unicórnio com o chifre preso no osso da cabeça. Animação por código (cavalo_anim.gd).
+- À venda no Edric: 4 comuns (80), 3 novos (120), 3 corcéis de guerra (400, raros), Unicórnio (2000).

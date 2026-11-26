@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddsl8oqe23yib"
-path="res://.godot/imported/cavalo_dourado_Color_621b6d3a-9bd5-414f-ab23-14ebea855c9f.png-aae0316a8b784bcc214dd589e1b9d943.ctex"
+uid="uid://c7xtehool62m2"
+path="res://.godot/imported/cavalo_baio.png-677e856dcad7fb8d1b502266a064215e.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "f030f668d3537e69e376db86b792b42f"
 }
 
 [deps]
 
-source_file="res://assets/modelos/cavalo_dourado_Color_621b6d3a-9bd5-414f-ab23-14ebea855c9f.png"
-dest_files=["res://.godot/imported/cavalo_dourado_Color_621b6d3a-9bd5-414f-ab23-14ebea855c9f.png-aae0316a8b784bcc214dd589e1b9d943.ctex"]
+source_file="res://assets/ui/itens/cavalo_baio.png"
+dest_files=["res://.godot/imported/cavalo_baio.png-677e856dcad7fb8d1b502266a064215e.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

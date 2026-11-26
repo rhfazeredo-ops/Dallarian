@@ -2,6 +2,16 @@
 
 ## 27/11
 
+**Cavalos do pacote POLYGON Horse**
+- Sai o cavalo feito no Tripo (e o de blocos e o esqueleto automático). Entra o cavalo da Synty, com sela, rédeas e
+  esqueleto de verdade; as quatro montarias antigas ganharam a pelagem parecida (branco malhado, alazão, dourado e
+  preto).
+- Cavalos novos no Edric (estábulo de Altamar): baio de crina negra, tordilho e pintado (120 de cobre), três corcéis
+  de guerra pintados (400) e o Unicórnio, com chifre e crina de arco-íris (2000).
+- O pacote não traz animação: o passo, o trote e o galope são feitos pelo jogo mexendo os ossos do cavalo (patas,
+  joelhos, pescoço, cabeça e rabo). A Rachel senta na sela certinho.
+- Ícones novos das montarias tirados do próprio modelo.
+
 **Troncos das árvores marrons e atributos nas armas**
 - As árvores do Meadow Forest tinham o tronco verde (o tronco e as folhas são uma malha só, e tudo levava a textura
   de folha). Agora o tronco é separado: bétulas com a casca branca, as outras marrons.
