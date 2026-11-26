@@ -62,7 +62,7 @@ func _montar_mh(fk: String, no_mundo: bool) -> void:
 	mao_e = _presa("L_Hand", "L_Mid1", B.call(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0)), 1.0)
 	var lam := Vector3(-0.4, -0.92, 0.0).normalized(); var face := Vector3(0, 0, -1)
 	costas_d = _no_osso("Hip", _cv(Vector3(0.03, -0.01, -0.115)), B.call(lam.cross(face), lam, face), 0.85)
-	costas_e = _no_osso("Spine02", _cv(Vector3(-0.075, 0.0, 0.0)), B.call(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)
+	costas_e = _no_osso("Spine02", _cv(Vector3(-0.2, 0.0, 0.0)), B.call(Vector3(0, 1, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1)), 1.0)   # frente do escudo para fora das costas
 	_braco = BracoSacar.new(); _braco.c = self; esq.add_child(_braco)
 	_sentar = Sentar.new(); esq.add_child(_sentar)
 var _sentar: Sentar

@@ -2,6 +2,18 @@
 
 ## 27/11
 
+**Armas e escudos só do pacote (saem os itens do Tripo)**
+- Saíram a espada de treino, a espada de ferro, o malho, a marreta, o cutelo, a Presa da Maré e os três escudos
+  feitos no Tripo (modelos, ícones e código de encaixe).
+- Entraram 93 armas e escudos do POLYGON Fantasy Kingdom como itens: 18 espadas (com floretes, a flamejante, a do
+  caos), 11 machados, 6 maças e clavas, 6 martelos, 12 lanças e alabardas, 10 cajados, 9 cetros, 7 adagas, 4 facas
+  e 10 escudos (da cruz, heráldico, de cristal, de aço da águia, de tábuas, redondos, de cravos, de pedra, tribal).
+  Força pelo nível de item (1 a 15 no Vale de Aldren) e raridade (comum, incomum, raro). Ícones: provisórios até o
+  dono desenhar.
+- Começa com a Espada de aprendiz e o Escudo de tábuas. O Bram vende espadas, machado, maça, martelo, adaga e
+  escudos; o Barrogar pode soltar o Escudo da cruz e o Machado do carrasco; o Grão-Lodoso, a Espada flamejante.
+- Saves antigos: os itens antigos viram os novos equivalentes sozinhos.
+
 **Som de cidade viva em Altamar**
 - O som ambiente enviado pelo dono (vozes, passos, carroças, movimento de cidade medieval) toca em loop por baixo
   da música de Altamar: entra e sai junto com ela (3 s) ao passar pelos muros; começa num ponto sorteado do arquivo.

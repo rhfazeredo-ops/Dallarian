@@ -740,7 +740,7 @@ func monstro_morreu(mo: Node) -> void:
 	var drops := []
 	if mo is Aranha: drops = [["presa_aranha", 0.4, 1, 1], ["veneno_aranha", 0.3, 1, 1]]
 	elif mo is Monstro and mo.tipo == "golem":
-		drops = [["nucleo_golem", 1.0, 1, 1], ["espada_ferro", 0.35, 1, 1], ["bolsa_16", 0.35, 1, 1], ["egide_guardia", 0.2, 1, 1], ["cutelo_rochedo", 0.15, 1, 1]]
+		drops = [["nucleo_golem", 1.0, 1, 1], ["esp_10", 0.35, 1, 1], ["bolsa_16", 0.35, 1, 1], ["esc_01", 0.2, 1, 1], ["mch_07", 0.15, 1, 1]]
 		var moedas := randi_range(150, 400); bolsa.cobre += moedas; bolsa.mudou.emit()
 		hud.avisar("+%s" % Bolsa.texto_dinheiro(moedas), Color(0.95, 0.75, 0.4))
 		hud.avisar("%s foi derrotado!" % NOME_GOLEM, Color(1.0, 0.82, 0.2))
@@ -751,7 +751,7 @@ func monstro_morreu(mo: Node) -> void:
 		# Grão-Lodoso: os itens dos Lodosos (40%), os dois só dele (15%) e a espada Presa da Maré (10%; depois vira
 		# recompensa da missão do soldado de Altamar)
 		if mo.tipo == "lodoso_c": drops = [["escama_lodoso", 0.4, 2, 3], ["barbatana_lodoso", 0.4, 1, 2], ["olho_lodoso", 0.4, 1, 2],
-			["perola_lama", 0.4, 1, 1], ["coroa_grao_lodoso", 0.15, 1, 1], ["tridente_partido", 0.15, 1, 1], ["presa_da_mare", 0.1, 1, 1]]
+			["perola_lama", 0.4, 1, 1], ["coroa_grao_lodoso", 0.15, 1, 1], ["tridente_partido", 0.15, 1, 1], ["esp_15", 0.1, 1, 1]]
 	saque.registrar(mo, Saque.sortear(drops))
 
 func lobo_morreu(l: Lobo) -> void:
@@ -2400,7 +2400,7 @@ func _modo_teste() -> void:
 			bolsa.pegar("escama_lodoso", 7); bolsa.pegar("presa_aranha", 3)
 			bolsa.pegar("barbatana_lodoso", 2); bolsa.pegar("olho_lodoso", 1); bolsa.pegar("perola_lama", 1)
 			bolsa.pegar("pelo_lobo", 4); bolsa.pegar("veneno_aranha", 2)
-			bolsa.pegar("coroa_grao_lodoso", 1); bolsa.pegar("tridente_partido", 1); bolsa.pegar("presa_da_mare", 1)
+			bolsa.pegar("coroa_grao_lodoso", 1); bolsa.pegar("tridente_partido", 1); bolsa.pegar("esp_15", 1)
 		bolsa.pegar("dentes_garras", int(args.get("itens", args.get("loja", "27")))); bolsa.cobre = int(args.get("dinheiro", "1234"))
 		if args.has("bolsas"):
 			bolsa.pegar("bolsa_16"); bolsa.pegar("bolsa_30")
@@ -2567,7 +2567,7 @@ func _modo_teste() -> void:
 		var dd := olha - alvo; jogador.rotation.y = atan2(-dd.x, -dd.y)
 		if String(args.ir) == "alto" or String(args.ir) == "arte": jogador.global_position.y += (60.0 if args.ir == "alto" else 48.0); jogador.set_physics_process(false); jogador.pescoco.rotation.x = -0.35 if args.ir == "alto" else -0.2
 		if args.has("subir"): jogador.global_position.y += float(args.subir); jogador.set_physics_process(false); jogador.pescoco.rotation.x = float(args.get("inclina", "-0.6"))
-	if args.has("empunhar"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("arma", String(args.empunhar)))   # teste: --empunhar=presa_da_mare
+	if args.has("empunhar"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("arma", String(args.empunhar)))   # teste: --empunhar=esp_15
 	if args.has("escudo"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.trocar_equip("escudo", String(args.escudo)))
 	if args.has("montada"): get_tree().create_timer(0.5).timeout.connect(func(): jogador.montar_em("cavalo_preto", cavalo("cavalo_preto")))
 	if args.has("ver_corpo"):        # teste: --ver_corpo=graus [--corpo_pose=leve1:1:0.5 | bloquear | correr | armado | sacar | pular | pular_correndo | parar | ar]

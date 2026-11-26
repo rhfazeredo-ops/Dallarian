@@ -205,12 +205,12 @@ func _armas() -> void:
 	# espada inicial de madeira (Tripo): eixo medido com tools/eixo-ferramenta.mjs — lâmina para -eixo,
 	# guarda na direção do trecho mais largo, cabo em t≈0,33; 1,367 m no arquivo → 1 m (esp escala para 0,85 m)
 	_esp = Node3D.new(); piv_d.add_child(_esp); _esp.scale = Vector3(0.85, 0.85, 0.85)
-	trocar_equip("arma", "espada_treino")
+	trocar_equip("arma", "esp_09")
 	piv_d.add_child(_punho(m, false))
 	# escudo inicial de madeira (Tripo): frente (com o umbo) em +X no arquivo, alça atrás; 0,97 m → 0,6 m
 	piv_e = Node3D.new(); mao.add_child(piv_e)
 	_esc = Node3D.new(); piv_e.add_child(_esc)
-	trocar_equip("escudo", "escudo_madeira")
+	trocar_equip("escudo", "esc_05")
 	var pe := _punho(m, true); pe.position = Vector3(0, -0.07, 0); piv_e.add_child(pe)
 	braco_d = _antebraco(m); mao.add_child(braco_d)
 	braco_e = _antebraco(m); mao.add_child(braco_e)
@@ -274,73 +274,20 @@ func _montar_equip(no: Node3D, lugar: String, id: String) -> void:
 	for c in no.get_children(): c.queue_free()
 	if id == "": return
 	var modelo: String = Bolsa.ITENS[id].get("modelo", "")
-	if lugar == "arma" and modelo == "madeira":
-		# espada de treino (Tripo): eixo medido com tools/eixo-ferramenta.mjs — lâmina para -eixo, guarda no trecho
-		# mais largo, cabo em t≈0,33; 1,367 m no arquivo → 1 m (o nó escala para 0,85 m)
-		var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada_madeira.glb")
-		var eixo := Vector3(0.257, -0.6737, 0.6929).normalized()
-		var lam := -eixo
-		var gua := Vector3(0.127, -0.687, -0.715); gua = (gua - lam * gua.dot(lam)).normalized()
-		var face := gua.cross(lam)
-		var cabo := Vector3(0.0356, -0.0789, 0.0842) + eixo * 0.33
-		var r := Basis(gua, lam, face).transposed()
-		var k := 1.0 / 1.367
-		mod.transform = Transform3D(r.scaled(Vector3(k, k, k)), -(r * cabo) * k)
-		no.add_child(mod)
-	elif lugar == "arma" and modelo == "presa" and ResourceLoader.exists("res://assets/modelos/presa_da_mare.glb"):
-		# Presa da Maré (Tripo, quando chegar): mesmo encaixe da espada de ferro, lâmina em +Y, 1 m
-		var mod: Node3D = m.modelo_ps1("res://assets/modelos/presa_da_mare.glb")
-		var bb := AABB()
-		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
-		var k := 0.95 / maxf(bb.size.y, 0.01)
-		var giro := 0.0          # lado liso da lâmina para a frente, os dentes virados para a Rachel
-		mod.scale = Vector3(k, k, k); mod.rotation.y = giro
-		var cabo := Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.2, bb.get_center().z)   # o arquivo não vem centrado
-		mod.position = -(Basis(Vector3.UP, giro) * cabo) * k
-		no.add_child(mod)
-	elif lugar == "arma" and modelo == "malho" and ResourceLoader.exists("res://assets/modelos/malho_tronco.glb"):
-		# Malho de Tronco (Tripo, quando chegar): cabo na mão, cabeça para cima, ~0,8 m
-		var mod: Node3D = m.modelo_ps1("res://assets/modelos/malho_tronco.glb")
-		var bb := AABB()
-		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
-		var k := 0.8 / maxf(bb.size.y, 0.01)
-		mod.scale = Vector3(k, k, k); mod.rotation.y = PI * 0.5          # tronco atravessado, como a marreta
-		var cabo := Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.15, bb.get_center().z)
-		mod.position = -(Basis(Vector3.UP, PI * 0.5) * cabo) * k
-		no.add_child(mod)
-	elif lugar == "arma" and modelo in ["marreta", "cutelo"] and ResourceLoader.exists("res://assets/modelos/%s.glb" % modelo):
-		# armas do Tripo (quando chegarem): cabo na mão, ponta/cabeça para cima
-		var mod: Node3D = m.modelo_ps1("res://assets/modelos/%s.glb" % modelo)
-		var bb := AABB()
-		for mi in mod.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
-		var k := (0.85 if modelo == "marreta" else 1.0) / maxf(bb.size.y, 0.01)
-		var giro := PI if modelo == "cutelo" else 0.0                     # cutelo: ponta curva para a Rachel, fio reto para fora
-		mod.scale = Vector3(k, k, k); mod.rotation.y = giro
-		mod.position = -(Basis(Vector3.UP, giro) * Vector3(bb.get_center().x, bb.position.y + bb.size.y * 0.15, bb.get_center().z)) * k
-		no.add_child(mod)
-	elif lugar == "arma" and (modelo in ["ferro", "presa", "malho", "marreta", "cutelo"]):        # (presa: a de ferro até chegar o modelo)
-		# espada de ferro (a primeira do Tripo): 0,51 m no arquivo → 1 m; cabo na origem, lâmina em +Y
-		var mod: Node3D = m.modelo_ps1("res://assets/modelos/espada.glb")
-		var k := 1.0 / 0.51
-		mod.scale = Vector3(k, k, k); mod.rotation_degrees.y = 90
-		mod.position = Vector3(-0.131, -0.075, 0) * k
-		no.add_child(mod)
-	elif lugar == "escudo" and modelo in ["ferro", "egide"] and ResourceLoader.exists("res://assets/modelos/escudo_%s.glb" % modelo):
-		# escudos do Tripo (quando chegarem): mesmo encaixe do de madeira — frente em +X no arquivo, 0,6 m
-		var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_%s.glb" % modelo)
-		var bb := AABB()
-		for mi in esc.find_children("*", "MeshInstance3D", true, false): bb = mi.get_aabb() if bb.size == Vector3.ZERO else bb.merge(mi.get_aabb())
-		var ke := 0.62 / maxf(maxf(bb.size.y, bb.size.z), 0.01)
-		esc.scale = Vector3(ke, ke, ke); esc.rotation_degrees = Vector3(0, 0, 90)
-		esc.position = Vector3(0, -bb.position.x * ke - 0.07, 0) - Vector3(bb.get_center().y, 0, bb.get_center().z).rotated(Vector3.FORWARD, 0) * 0.0
-		no.add_child(esc)
-	elif lugar == "escudo":
-		# escudo de madeira (Tripo): frente (com o umbo) em +X no arquivo, alça atrás; 0,97 m → 0,6 m
-		var esc: Node3D = m.modelo_ps1("res://assets/modelos/escudo_madeira.glb")
-		var ke := 0.6 / 0.97
-		esc.scale = Vector3(ke, ke, ke); esc.rotation_degrees = Vector3(0, 0, 90)   # +X do arquivo → +Y (frente)
-		esc.position = Vector3(0, 0.223 * ke - 0.07, 0)                             # parte de trás na mão
-		no.add_child(esc)
+	if not modelo.begins_with("SM_"): return
+	# arma/escudo do pacote da Synty: o cabo (ou a alça) fica na origem do modelo; a lâmina aponta para +Y; a frente
+	# do escudo para +Z (aqui vira +Y, a frente do nó do escudo)
+	var mod := Node3D.new()
+	var neb: Color = m.NEBLINA if m and "NEBLINA" in m else Color(0.6, 0.7, 0.9)
+	for p in Synty.pecas(modelo):
+		var mi := MeshInstance3D.new(); mi.mesh = p[0]; mi.transform = p[1]; mi.material_override = Synty.material(neb, p[2])
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; mod.add_child(mi)
+	var esc := 1.0 / maxf(no.scale.x, 0.01)                  # o nó de encaixe tem escala própria: o modelo fica no tamanho do pacote
+	if lugar == "escudo":
+		# no nó do escudo: X = para cima, Y = a frente (para fora), Z = para trás; no modelo: Y = cima, Z = frente
+		mod.transform = Transform3D(Basis(Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, 1, 0)).scaled(Vector3.ONE * esc * 0.85), Vector3.ZERO)
+	else: mod.scale = Vector3.ONE * esc
+	no.add_child(mod)
 
 # luva de couro fechada (low poly)
 func _punho(m: Node, esquerda: bool) -> MeshInstance3D:

@@ -21,7 +21,7 @@ var _nome_lbl: Label
 var _cargo_lbl: Label
 var cfg := {}                    # vendedor atual: nome, cargo, itens, retrato, falas_compra, falas_venda (vazio = Bram)
 # mercadorias do Bram (por enquanto: bolsas; as de 40 e 50 vão para mercadores de cidade)
-const MERCADORIAS := ["espada_ferro", "malho_tronco", "escudo_ferro", "marreta_bigorna", "bolsa_10", "bolsa_16", "bolsa_20", "bolsa_30"]
+const MERCADORIAS := ["esp_10", "esp_02", "mch_02", "mac_01", "mar_01", "ada_01", "esc_06", "esc_07", "bolsa_10", "bolsa_16", "bolsa_20", "bolsa_30"]
 const FALAS_VENDA := ["Dente de lobo dá bom cabo de faca. Pago justo.", "Garra afiada assim? Isso eu compro.", "Cobre por cobre, negócio fechado."]
 const FALAS_COMPRA := ["Couro bom, costura dupla. Não rasga fácil.", "Leva, leva. Uma aventureira precisa de onde guardar as coisas."]
 
@@ -150,6 +150,6 @@ func vender(k: int, i: int) -> void:
 		m.interacao._fala_npc(cfg.get("nome", "Bram"), fv[randi() % fv.size()])
 
 func _tirar_retrato() -> void:             # Bram: o ícone da bigorna (o retrato do modelo antigo saiu)
-	_retrato_bram = load("res://assets/ui/itens/marreta_bigorna.png")
+	_retrato_bram = load("res://assets/ui/itens/pocao_m.png") if not ResourceLoader.exists("res://assets/ui/itens/bram.png") else load("res://assets/ui/itens/bram.png")
 	if cfg.is_empty(): _retrato = _retrato_bram
 	if _foto: _foto.queue_redraw()

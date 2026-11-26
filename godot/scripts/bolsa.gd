@@ -20,38 +20,11 @@ static func escudo_por_ilvl(ilvl: int, qual: String) -> Dictionary:
 	ilvl = clampi(ilvl, 1, ILVL_MAX); var q := float(QUAL_MULT.get(qual, 1.0))
 	return {"armadura": roundi((20 + 10 * ilvl) * q), "bloqueio": roundi((4 + ilvl) * q), "nivel": maxi(1, ilvl - 5)}
 
-const ITENS := {
+const ITENS_BASE := {
 	# ITEM LEVEL (como no WoW, de 1 a 120): o nível do item define a força dele (Bolsa.arma_por_ilvl e
 	# Bolsa.escudo_por_ilvl) e o nível exigido fica uns 5 abaixo. O Vale de Aldren (primeiro mapa) vai até ~15.
 	# armas (como no Classic): dano mín–máx, velocidade (s por golpe), nível exigido
-	"espada_treino": {"nome": "Espada de treino de madeira", "venda": 5, "compra": 0, "pilha": 1, "qual": "comum",
-		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 2, "dano_max": 3, "velocidade": 1.8, "nivel": 1, "ilvl": 1,
-		"modelo": "madeira", "desc": "Madeira dura e farpas. Serve para aprender."},
-	"espada_ferro": {"nome": "Espada de ferro", "venda": 38, "compra": 150, "pilha": 1, "qual": "comum",
-		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 6, "dano_max": 10, "velocidade": 2.2, "nivel": 2, "ilvl": 7,
-		"modelo": "ferro", "desc": "Ferro batido na bigorna do Bram."},
-	"malho_tronco": {"nome": "Malho de Tronco", "venda": 30, "compra": 120, "pilha": 1, "qual": "comum",
-		"tipo": "arma", "subtipo": "Maça", "maos": "Uma mão", "dano_min": 6, "dano_max": 10, "velocidade": 2.6, "nivel": 1, "ilvl": 6,
-		"modelo": "malho", "desc": "Um toco de carvalho amarrado com corda num cabo torto. Ainda brota uma folhinha nele."},
-	"marreta_bigorna": {"nome": "Marreta da Bigorna", "venda": 55, "compra": 220, "pilha": 1, "qual": "comum",
-		"tipo": "arma", "subtipo": "Maça", "maos": "Uma mão", "dano_min": 9, "dano_max": 15, "velocidade": 2.8, "nivel": 4, "ilvl": 9,
-		"modelo": "marreta", "desc": "A marreta pesada que o Bram usava na bigorna, com o cabo enrolado em couro. Bate como um coice de cavalo."},
-	"cutelo_rochedo": {"nome": "Cutelo do Rochedo", "venda": 140, "compra": 0, "pilha": 1, "qual": "incomum",
-		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 11, "dano_max": 18, "velocidade": 2.4, "nivel": 7, "ilvl": 12,
-		"modelo": "cutelo", "desc": "Lâmina larga e curva de ferro cinzento como pedra, com guarda-mão cheio de cravos. Arrancado do corpo de barro de Barrogar."},
-	"presa_da_mare": {"nome": "Presa da Maré", "venda": 420, "compra": 0, "pilha": 1, "qual": "raro",
-		"tipo": "arma", "subtipo": "Espada", "maos": "Uma mão", "dano_min": 13, "dano_max": 22, "velocidade": 2.3, "nivel": 9, "ilvl": 14,
-		"modelo": "presa", "desc": "A mandíbula de um peixe das profundezas, afiada e presa num cabo de osso com conchas. Arrancada do Grão-Lodoso no fundo da gruta."},
 	# escudos: armadura (reduz todo dano), valor de bloqueio (tirado quando bloqueia) e quanto o bloqueio ativo segura
-	"escudo_madeira": {"nome": "Escudo de madeira", "venda": 5, "compra": 0, "pilha": 1, "qual": "comum",
-		"tipo": "escudo", "subtipo": "Escudo", "armadura": 30, "bloqueio": 5, "bloqueio_ativo": 0.6, "nivel": 1, "ilvl": 1,
-		"modelo": "madeira", "desc": "Tábuas presas com tiras de couro."},
-	"escudo_ferro": {"nome": "Escudo de ferro", "venda": 32, "compra": 130, "pilha": 1, "qual": "comum",
-		"tipo": "escudo", "subtipo": "Escudo", "armadura": 90, "bloqueio": 11, "bloqueio_ativo": 0.7, "nivel": 2, "ilvl": 7,
-		"modelo": "ferro", "desc": "Tábuas de carvalho com aro de ferro rebitado e um umbo no meio. Aguenta uma boa pancada."},
-	"egide_guardia": {"nome": "Égide da Guardiã", "venda": 95, "compra": 0, "pilha": 1, "qual": "incomum",
-		"tipo": "escudo", "subtipo": "Escudo", "armadura": 134, "bloqueio": 16, "bloqueio_ativo": 0.75, "nivel": 5, "ilvl": 10,
-		"modelo": "egide", "desc": "Tábuas claras de freixo com aro de ferro batido e a cruz das Guardiãs no centro. Dizem que foi forjado aos pés da primeira estátua."},
 	"nucleo_golem": {"nome": "Coração de barro de Barrogar", "venda": 250, "compra": 0, "pilha": 5, "qual": "incomum",
 		"desc": "Ainda pulsa, morno. Dizem que guarda a força do vale."},
 	# montarias (compradas no estábulo de Altamar): não ocupam a bolsa, vão para o menu do personagem
@@ -105,13 +78,136 @@ const ITENS := {
 	"bolsa_50": {"nome": "Mochila do mercador", "venda": 7500, "compra": 30000, "pilha": 1, "qual": "raro", "espacos": 50,
 		"desc": "Cabe uma feira inteira aqui dentro."},
 }
+
+# ARMAS E ESCUDOS: os do pacote POLYGON Fantasy Kingdom (Synty). [id, modelo, nome, tipo, item level, qualidade,
+# velocidade (s por golpe; 0 = escudo), venda em cobre]. A força sai do item level (arma_por_ilvl / escudo_por_ilvl).
+const ARMAS := [
+	["esp_01", "SM_Wep_Sword_01", "Espada longa de cavaleiro", "Espada", 1, "comum", 2.2, 6],
+	["esp_02", "SM_Wep_Sword_02", "Espada de soldado", "Espada", 2, "comum", 2.2, 12],
+	["esp_03", "SM_Wep_Sword_03", "Espada de guarda", "Espada", 3, "comum", 2.2, 18],
+	["esp_04", "SM_Wep_Sword_04", "Espada do capitão", "Espada", 3, "comum", 2.2, 18],
+	["esp_05", "SM_Wep_Sword_05", "Lâmina larga", "Espada", 4, "comum", 2.2, 24],
+	["esp_06", "SM_Wep_Sword_06", "Espada de patrulha", "Espada", 5, "comum", 2.2, 30],
+	["esp_07", "SM_Wep_Sword_07", "Espada do juramento", "Espada", 6, "comum", 2.2, 36],
+	["esp_08", "SM_Wep_Sword_08", "Espada lascada", "Espada", 7, "comum", 2.2, 42],
+	["esp_09", "SM_Wep_Sword_09", "Espada de aprendiz", "Espada", 8, "incomum", 2.2, 72],
+	["esp_10", "SM_Wep_Sword_10", "Espada de ferro forjado", "Espada", 8, "incomum", 2.2, 72],
+	["esp_11", "SM_Wep_Sword_11", "Florete dourado", "Espada", 9, "incomum", 2.2, 81],
+	["esp_12", "SM_Wep_Sword_12", "Florete de prata", "Espada", 10, "incomum", 2.2, 90],
+	["esp_13", "SM_Wep_Sword_13", "Florete do duelista", "Espada", 11, "incomum", 2.2, 99],
+	["esp_14", "SM_Wep_Sword_14", "Espada do falcão", "Espada", 12, "incomum", 2.2, 108],
+	["esp_15", "SM_Wep_Sword_15", "Espada flamejante", "Espada", 13, "raro", 2.2, 156],
+	["esp_16", "SM_Wep_Sword_16", "Espada do arauto real", "Espada", 13, "raro", 2.2, 156],
+	["esp_17", "SM_Wep_Sword_17", "Espada do caos", "Espada", 14, "raro", 2.2, 168],
+	["esp_18", "SM_Wep_Sword_18", "Espada sangrenta", "Espada", 15, "raro", 2.2, 180],
+	["mch_01", "SM_Wep_Axe_01", "Machadinha de lenhador", "Machado", 1, "comum", 2.6, 6],
+	["mch_02", "SM_Wep_Axe_02", "Machado de mão", "Machado", 2, "comum", 2.6, 12],
+	["mch_03", "SM_Wep_Axe_03", "Machado de guerra", "Machado", 4, "comum", 2.6, 24],
+	["mch_04", "SM_Wep_Axe_04", "Machado barbado", "Machado", 5, "comum", 2.6, 30],
+	["mch_05", "SM_Wep_Axe_05", "Machado do norte", "Machado", 7, "comum", 2.6, 42],
+	["mch_06", "SM_Wep_Axe_06", "Machado de lâmina dupla", "Machado", 8, "incomum", 2.6, 72],
+	["mch_07", "SM_Wep_Axe_07", "Machado do carrasco", "Machado", 9, "incomum", 2.6, 81],
+	["mch_08", "SM_Wep_Axe_08", "Machado de cerco", "Machado", 11, "incomum", 2.6, 99],
+	["mch_09", "SM_Wep_Axe_09", "Machado do lobo", "Machado", 12, "raro", 2.6, 144],
+	["mch_10", "SM_Wep_Axe_10", "Machado de bronze", "Machado", 14, "raro", 2.6, 168],
+	["mch_11", "SM_Wep_Axe_11", "Machado do senhor da guerra", "Machado", 15, "raro", 2.6, 180],
+	["mac_01", "SM_Wep_Mace_01", "Maça de ferro cravejada", "Maça", 1, "comum", 2.6, 6],
+	["mac_02", "SM_Wep_Mace_02", "Maça do sacerdote", "Maça", 4, "comum", 2.6, 24],
+	["mac_03", "SM_Wep_Mace_03", "Clava cravejada", "Maça", 7, "comum", 2.6, 42],
+	["mac_04", "SM_Wep_Mace_04", "Maça de flanges", "Maça", 9, "incomum", 2.6, 81],
+	["mac_05", "SM_Wep_Mace_05", "Maça de guerra", "Maça", 12, "raro", 2.6, 144],
+	["mac_06", "SM_Wep_Mace_06", "Clava de madeira", "Maça", 15, "raro", 2.6, 180],
+	["mar_01", "SM_Wep_Hammer_01", "Martelo de forja", "Martelo", 1, "comum", 3.0, 6],
+	["mar_02", "SM_Wep_Hammer_02", "Martelo de guerra", "Martelo", 4, "comum", 3.0, 24],
+	["mar_03", "SM_Wep_Hammer_03", "Martelo do pedreiro", "Martelo", 7, "comum", 3.0, 42],
+	["mar_04", "SM_Wep_Hammer_04", "Martelo de bico", "Martelo", 9, "incomum", 3.0, 81],
+	["mar_05", "SM_Wep_Hammer_05", "Martelo do cruzado", "Martelo", 12, "raro", 3.0, 144],
+	["mar_06", "SM_Wep_Hammer_06", "Martelo do trovão", "Martelo", 15, "raro", 3.0, 180],
+	["lan_01", "SM_Wep_Spear_01", "Lança de caça", "Lança", 1, "comum", 2.8, 6],
+	["lan_02", "SM_Wep_Spear_02", "Lança de guarda", "Lança", 2, "comum", 2.8, 12],
+	["lan_03", "SM_Wep_Spear_03", "Lança de infantaria", "Lança", 4, "comum", 2.8, 24],
+	["lan_04", "SM_Wep_Spear_04", "Pique", "Lança", 5, "comum", 2.8, 30],
+	["lan_05", "SM_Wep_Spear_05", "Lança de ponta larga", "Lança", 6, "comum", 2.8, 36],
+	["lan_06", "SM_Wep_Spear_06", "Lança do batedor", "Lança", 7, "incomum", 2.8, 63],
+	["lan_07", "SM_Wep_Spear_07", "Lança de cavalaria", "Lança", 9, "incomum", 2.8, 81],
+	["lan_08", "SM_Wep_Spear_08", "Lança farpada", "Lança", 10, "incomum", 2.8, 90],
+	["lan_09", "SM_Wep_Spear_09", "Alabarda", "Lança", 11, "incomum", 2.8, 99],
+	["lan_10", "SM_Wep_Spear_10", "Lança da sentinela", "Lança", 12, "raro", 2.8, 144],
+	["lan_11", "SM_Wep_Spear_11", "Lança da guarda real", "Lança", 14, "raro", 2.8, 168],
+	["lan_12", "SM_Wep_Spear_12", "Lança do capitão", "Lança", 15, "raro", 2.8, 180],
+	["caj_01", "SM_Wep_Staff_01", "Cajado de carvalho", "Cajado", 1, "comum", 2.8, 6],
+	["caj_02", "SM_Wep_Staff_02", "Cajado do peregrino", "Cajado", 3, "comum", 2.8, 18],
+	["caj_03", "SM_Wep_Staff_03", "Cajado do eremita", "Cajado", 4, "comum", 2.8, 24],
+	["caj_04", "SM_Wep_Staff_04", "Cajado retorcido", "Cajado", 6, "comum", 2.8, 36],
+	["caj_05", "SM_Wep_Staff_05", "Cajado do druida", "Cajado", 7, "comum", 2.8, 42],
+	["caj_06", "SM_Wep_Staff_06", "Cajado do sábio", "Cajado", 9, "incomum", 2.8, 81],
+	["caj_07", "SM_Wep_Staff_07", "Cajado de cristal", "Cajado", 10, "incomum", 2.8, 90],
+	["caj_08", "SM_Wep_Staff_08", "Cajado do mago", "Cajado", 12, "incomum", 2.8, 108],
+	["caj_09", "SM_Wep_Staff_09", "Cajado da lua", "Cajado", 13, "raro", 2.8, 156],
+	["caj_10", "SM_Wep_Staff_10", "Cajado do arquimago", "Cajado", 15, "raro", 2.8, 180],
+	["cet_01", "SM_Wep_Sceptre_01", "Cetro de bronze", "Cetro", 1, "comum", 2.2, 6],
+	["cet_02", "SM_Wep_Sceptre_02", "Cetro do bispo", "Cetro", 3, "comum", 2.2, 18],
+	["cet_03", "SM_Wep_Sceptre_03", "Cetro do conselheiro", "Cetro", 5, "comum", 2.2, 30],
+	["cet_04", "SM_Wep_Sceptre_04", "Cetro de prata", "Cetro", 6, "comum", 2.2, 36],
+	["cet_05", "SM_Wep_Sceptre_05", "Cetro do sol", "Cetro", 8, "incomum", 2.2, 72],
+	["cet_06", "SM_Wep_Sceptre_06", "Cetro da rainha", "Cetro", 10, "incomum", 2.2, 90],
+	["cet_07", "SM_Wep_Sceptre_07", "Cetro do rei", "Cetro", 11, "incomum", 2.2, 99],
+	["cet_08", "SM_Wep_Sceptre_08", "Cetro estrelado", "Cetro", 13, "raro", 2.2, 156],
+	["cet_09", "SM_Wep_Sceptre_09", "Cetro dourado", "Cetro", 15, "raro", 2.2, 180],
+	["ada_01", "SM_Wep_Dagger_01", "Adaga de ferro", "Adaga", 1, "comum", 1.6, 6],
+	["ada_02", "SM_Wep_Dagger_02", "Adaga do ladrão", "Adaga", 3, "comum", 1.6, 18],
+	["ada_03", "SM_Wep_Dagger_03", "Adaga curva", "Adaga", 6, "comum", 1.6, 36],
+	["ada_04", "SM_Wep_Dagger_04", "Adaga de lâmina fina", "Adaga", 8, "incomum", 1.6, 72],
+	["ada_05", "SM_Wep_Dagger_05", "Adaga do assassino", "Adaga", 10, "incomum", 1.6, 90],
+	["ada_06", "SM_Wep_Dagger_06", "Adaga cerimonial", "Adaga", 13, "raro", 1.6, 156],
+	["ada_07", "SM_Wep_Dagger_07", "Adaga do nobre", "Adaga", 15, "raro", 1.6, 180],
+	["fac_01", "SM_Wep_Knife_01", "Faca de cozinha", "Faca", 1, "comum", 1.5, 6],
+	["fac_02", "SM_Wep_Knife_02", "Faca de esfolar", "Faca", 6, "comum", 1.5, 36],
+	["fac_03", "SM_Wep_Knife_03", "Faca de caçador", "Faca", 10, "incomum", 1.5, 90],
+	["fac_04", "SM_Wep_Knife_04", "Faca de açougueiro", "Faca", 15, "raro", 1.5, 180],
+	["esc_01", "SM_Wep_Shield_01", "Escudo da cruz", "Escudo", 7, "incomum", 0.0, 63],
+	["esc_02", "SM_Wep_Shield_02", "Escudo heráldico", "Escudo", 10, "incomum", 0.0, 90],
+	["esc_03", "SM_Wep_Shield_03", "Escudo do cristal", "Escudo", 9, "incomum", 0.0, 81],
+	["esc_04", "SM_Wep_Shield_04", "Escudo de aço da águia", "Escudo", 13, "raro", 0.0, 156],
+	["esc_05", "SM_Wep_Shield_05", "Escudo de tábuas", "Escudo", 1, "comum", 0.0, 6],
+	["esc_06", "SM_Wep_Shield_06", "Escudo redondo de madeira", "Escudo", 3, "comum", 0.0, 18],
+	["esc_07", "SM_Wep_Shield_07", "Escudo redondo reforçado", "Escudo", 4, "comum", 0.0, 24],
+	["esc_08", "SM_Wep_Shield_08", "Escudo de cravos", "Escudo", 11, "incomum", 0.0, 99],
+	["esc_09", "SM_Wep_Shield_09", "Escudo de pedra", "Escudo", 15, "raro", 0.0, 180],
+	["esc_10", "SM_Wep_Shield_10", "Escudo tribal de couro", "Escudo", 5, "comum", 0.0, 30],
+]
+const DESC_ARMA := {"Espada": "Aço bom de Altamar, equilibrado na mão.", "Machado": "Pesado na ponta: cada golpe racha escudo.",
+	"Maça": "Cabeça de ferro que amassa elmo e osso.", "Martelo": "Lento, mas um golpe só derruba um homem de pé.",
+	"Lança": "Mantém o inimigo longe da ponta.", "Cajado": "Madeira antiga que os magos dizem ouvir.",
+	"Cetro": "Símbolo de poder, e ainda assim um bom porrete.", "Adaga": "Rápida e silenciosa.", "Faca": "Feita para o trabalho, serve para a briga.",
+	"Escudo": "Madeira e ferro entre você e a morte."}
+# itens antigos (modelos do Tripo) → os do pacote, para os saves que já existiam
+const MIGRAR := {"espada_treino": "esp_09", "espada_ferro": "esp_10", "malho_tronco": "mac_01", "marreta_bigorna": "mar_01",
+	"cutelo_rochedo": "mch_07", "presa_da_mare": "esp_15", "escudo_madeira": "esc_05", "escudo_ferro": "esc_07", "egide_guardia": "esc_01"}
+static var ITENS := _montar_itens()
+static func _montar_itens() -> Dictionary:
+	var d := ITENS_BASE.duplicate(true)
+	for a in ARMAS:
+		var id: String = a[0]; var ilvl: int = a[4]; var q: String = a[5]; var vel: float = a[6]
+		var venda: int = a[7]
+		if id == "esp_09": ilvl = 1; q = "comum"; venda = 3      # a espada da heroína no começo
+		var it := {"nome": a[2], "venda": venda, "compra": venda * 4, "pilha": 1, "qual": q, "subtipo": a[3], "ilvl": ilvl,
+			"modelo": a[1], "desc": DESC_ARMA.get(a[3], "")}
+		if a[3] == "Escudo":
+			it.merge(escudo_por_ilvl(ilvl, q)); it["tipo"] = "escudo"; it["bloqueio_ativo"] = 0.6 + 0.01 * ilvl
+		else:
+			it.merge(arma_por_ilvl(ilvl, q, vel)); it["tipo"] = "arma"; it["maos"] = "Uma mão"; it["velocidade"] = vel
+		d[id] = it
+	return d
+static func migrar(id: String) -> String: return MIGRAR.get(id, id)
+
 static var ARQUIVO: String:                    # save do herói escolhido na seleção
 	get: return Herois.arquivo()
 signal mudou
 var bolsas := []                  # [{id, slots: [null ou [id, qtd]]}, ou null] — 3 lugares
 var cobre := 0
 var recompra := []                # últimos vendidos: [id, qtd, preço total]
-var equip := {"arma": "espada_treino", "escudo": "escudo_madeira"}
+var equip := {"arma": "esp_09", "escudo": "esc_05"}
 var montarias := []                # ids das montarias que a Rachel tem
 var montaria_sel := ""             # a escolhida no menu (a que aparece no botão de montar)
 signal equipou(lugar: String, id: String)
@@ -284,7 +380,7 @@ func aplicar(d: Dictionary) -> Dictionary:
 	for mt in d.get("montarias", []): if ITENS.has(mt): montarias.append(mt)
 	montaria_sel = String(d.get("montaria_sel", "")) if String(d.get("montaria_sel", "")) in montarias else ""
 	var eq: Dictionary = d.get("equip", {})
-	for k in ["arma", "escudo"]: if ITENS.has(eq.get(k, "")): equip[k] = eq[k]
+	for k in ["arma", "escudo"]: if ITENS.has(migrar(String(eq.get(k, "")))): equip[k] = migrar(String(eq[k]))
 	if d.has("bolsas"):
 		var bs: Array = d.bolsas
 		for k in MAX_BOLSAS:
@@ -293,7 +389,7 @@ func aplicar(d: Dictionary) -> Dictionary:
 				var nb := _bolsa_nova(bs[k].id)
 				var ss: Array = bs[k].get("slots", [])
 				for i in mini(ss.size(), nb.slots.size()):
-					if ss[i] is Array and ITENS.has(ss[i][0]): nb.slots[i] = [ss[i][0], int(ss[i][1])]
+					if ss[i] is Array and ITENS.has(migrar(String(ss[i][0]))): nb.slots[i] = [migrar(String(ss[i][0])), int(ss[i][1])]
 				bolsas[k] = nb
 		if bolsas[0] == null and bolsas[1] == null and bolsas[2] == null: bolsas[0] = _bolsa_nova("bolsa_10")
 	elif d.has("itens"):                                  # progresso antigo (antes das bolsas)
