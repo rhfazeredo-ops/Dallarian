@@ -49,6 +49,7 @@ static func material(neblina: Color, tipo := "atlas") -> ShaderMaterial:
 		mt.set_shader_parameter("usa_brilho", true); mt.set_shader_parameter("tex_brilho", load("res://arte/fk/texturas/PolygonFantasyKingdom_Texture_Emmisive.png"))
 	mt.set_shader_parameter("neblina", neblina)
 	if tipo == "longe": mt.set_shader_parameter("usa_tex", false)
+	if tipo == "tronco": mt.set_shader_parameter("usa_tex", false); mt.set_shader_parameter("cor", Color(0.52, 0.37, 0.25))
 	if tipo == "personagem": mt.set_shader_parameter("sem_cor_vertice", true)          # versão de longe: só a cor dos vértices
 	_mats[tipo] = mt
 	return mt
@@ -72,16 +73,59 @@ static func pecas(nome: String) -> Array:
 			# uma malha por superfície (cada uma com o seu material: atlas ou tijolo do castelo)
 			for si in mi.mesh.get_surface_count():
 				var arr: Array = mi.mesh.surface_get_arrays(si)
+				var tp := _tipo_mf(mi.name) if mf else ("castelo" if nome.begins_with("SM_Bld_Castle_") else _tipo(mi.mesh.surface_get_material(si)))
+				# árvores do Meadow Forest: tronco e folhas na mesma malha (no Unity o shader separa pela cor do vértice:
+				# verde e azul = 0 é madeira). Aqui viram duas malhas: folhas com a textura de folha, tronco com a casca
+				# (bétula: a textura branca; as outras: marrom liso — o marrom do atlas fica quase preto com a nossa luz).
+				var tronco := []
+				if mf and "_Tree_" in mi.name and not "Branches" in mi.name and arr[Mesh.ARRAY_COLOR] != null:
+					var sep := _separar_tronco(arr)
+					if not sep[1].is_empty(): tronco = _sub(arr, sep[1]); arr = _sub(arr, sep[0])
 				arr[Mesh.ARRAY_COLOR] = null           # a Synty guarda o "vento" nas cores dos vértices (deixava as árvores pretas)
 				for ai in [Mesh.ARRAY_BONES, Mesh.ARRAY_WEIGHTS, Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]: arr[ai] = null
 				var am := ArrayMesh.new(); am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-				var tp := _tipo_mf(mi.name) if mf else ("castelo" if nome.begins_with("SM_Bld_Castle_") else _tipo(mi.mesh.surface_get_material(si)))
 				lista.append([am, t, tp])
+				if not tronco.is_empty():
+					tronco[Mesh.ARRAY_COLOR] = null
+					var amt := ArrayMesh.new(); amt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tronco)
+					lista.append([amt, t, "mf:Birch_Trunk_Texture.png|0" if "Birch" in mi.name else "tronco"])
 			var b: AABB = t * mi.mesh.get_aabb()
 			cx = b if primeiro else cx.merge(b); primeiro = false
 		n.free()
 	_pecas[nome] = lista; _caixas[nome] = cx
 	return lista
+
+# triângulos das folhas e do tronco (os três vértices com verde e azul ≈ 0 = madeira)
+static func _separar_tronco(arr: Array) -> Array:
+	var cor: PackedColorArray = arr[Mesh.ARRAY_COLOR]
+	var idx = arr[Mesh.ARRAY_INDEX]
+	if idx == null:
+		idx = PackedInt32Array(); idx.resize(cor.size())
+		for i in cor.size(): idx[i] = i
+	var folhas := PackedInt32Array(); var tronco := PackedInt32Array()
+	for i in range(0, idx.size(), 3):
+		var madeira := true
+		for j in 3:
+			var c := cor[idx[i + j]]
+			if c.g > 0.5 or c.b > 0.5: madeira = false
+		var alvo := tronco if madeira else folhas
+		alvo.append(idx[i]); alvo.append(idx[i + 1]); alvo.append(idx[i + 2])
+	return [folhas, tronco]
+
+# malha nova só com esses vértices (sem índice: cada triângulo com os seus três)
+static func _sub(arr: Array, idx: PackedInt32Array) -> Array:
+	var r := []; r.resize(Mesh.ARRAY_MAX)
+	var v := PackedVector3Array(); var nm := PackedVector3Array(); var uv := PackedVector2Array(); var cr := PackedColorArray()
+	var tem_n: bool = arr[Mesh.ARRAY_NORMAL] != null; var tem_uv: bool = arr[Mesh.ARRAY_TEX_UV] != null
+	for i in idx:
+		v.append(arr[Mesh.ARRAY_VERTEX][i])
+		if tem_n: nm.append(arr[Mesh.ARRAY_NORMAL][i])
+		if tem_uv: uv.append(arr[Mesh.ARRAY_TEX_UV][i])
+		cr.append(arr[Mesh.ARRAY_COLOR][i])
+	r[Mesh.ARRAY_VERTEX] = v; r[Mesh.ARRAY_COLOR] = cr
+	if tem_n: r[Mesh.ARRAY_NORMAL] = nm
+	if tem_uv: r[Mesh.ARRAY_TEX_UV] = uv
+	return r
 
 static func _global(no: Node3D, raiz: Node3D) -> Transform3D:      # transform até a raiz (fora da árvore)
 	var t := no.transform; var p := no.get_parent()

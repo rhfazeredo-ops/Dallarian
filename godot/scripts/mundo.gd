@@ -270,21 +270,21 @@ func _matilha(c: Vector2, tipo: String, rng: RandomNumberGenerator, pequena := f
 	matilhas.append(g)
 
 # ---------- status de combate (como no WoW Classic) ----------
-# dano do golpe = dano da arma (mín–máx) + bônus de força pelo nível; 5% de crítico (dobro).
+# dano do golpe = ataque da arma + bônus de força pelo nível (±10%). Crítico: a chance e o dano a mais vêm da arma.
 func bonus_dano() -> float: return 4.0 + hud.nivel * 1.0
 func rolar_dano(mult: float) -> Array:
 	var a: Dictionary = Bolsa.ITENS[bolsa.equip.arma]
-	var d := randf_range(a.dano_min, a.dano_max) + bonus_dano()
-	var crit := randf() < 0.05
-	return [maxf(1.0, roundf(d * mult * (2.0 if crit else 1.0))), crit]
+	var d := (float(a.ataque) + bonus_dano()) * randf_range(0.9, 1.1)
+	var crit := randf() * 100.0 < float(a.crit_chance)
+	return [maxf(1.0, roundf(d * mult * (1.0 + float(a.crit_dano) / 100.0 if crit else 1.0))), crit]
 
-func armadura() -> int:
+func defesa() -> int:
 	var e: String = bolsa.equip.get("escudo", "")
-	return int(Bolsa.ITENS[e].armadura) if e != "" else 0
+	return int(Bolsa.ITENS[e].defesa) if e != "" else 0
 
-# mordida: a armadura tira um pouco de todo dano (fórmula do Classic); com o escudo só equipado há 5% de chance
-# de bloquear sozinho (tira o valor de bloqueio). Segurando o escudo de frente: o 1º ataque depois de levantar
-# é bloqueado inteiro e os seguintes perdem boa parte do dano. Devolve true quando bloqueou inteiro.
+# mordida: a defesa tira uma parte de todo dano; vindo de frente, o escudo tem a sua chance de bloqueio (o golpe
+# inteiro). Segurando o escudo de frente: o 1º ataque depois de levantar é bloqueado inteiro e os seguintes perdem
+# boa parte do dano. Devolve true quando bloqueou inteiro.
 func ferir_heroina(dano: float, de: Vector3, nivel_atacante := 1) -> bool:
 	if heroina_desmaiada: return false
 	var fr := -jogador.global_transform.basis.z; var d := de - jogador.global_position; d.y = 0.0
@@ -298,12 +298,12 @@ func ferir_heroina(dano: float, de: Vector3, nivel_atacante := 1) -> bool:
 			hud.numero_heroi("Bloqueado", Color(0.85, 0.85, 0.85)); return true
 		jogador.bloqueios_desde_erguer += 1; jogador.impacto(0.03)
 		var antes := dano
-		dano = dano * (1.0 - float(esc.bloqueio_ativo)) - float(esc.bloqueio)
+		dano = dano * (1.0 - float(esc.bloqueio_ativo))
 		bloqueado = antes - maxf(dano, 0.0)
-	elif not esc.is_empty() and de_frente and randf() < 0.05:
-		bloqueado = minf(dano, float(esc.bloqueio)); dano -= bloqueado
-	var arm := armadura()
-	dano *= 1.0 - float(arm) / (arm + 400.0 + 85.0 * nivel_atacante)
+	elif not esc.is_empty() and de_frente and randf() * 100.0 < float(esc.chance_bloqueio):
+		jogador.impacto(0.03); hud.numero_heroi("Bloqueado", Color(0.85, 0.85, 0.85)); return true
+	var df := defesa()
+	dano *= 1.0 - float(df) / (df + 60.0 + 12.0 * nivel_atacante)
 	dano = maxf(0.0, roundf(dano))
 	if dano <= 0.0:
 		hud.numero_heroi("Bloqueado", Color(0.85, 0.85, 0.85)); return false
@@ -752,6 +752,8 @@ func monstro_morreu(mo: Node) -> void:
 		# recompensa da missão do soldado de Altamar)
 		if mo.tipo == "lodoso_c": drops = [["escama_lodoso", 0.4, 2, 3], ["barbatana_lodoso", 0.4, 1, 2], ["olho_lodoso", 0.4, 1, 2],
 			["perola_lama", 0.4, 1, 1], ["coroa_grao_lodoso", 0.15, 1, 1], ["tridente_partido", 0.15, 1, 1], ["esp_15", 0.1, 1, 1]]
+	var arma := Bolsa.arma_aleatoria(mo.nivel)          # às vezes uma arma ou escudo do nível do bicho (6%; chefe 40%)
+	if arma != "": drops.append([arma, 0.4 if mo is Monstro and mo.tipo in ["golem", "lodoso_c"] else 0.06, 1, 1])
 	saque.registrar(mo, Saque.sortear(drops))
 
 func lobo_morreu(l: Lobo) -> void:
@@ -759,7 +761,10 @@ func lobo_morreu(l: Lobo) -> void:
 	var ganho := Hud.xp_por_matar(l.nivel, hud.nivel)
 	if ganho > 0.0: hud.ganhar_xp(ganho)
 	# dentes e garras (45%, vale menos) e pelo (35%); o líder deixa mais
-	saque.registrar(l, Saque.sortear([["dentes_garras", 0.45, 1, 2 if l.lider else 1], ["pelo_lobo", 0.35, 1, 2 if l.lider else 1]]))
+	var drops := [["dentes_garras", 0.45, 1, 2 if l.lider else 1], ["pelo_lobo", 0.35, 1, 2 if l.lider else 1]]
+	var arma := Bolsa.arma_aleatoria(l.nivel)
+	if arma != "": drops.append([arma, 0.15 if l.lider else 0.05, 1, 1])
+	saque.registrar(l, Saque.sortear(drops))
 
 # progresso salvo no aparelho (nível, XP, dinheiro e itens); nos testes com print não carrega nem salva
 var bolsa := Bolsa.new()

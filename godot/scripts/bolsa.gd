@@ -10,21 +10,31 @@ const CORES := {"lixo": Color(0.62, 0.62, 0.62), "comum": Color(1, 1, 1), "incom
 # itens: id → nome, venda (cobre), compra (cobre, 0 = não se compra), pilha, qualidade, espaços (bolsas), descrição
 const ILVL_MAX := 120
 const QUAL_MULT := {"lixo": 0.8, "comum": 1.0, "incomum": 1.12, "raro": 1.25, "epico": 1.4}
-# arma pelo item level: dano por segundo = (1 + 0,36 × ilvl) × qualidade; o golpe varia ±25% em volta da média
-static func arma_por_ilvl(ilvl: int, qual: String, velocidade: float) -> Dictionary:
-	ilvl = clampi(ilvl, 1, ILVL_MAX)
-	var media := (1.0 + 0.36 * ilvl) * float(QUAL_MULT.get(qual, 1.0)) * velocidade
-	return {"dano_min": maxi(1, roundi(media * 0.75)), "dano_max": maxi(2, roundi(media * 1.25)), "nivel": maxi(1, ilvl - 5)}
-# escudo pelo item level: armadura = (20 + 10 × ilvl) × qualidade, bloqueio = (4 + ilvl) × qualidade
-static func escudo_por_ilvl(ilvl: int, qual: String) -> Dictionary:
+const QUAL_SOBE := {"lixo": "comum", "comum": "incomum", "incomum": "raro", "raro": "raro"}
+# ATRIBUTOS (quanto maior o item level, mais forte). Números cheios: ataque e defesa. Porcentagens: acerto
+# crítico (chance de critar), dano crítico (quanto o crítico soma ao golpe), chance de bloqueio.
+# arma: ataque = (1 + 0,36 × ilvl) × qualidade × peso (adaga leve 1,5 … martelo 3,0)
+static func arma_por_ilvl(ilvl: int, qual: String, peso: float, subtipo: String, semente: int) -> Dictionary:
 	ilvl = clampi(ilvl, 1, ILVL_MAX); var q := float(QUAL_MULT.get(qual, 1.0))
-	return {"armadura": roundi((20 + 10 * ilvl) * q), "bloqueio": roundi((4 + ilvl) * q), "nivel": maxi(1, ilvl - 5)}
+	var jeito: Array = JEITO_CRIT.get(subtipo, [0, 0])           # adagas critam mais; martelos e maças, mais forte
+	var sorte := absi(semente) % 3                               # duas armas do mesmo nível não ficam idênticas
+	return {"ataque": maxi(2, roundi((1.0 + 0.36 * ilvl) * q * peso)),
+		"crit_chance": 3 + roundi(ilvl * 0.35 * q) + int(jeito[0]) + sorte,
+		"crit_dano": 50 + roundi(ilvl * 4.0 * q) + int(jeito[1]) + sorte * 3,
+		"nivel": maxi(1, ilvl - 5)}
+const JEITO_CRIT := {"Adaga": [5, 0], "Faca": [4, 0], "Espada": [2, 5], "Machado": [1, 15], "Maça": [0, 25],
+	"Martelo": [0, 35], "Lança": [2, 10], "Cajado": [1, 5], "Cetro": [1, 10]}
+# escudo: defesa = (10 + 5 × ilvl) × qualidade; chance de bloqueio = 5% + ~0,6% por ilvl (bloqueio = golpe inteiro)
+static func escudo_por_ilvl(ilvl: int, qual: String, semente: int) -> Dictionary:
+	ilvl = clampi(ilvl, 1, ILVL_MAX); var q := float(QUAL_MULT.get(qual, 1.0))
+	return {"defesa": roundi((10 + 5 * ilvl) * q), "chance_bloqueio": mini(40, 5 + roundi(ilvl * 0.6 * q) + absi(semente) % 2),
+		"nivel": maxi(1, ilvl - 5)}
 
 const ITENS_BASE := {
 	# ITEM LEVEL (como no WoW, de 1 a 120): o nível do item define a força dele (Bolsa.arma_por_ilvl e
 	# Bolsa.escudo_por_ilvl) e o nível exigido fica uns 5 abaixo. O Vale de Aldren (primeiro mapa) vai até ~15.
-	# armas (como no Classic): dano mín–máx, velocidade (s por golpe), nível exigido
-	# escudos: armadura (reduz todo dano), valor de bloqueio (tirado quando bloqueia) e quanto o bloqueio ativo segura
+	# armas: ataque, acerto crítico (%), dano crítico (%), nível exigido
+	# escudos: defesa (reduz todo dano), chance de bloqueio (%) e quanto o bloqueio ativo (segurar) segura
 	"nucleo_golem": {"nome": "Coração de barro de Barrogar", "venda": 250, "compra": 0, "pilha": 5, "qual": "incomum",
 		"desc": "Ainda pulsa, morno. Dizem que guarda a força do vale."},
 	# montarias (compradas no estábulo de Altamar): não ocupam a bolsa, vão para o menu do personagem
@@ -80,7 +90,9 @@ const ITENS_BASE := {
 }
 
 # ARMAS E ESCUDOS: os do pacote POLYGON Fantasy Kingdom (Synty). [id, modelo, nome, tipo, item level, qualidade,
-# velocidade (s por golpe; 0 = escudo), venda em cobre]. A força sai do item level (arma_por_ilvl / escudo_por_ilvl).
+# peso (golpe mais pesado = mais ataque; 0 = escudo), venda em cobre]. A força sai do item level (arma_por_ilvl /
+# escudo_por_ilvl). Cada modelo existe em 3 níveis: o da tabela, "_2" (+6 ilvl) e "_3" (+12 ilvl), o mesmo modelo
+# com o mesmo nome — só o item level (e a raridade) diz qual é o mais forte.
 const ARMAS := [
 	["esp_01", "SM_Wep_Sword_01", "Espada longa de cavaleiro", "Espada", 1, "comum", 2.2, 6],
 	["esp_02", "SM_Wep_Sword_02", "Espada de soldado", "Espada", 2, "comum", 2.2, 12],
@@ -184,21 +196,32 @@ const DESC_ARMA := {"Espada": "Aço bom de Altamar, equilibrado na mão.", "Mach
 # itens antigos (modelos do Tripo) → os do pacote, para os saves que já existiam
 const MIGRAR := {"espada_treino": "esp_09", "espada_ferro": "esp_10", "malho_tronco": "mac_01", "marreta_bigorna": "mar_01",
 	"cutelo_rochedo": "mch_07", "presa_da_mare": "esp_15", "escudo_madeira": "esc_05", "escudo_ferro": "esc_07", "egide_guardia": "esc_01"}
+const NIVEIS_ARMA := [[0, ""], [6, "_2"], [12, "_3"]]        # [ilvl a mais, final do id]
 static var ITENS := _montar_itens()
 static func _montar_itens() -> Dictionary:
 	var d := ITENS_BASE.duplicate(true)
 	for a in ARMAS:
-		var id: String = a[0]; var ilvl: int = a[4]; var q: String = a[5]; var vel: float = a[6]
-		var venda: int = a[7]
-		if id == "esp_09": ilvl = 1; q = "comum"; venda = 3      # a espada da heroína no começo
-		var it := {"nome": a[2], "venda": venda, "compra": venda * 4, "pilha": 1, "qual": q, "subtipo": a[3], "ilvl": ilvl,
-			"modelo": a[1], "desc": DESC_ARMA.get(a[3], "")}
-		if a[3] == "Escudo":
-			it.merge(escudo_por_ilvl(ilvl, q)); it["tipo"] = "escudo"; it["bloqueio_ativo"] = 0.6 + 0.01 * ilvl
-		else:
-			it.merge(arma_por_ilvl(ilvl, q, vel)); it["tipo"] = "arma"; it["maos"] = "Uma mão"; it["velocidade"] = vel
-		d[id] = it
+		for nv in NIVEIS_ARMA:
+			var id: String = a[0] + nv[1]; var ilvl: int = a[4] + nv[0]; var q: String = a[5]; var peso: float = a[6]
+			var venda: int = a[7]
+			for i in NIVEIS_ARMA.find(nv): q = QUAL_SOBE[q]
+			venda = roundi(venda * float(ilvl + 2) / float(a[4] + 2) * (1.0 + 0.6 * NIVEIS_ARMA.find(nv)))
+			if a[0] == "esp_09" and nv[0] == 0: ilvl = 1; q = "comum"; venda = 3      # a espada da heroína no começo
+			var it := {"nome": a[2], "venda": venda, "compra": venda * 4, "pilha": 1, "qual": q, "subtipo": a[3], "ilvl": ilvl,
+				"modelo": a[1], "desc": DESC_ARMA.get(a[3], "")}
+			if a[3] == "Escudo":
+				it.merge(escudo_por_ilvl(ilvl, q, id.hash())); it["tipo"] = "escudo"; it["bloqueio_ativo"] = 0.6 + 0.01 * ilvl
+			else:
+				it.merge(arma_por_ilvl(ilvl, q, peso, a[3], id.hash())); it["tipo"] = "arma"; it["maos"] = "Uma mão"
+			d[id] = it
 	return d
+# arma ou escudo sorteado para o saque de um bicho desse nível (item level entre nível − 2 e nível + 4)
+static func arma_aleatoria(nivel: int) -> String:
+	var ok := []
+	for id in ITENS.keys():
+		var it: Dictionary = ITENS[id]
+		if it.has("subtipo") and id != "esp_09" and int(it.ilvl) >= nivel - 2 and int(it.ilvl) <= nivel + 4: ok.append(id)
+	return "" if ok.is_empty() else ok[randi() % ok.size()]
 static func migrar(id: String) -> String: return MIGRAR.get(id, id)
 
 static var ARQUIVO: String:                    # save do herói escolhido na seleção

@@ -186,12 +186,13 @@ func _mostrar_dica(id: String, qtd: int, alvo: Control, botoes: Array, equipada 
 	if Bolsa.eh_bolsa(id): v.add_child(UI.rotulo("Bolsa de %d espaços%s" % [info.espacos, "  (equipada)" if equipada else ""], 22))
 	if info.get("tipo", "") == "arma":
 		v.add_child(_linha_dupla(info.maos, info.subtipo))
-		v.add_child(_linha_dupla("%d - %d de dano" % [info.dano_min, info.dano_max], "Velocidade %.2f" % info.velocidade))
-		v.add_child(UI.rotulo("(%.1f de dano por segundo)" % ((info.dano_min + info.dano_max) * 0.5 / info.velocidade), 21))
+		v.add_child(UI.rotulo("%d de ataque" % info.ataque, 21))
+		v.add_child(UI.rotulo("+%d%% de acerto crítico" % info.crit_chance, 21, Color(0.12, 1.0, 0.0)))
+		v.add_child(UI.rotulo("+%d%% de dano crítico" % info.crit_dano, 21, Color(0.12, 1.0, 0.0)))
 	elif info.get("tipo", "") == "escudo":
 		v.add_child(_linha_dupla("Mão secundária", info.subtipo))
-		v.add_child(UI.rotulo("%d de armadura" % info.armadura, 21))
-		v.add_child(UI.rotulo("%d de bloqueio" % info.bloqueio, 21))
+		v.add_child(UI.rotulo("%d de defesa" % info.defesa, 21))
+		v.add_child(UI.rotulo("+%d%% de chance de bloqueio" % info.chance_bloqueio, 21, Color(0.12, 1.0, 0.0)))
 	if info.has("nivel") and int(info.nivel) > 1:
 		v.add_child(UI.rotulo("Requer nível %d" % info.nivel, 21, Color(1, 1, 1) if m.hud.nivel >= int(info.nivel) else Color(1, 0.3, 0.3)))
 	if equipada and info.has("tipo"): v.add_child(UI.rotulo("(equipado)", 20, Color(0.7, 0.7, 0.7)))

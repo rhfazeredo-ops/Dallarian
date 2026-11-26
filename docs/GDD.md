@@ -301,3 +301,10 @@ Região **retangular de 3,8 × 2,4 km** (formato de zona de MMO, mais larga que 
 - Fora de combate: escudo nas costas, espada na cintura (esquerda), movimento sem armas (Synty). Atacar/defender
   saca (e o golpe sai em seguida); 10 s sem atacar nem defender guarda. Atacando o herói não anda.
 - Heróis-base: Humana (a Rachel) e Humano, com roupa de nível 1; outros equipamentos vêm depois.
+
+## Armas e escudos (atributos)
+- Arma: ataque = (1 + 0,36 × ilvl) × qualidade × peso; acerto crítico % e dano crítico % sobem com o ilvl
+  (adaga/faca: + chance; martelo/maça/machado: + dano crítico). Golpe = (ataque + força do nível) ±10%.
+- Escudo: defesa = (10 + 5 × ilvl) × qualidade (redução = def / (def + 60 + 12 × nível do atacante));
+  chance de bloqueio 5% + ~0,6% por ilvl (bloqueia o golpe inteiro, só de frente). Segurar o escudo continua igual.
+- Cada modelo em 3 níveis (ilvl da tabela, +6, +12); o saque sorteia arma de ilvl entre nível − 2 e nível + 4.

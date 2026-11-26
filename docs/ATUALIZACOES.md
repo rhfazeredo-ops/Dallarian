@@ -2,6 +2,15 @@
 
 ## 27/11
 
+**Troncos das árvores marrons e atributos nas armas**
+- As árvores do Meadow Forest tinham o tronco verde (o tronco e as folhas são uma malha só, e tudo levava a textura
+  de folha). Agora o tronco é separado: bétulas com a casca branca, as outras marrons.
+- Armas: ataque (número cheio), acerto crítico (% de chance) e dano crítico (% a mais no crítico). Escudos: defesa
+  (número cheio, tira parte de todo dano) e chance de bloqueio (% de bloquear o golpe inteiro vindo de frente).
+- Quanto maior o item level, mais forte. Cada arma e escudo existe em 3 níveis (o mesmo modelo e o mesmo nome:
+  +6 e +12 de item level, raridade sobe um degrau), 279 no total. Adagas critam mais; martelos e maças, mais forte.
+- Bichos podem soltar uma arma ou escudo do nível deles (6%; líder dos lobos 15%; Barrogar e Grão-Lodoso 40%).
+
 **Armas e escudos só do pacote (saem os itens do Tripo)**
 - Saíram a espada de treino, a espada de ferro, o malho, a marreta, o cutelo, a Presa da Maré e os três escudos
   feitos no Tripo (modelos, ícones e código de encaixe).
