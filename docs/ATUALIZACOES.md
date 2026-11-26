@@ -2,6 +2,12 @@
 
 ## 26/11
 
+**Catálogo de modelos na criação de herói**
+- Embaixo, à esquerda, na criação de herói: ◀ **Feminino base N / 53** ▶ (ou **Masculino base N / 67**). Passa por
+  todos os 120 personagens prontos do pacote Modular Fantasy Hero, numerados, para o dono escolher qual vira o
+  humano base masculino e o feminino. "Padrão" é o modelo atual. O herói criado guarda o número escolhido.
+- Corrigido: a heroína padrão estava sem sobrancelhas (a peça _00 não existe no pacote feminino).
+
 **Heróis novos do pacote Modular Fantasy Hero**
 - A Rachel e o Humano agora são os humanos base do pacote **POLYGON Modular Fantasy Hero** (mulher e homem, roupa
   de aventureiro 01), no jogo, na seleção e na criação de herói.

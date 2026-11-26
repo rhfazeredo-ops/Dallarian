@@ -21,8 +21,9 @@ static func salvar_lista(l: Array) -> void:
 	var f := FileAccess.open(ARQ, FileAccess.WRITE)
 	if f: f.store_string(JSON.stringify(l.filter(func(h): return h.id != "rachel")))
 
-static func criar(nome: String, raca: String, classe: String) -> Dictionary:
+static func criar(nome: String, raca: String, classe: String, base := 0) -> Dictionary:
 	var h := {"id": "h%d" % Time.get_unix_time_from_system(), "nome": nome, "raca": raca, "classe": classe}
+	if base > 0: h["base"] = base
 	var l := lista(); l.append(h); salvar_lista(l)
 	return h
 
@@ -42,7 +43,8 @@ static func nome_existe(nome: String) -> bool:
 static func masculino(h: Dictionary) -> bool: return String(h.get("raca", "Humana")) == "Humano"
 # heróis do pacote Modular Fantasy Hero (repositório de arte); sem ele, os modelos antigos do Tripo
 static func modelo(h: Dictionary) -> String:
-	if ResourceLoader.exists(CorpoHeroi.MH_ARQ): return "mh:Male" if masculino(h) else "mh:Female"
+	if ResourceLoader.exists(CorpoHeroi.MH_ARQ):
+		return ("mh:Male" if masculino(h) else "mh:Female") + (":%d" % int(h.base) if int(h.get("base", 0)) > 0 else "")
 	return modelo_glb(h)
 static func modelo_glb(h: Dictionary) -> String:
 	return "res://assets/modelos/humano.glb" if masculino(h) else "res://assets/modelos/humana.glb"

@@ -54,7 +54,8 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 	_montar_ap.call_deferred()
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	if arq.begins_with("mh:"):
-		_montar_mh(arq.trim_prefix("mh:"), no_mundo); return
+		var pp := arq.trim_prefix("mh:").split(":")
+		_montar_mh(pp[0], int(pp[1]) if pp.size() > 1 else 0, no_mundo); return
 	mod = load(arq).instantiate(); add_child(mod)
 	k = 1.68 / 0.98
 	mod.scale = Vector3.ONE * k; mod.rotation_degrees.y = 90           # o modelo olha para +X → -Z
@@ -92,9 +93,18 @@ func montar(jogador, arq: String, no_mundo := true) -> void:
 # ---------- heróis do pacote Modular Fantasy Hero (esqueleto da Synty; olha para +Z) ----------
 const MH_ARQ := "res://arte/mh/ModularCharacters.fbx"
 const MH_TEX := "res://arte/mh/PolygonFantasyHero_Texture_01_A.png"
-static func mh_partes(g: String, roupa := "01", cabelo := "") -> Array:
+const MH_PRESETS := "res://arte/mh/presets.json"
+static var _presets := {}
+# personagens prontos do pacote (120): {"Female": [{preset, partes}], "Male": [...]}; "base N" = o N-ésimo do gênero
+static func mh_bases(g: String) -> Array:
+	if _presets.is_empty() and FileAccess.file_exists(MH_PRESETS):
+		_presets = JSON.parse_string(FileAccess.get_file_as_string(MH_PRESETS))
+	return _presets.get(g, [])
+static func mh_partes(g: String, base := 0, roupa := "01", cabelo := "") -> Array:
+	var bs := mh_bases(g)
+	if base >= 1 and base <= bs.size(): return bs[base - 1].partes
 	if cabelo == "": cabelo = "Chr_Hair_03" if g == "Male" else "Chr_Hair_20"
-	return ["Chr_Head_%s_00" % g, "Chr_Eyebrow_%s_00" % g, "Chr_Torso_%s_%s" % [g, roupa], "Chr_ArmUpperRight_%s_%s" % [g, roupa],
+	return ["Chr_Head_%s_00" % g, "Chr_Eyebrow_%s_01" % g, "Chr_Torso_%s_%s" % [g, roupa], "Chr_ArmUpperRight_%s_%s" % [g, roupa],
 		"Chr_ArmUpperLeft_%s_%s" % [g, roupa], "Chr_ArmLowerRight_%s_%s" % [g, roupa], "Chr_ArmLowerLeft_%s_%s" % [g, roupa],
 		"Chr_HandRight_%s_%s" % [g, roupa], "Chr_HandLeft_%s_%s" % [g, roupa], "Chr_Hips_%s_%s" % [g, roupa],
 		"Chr_LegRight_%s_%s" % [g, roupa], "Chr_LegLeft_%s_%s" % [g, roupa], cabelo]
@@ -105,11 +115,11 @@ func _osso(n: String) -> String:
 	if not mh: return n
 	return {"R_Hand": "Hand_R", "R_Mid1": "Finger_01_2", "L_Hand": "Hand_L", "L_Mid1": "Finger_01", "Hip": "Hips", "Spine02": "Spine_03",
 		"R_Upperarm": "Shoulder_R", "R_Forearm": "Elbow_R"}.get(n, n)
-func _montar_mh(g: String, no_mundo: bool) -> void:
+func _montar_mh(g: String, base: int, no_mundo: bool) -> void:
 	mh = true; k = 1.0
 	mod = load(MH_ARQ).instantiate(); add_child(mod); mod.rotation_degrees.y = 180
 	esq = mod.find_children("*", "Skeleton3D", true, false)[0]
-	var partes := mh_partes(g)
+	var partes := mh_partes(g, base)
 	var mt: Material
 	if no_mundo:
 		var sm := ShaderMaterial.new(); sm.shader = load("res://shaders/ps1.gdshader"); sm.set_shader_parameter("tex", load(MH_TEX))
@@ -328,7 +338,7 @@ var _atual := ""
 var _acao_ant := ""
 func _montar_ap() -> void:
 	var lib := "res://arte/animacoes/heroi_m.res" if _arq.ends_with("humano.glb") else "res://arte/animacoes/heroi.res"
-	if mh: lib = "res://arte/animacoes/heroi_mh_%s.res" % ("Masc" if _arq.ends_with("Male") else "Femn")
+	if mh: lib = "res://arte/animacoes/heroi_mh_%s.res" % ("Masc" if _arq.begins_with("mh:Male") else "Femn")
 	if not ResourceLoader.exists(lib) or mod == null: return
 	_ap = AnimationPlayer.new(); mod.add_child(_ap); _ap.root_node = NodePath("..")
 	_ap.add_animation_library("", load(lib))
