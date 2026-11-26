@@ -36,6 +36,13 @@ func _ready() -> void:
 	if (OS.has_feature("android") or args.has("--atualizar")) and not Herois.pular_atualizacao:
 		await _procurar(embutida)
 	if not Herois.pular_atualizacao: _usar_pacote(embutida)          # (vindo do mundo, o pacote novo já está carregado)
+	var falta := _classes_faltando()
+	if not falta.is_empty():                # o APK instalado é velho demais para este pacote: pedir o APK novo
+		print("ATUALIZACAO: o APK não conhece as classes ", falta)
+		_texto.text = "Esta atualização precisa do APK novo.\nToque abaixo para baixar e instalar por cima\n(seus heróis e o progresso continuam)."
+		var bt := Button.new(); bt.text = "BAIXAR APK NOVO"; bt.add_theme_font_size_override("font_size", 36); bt.custom_minimum_size = Vector2(900, 96)
+		bt.pressed.connect(func(): OS.shell_open(BASE + "dallarian.apk")); _texto.get_parent().add_child(bt)
+		return
 	if OS.get_cmdline_user_args().has("--parar_inicio"):                 # teste: print da tela de início e sai
 		_texto.text = "Baixando atualização (versão 97)..."; _barra.visible = true; _barra.value = 42
 		for k in 6: await RenderingServer.frame_post_draw
@@ -88,6 +95,20 @@ func _rede(h: HTTPRequest) -> void:
 			var hp := x.trim_prefix("--proxy=").split(":"); h.set_https_proxy(hp[0], int(hp[1])); h.set_http_proxy(hp[0], int(hp[1]))
 		if x.begins_with("--ca="):
 			var c := X509Certificate.new(); c.load(x.trim_prefix("--ca=")); h.set_tls_options(TLSOptions.client(c))
+
+# a atualização (pacote .pck) troca os scripts, mas o APK só conhece as classes (class_name) que existiam quando
+# ele foi gerado: um script que usa uma classe nova não compila. Confere todas as classes do pacote.
+func _classes_faltando() -> Array:
+	var cf := ConfigFile.new()
+	if cf.load("res://.godot/global_script_class_cache.cfg") != OK: return []
+	var falta := []
+	for c in cf.get_value("", "list", []):
+		var nome := String(c.get("class", ""))
+		if nome == "": continue
+		var sc := GDScript.new(); sc.source_code = "extends RefCounted\nfunc f():\n\treturn %s\n" % nome
+		if sc.reload() != OK: falta.append(nome)
+	if OS.get_cmdline_user_args().has("--faltando"): falta.append("Teste")     # teste
+	return falta
 
 func _versao(arq: String) -> int:
 	if not FileAccess.file_exists(arq): return 0

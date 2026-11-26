@@ -2,6 +2,13 @@
 
 ## 26/11
 
+**Aviso de APK velho**
+- Achado: a atualização pelo pacote (.pck) não ensina ao APK instalado as classes de script novas (class_name).
+  Os moradores dos pacotes (Cidadao) são uma classe nova, e o herói e o catálogo usam essa classe; num APK antigo
+  eles não carregavam (a criação ficava sem modelo e sem as setas).
+- Agora o jogo confere isso ao abrir: se o APK for velho demais para a atualização, mostra "Esta atualização
+  precisa do APK novo" e um botão BAIXAR APK NOVO (instala por cima, sem perder heróis nem progresso).
+
 **Catálogo com todos os personagens dos pacotes**
 - A criação de herói agora passa por **todos** os personagens dos pacotes da Synty: 61 femininos e 81 masculinos
   (os prontos do Modular Fantasy Hero e depois os moradores do Fantasy Kingdom: freira, rainha, camponesa,
