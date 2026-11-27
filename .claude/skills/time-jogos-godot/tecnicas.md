@@ -934,3 +934,13 @@
 - Armadilhas: (1) "chão já plano" com y fixo numa área que depois ganhou relevo; (2) aplainar pelo tamanho PEDIDO
   e pôr um modelo maior (quinas enterradas); (3) a rampa de uma construção vizinha passando por cima da parte plana
   de outra — dentro do miolo plano de uma construção, a altura dela vence; só fora as rampas se misturam.
+
+## Jogo web (HTML) em APK que se atualiza pelo Supabase (Dallarian 2D, `papel/`)
+- APK = lançador Capacitor (`papel/apk/www/index.html`): busca `versao.json` no bucket público, baixa o `index.html`
+  (guarda no localStorage) e roda com `document.write` + `<base href=bucket>`; a arte vem direto do bucket.
+  O Storage serve .html como text/plain, por isso o lançador baixa como texto em vez de abrir a URL.
+- Imagens de outra origem no canvas: `img.crossOrigin='anonymous'` (o Storage manda CORS *), senão getImageData quebra.
+- Publicar sem segredo no GitHub: função `publicar-papel` (verify_jwt off) pega o último commit do main pela API do
+  GitHub e copia `papel/jogo/` para o bucket com a service role do próprio Supabase. Quem chamar só sincroniza o main.
+- Horizontal no APK: `android:screenOrientation="sensorLandscape"` na activity (sed no AndroidManifest depois do `cap add`).
+- Chave de assinatura fixa no repositório (`papel/apk/chave-debug.keystore`) por causa da armadilha do cache.
