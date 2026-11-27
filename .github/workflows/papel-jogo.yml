@@ -1,0 +1,19 @@
+name: Jogo 2D no Supabase
+# A cada envio ao main que mexe no jogo 2D (papel/jogo): pede ao Supabase para copiar a versão nova
+# para o bucket público "papel". O APK confere o versao.json ao abrir e baixa o jogo novo sozinho.
+on:
+  push:
+    branches: [main]
+    paths: ["papel/jogo/**", ".github/workflows/papel-jogo.yml"]
+  workflow_dispatch:
+concurrency: { group: papel-jogo, cancel-in-progress: false }
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publicar no Supabase
+        run: |
+          sleep 20   # dá tempo do GitHub servir o commit novo
+          curl -sS --fail-with-body -X POST https://vopbcslkjwumphjqmlbl.supabase.co/functions/v1/publicar-papel
+          echo
+          curl -sS https://vopbcslkjwumphjqmlbl.supabase.co/storage/v1/object/public/papel/versao.json

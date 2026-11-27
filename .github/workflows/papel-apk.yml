@@ -1,0 +1,41 @@
+name: APK do jogo 2D
+# Gera o APK lançador do Dallarian 2D (Capacitor). O APK quase nunca muda: o jogo vem do Supabase.
+# Só precisa instalar de novo quando mudar o lançador (papel/apk), o ícone ou as permissões.
+on:
+  push:
+    branches: [main]
+    paths: ["papel/apk/**", ".github/workflows/papel-apk.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: papel-apk, cancel-in-progress: true }
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: Montar o projeto Android
+        working-directory: papel/apk
+        run: |
+          npm install --no-audit --no-fund
+          rm -rf www/jogo && cp -r ../jogo www/jogo   # cópia do jogo para quando estiver sem internet
+          npx cap add android
+          # jogo sempre deitado (horizontal) e tela cheia
+          sed -i 's/<activity/<activity android:screenOrientation="sensorLandscape"/' android/app/src/main/AndroidManifest.xml
+          sed -i 's/<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">/&<item name="android:windowFullscreen">true<\/item>/' android/app/src/main/res/values/styles.xml || true
+          npx cap sync android
+          # sempre a mesma chave (o APK novo instala por cima do antigo sem perder o save)
+          mkdir -p ~/.android && cp chave-debug.keystore ~/.android/debug.keystore
+          cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon -q
+          cp app/build/outputs/apk/debug/app-debug.apk ../../dallarian-2d.apk
+      - name: Publicar em Releases
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release delete apk-2d --yes --cleanup-tag || true
+          gh release create apk-2d papel/dallarian-2d.apk --prerelease --title "Dallarian 2D — APK" \
+            --notes "Instale uma vez: o jogo se atualiza sozinho pelo Supabase ao abrir (commit ${GITHUB_SHA::7})."
+          gh release edit apk-2d --draft=false --prerelease

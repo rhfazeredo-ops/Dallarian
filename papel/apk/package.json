@@ -1,0 +1,10 @@
+{
+  "name": "dallarian-papel-apk",
+  "private": true,
+  "description": "APK do Dallarian 2D (papercraft): lançador que baixa o jogo do Supabase e se atualiza sozinho",
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  }
+}

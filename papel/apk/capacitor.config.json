@@ -1,0 +1,6 @@
+{
+  "appId": "io.github.rhfazeredo.dallarianpapel",
+  "appName": "Dallarian",
+  "webDir": "www",
+  "android": { "backgroundColor": "#1d2a14" }
+}

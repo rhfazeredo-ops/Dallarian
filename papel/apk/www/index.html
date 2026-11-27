@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Dallarian</title>
+<style>
+html,body{margin:0;height:100%;background:#1d2a14;color:#f3e3c0;font:600 16px system-ui,sans-serif}
+body{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center}
+.t{font:800 34px Georgia,serif;letter-spacing:1px}
+.bar{width:220px;height:8px;border-radius:4px;background:#0006;overflow:hidden}.bar i{display:block;height:100%;width:30%;background:#ffd34a;animation:a 1s infinite alternate}
+@keyframes a{from{margin-left:0}to{margin-left:70%}}
+small{opacity:.7}
+</style>
+</head>
+<body>
+<div class="t">Dallarian</div><div class="bar"><i></i></div><small id="m">Procurando atualização…</small>
+<script>
+// Lançador do APK: o jogo de verdade mora no Supabase (bucket público "papel").
+// Ao abrir: confere versao.json; se mudou, baixa o index.html novo; a arte vem direto do Supabase (base href).
+// Sem internet: abre a cópia do jogo que veio dentro do APK (jogo/index.html).
+const BASE='https://vopbcslkjwumphjqmlbl.supabase.co/storage/v1/object/public/papel/';
+const m=document.getElementById('m');
+const tempo=(p,ms)=>Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(new Error('tempo')),ms))]);
+function rodar(html,base){html=html.replace(/<head>/i,'<head><base href="'+base+'">');document.open();document.write(html);document.close()}
+async function ir(){
+ try{
+  const v=await tempo(fetch(BASE+'versao.json?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}),8000);
+  let html=null;try{if(localStorage.getItem('papel-v')===String(v.n))html=localStorage.getItem('papel-html')}catch(e){}
+  if(!html){m.textContent='Baixando a versão nova…';html=await tempo(fetch(BASE+'index.html?v='+v.n,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()}),20000);
+   try{localStorage.setItem('papel-html',html);localStorage.setItem('papel-v',String(v.n))}catch(e){}}
+  rodar(html,BASE);
+ }catch(e){m.textContent='Sem internet: abrindo a versão do aparelho…';setTimeout(()=>location.replace('jogo/index.html'),500)}
+}
+ir();
+</script>
+</body>
+</html>
