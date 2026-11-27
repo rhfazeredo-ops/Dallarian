@@ -631,11 +631,105 @@ function setT(m,x,y,v){if(!inb(m,x,y))return;const i=y*m.w+x;m.t[i]=v;if(v==='w'
 function setP(m,x,y,v){if(!inb(m,x,y))return;const i=y*m.w+x;if(m.t[i]!=='w')m.p[i]=v}
 function addObj(m,k,x,y,p){const o=Object.assign({id:m.nid++,k,x,y},defaults(k),p||{});m.o.push(o);return o}
 function defaults(k){const t=TY[k];if(t.tr)return{name:t.n,dest:'',entry:'',mini:true,cond:''};if(t.npc)return{name:t.n,fala:'Olá, viajante!'};if(k==='evento')return{texto:'Algo acontece aqui…'};if(t.chest)return{item:'10 moedas'};return{}}
-function forest(m,cls,dens){const bl=new Uint8Array(m.w*m.h);const mark=(x,y)=>{if(inb(m,x,y))bl[y*m.w+x]=1};
+function forest(m,cls,dens,kinds){const bl=new Uint8Array(m.w*m.h);const mark=(x,y)=>{if(inb(m,x,y))bl[y*m.w+x]=1};
  m.o.forEach(o=>{const t=TY[o.k],mg=t.tr?2:(t.fw>1||t.npc?1:0);for(let y=o.y-mg;y<o.y+t.fh+mg;y++)for(let x=o.x-mg;x<o.x+t.fw+mg;x++)mark(x,y)});
  for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){const i=y*m.w+x;if(m.t[i]==='w'||m.t[i]==='s'||m.t[i]==='c'||m.t[i]==='m'||m.t[i]==='x'||(m.t[i]==='h'&&y+1<m.h&&m.t[i+m.w]!=='h')||(y>0&&m.t[i-m.w]==='h'&&m.t[i]!=='h'))bl[i]=1;if(m.p[i])for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)mark(x+b,y+a)}
  for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){if(bl[y*m.w+x])continue;const r=hsh(x,y,11);const inC=cls&&cls.some(cl=>((x-cl.cx)/cl.rx)**2+((y-cl.cy)/cl.ry)**2<1);const edge=Math.min(x,y,m.w-1-x,m.h-1-y)<2;const d=inC?.03:edge?.85:dens;
-  if(r<d){const q=hsh(x,y,12);addObj(m,q<.5?'arvore':q<.88?'arvore_clara':'pinheiro',x,y)}else if(r<d+.05)addObj(m,'arbusto',x,y);else if(r<d+.12)addObj(m,'flores',x,y);else if(r<d+.14)addObj(m,'pedra',x,y)}}
+  if(r<d){const q=hsh(x,y,12);addObj(m,kinds?kinds[Math.floor(q*kinds.length)]:q<.5?'arvore':q<.88?'arvore_clara':'pinheiro',x,y)}else if(r<d+.05)addObj(m,'arbusto',x,y);else if(r<d+.12)addObj(m,'flores',x,y);else if(r<d+.14)addObj(m,'pedra',x,y)}}
+/* ================= continente: gerador de regiões ================= */
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const GRID={planalto:[0,0],ruinas_norte:[1,0],arena_golem:[2,0],pinheiros:[3,0],passo:[4,0],pradaria:[0,1],colinas:[1,1],floresta:[2,1],cidade:[3,1],estrada:[4,1],campo_javalis:[0,2],pomar:[1,2],lago:[2,2],fazendas:[3,2],porto:[4,2],brejo:[0,3],aldeia_lodosa:[1,3],rio:[2,3],bosque_sombrio:[3,3],praia:[4,3],toca:[0,4],cogumelos:[1,4],vila_sul:[2,4],moinho_velho:[3,4],farol:[4,4]};
+const EDGES=[['planalto','pradaria'],['planalto','ruinas_norte'],['ruinas_norte','arena_golem'],['ruinas_norte','colinas'],['arena_golem','pinheiros'],['pinheiros','passo'],['passo','estrada'],['colinas','pomar'],['cidade','estrada'],['cidade','fazendas'],['estrada','porto'],['campo_javalis','pomar'],['campo_javalis','brejo'],['pomar','lago'],['lago','floresta'],['lago','fazendas'],['lago','rio'],['fazendas','porto'],['fazendas','bosque_sombrio'],['porto','praia'],['brejo','aldeia_lodosa'],['brejo','toca'],['aldeia_lodosa','rio'],['rio','bosque_sombrio'],['rio','vila_sul'],['bosque_sombrio','moinho_velho'],['praia','farol'],['toca','cogumelos'],['cogumelos','vila_sul'],['vila_sul','moinho_velho'],['moinho_velho','farol']];
+const sideOf=(a,b)=>{const A=GRID[a],B=GRID[b];return B[0]>A[0]?'E':B[0]<A[0]?'W':B[1]>A[1]?'S':'N'};
+const OPP={N:'S',S:'N',E:'W',W:'E'};
+/* abre uma saída pela borda num mapa já pronto: cava um caminho até achar outro caminho */
+function openExit(m,side,at,destId,destName){const nm='Para '+destName,en='Para '+m.name;
+ const cells=side==='N'?[[at,0],[at+1,0]]:side==='S'?[[at,m.h-1],[at+1,m.h-1]]:side==='W'?[[0,at],[0,at+1]]:[[m.w-1,at],[m.w-1,at+1]];
+ const [dx,dy]=side==='N'?[0,1]:side==='S'?[0,-1]:side==='W'?[1,0]:[-1,0];
+ let x=cells[0][0],y=cells[0][1];
+ for(let i=0;i<34;i++){const pts=dx?[[x,y],[x,y+1]]:[[x,y],[x+1,y]];let hit=false;
+  pts.forEach(([px,py])=>{if(!inb(m,px,py))return;const j=py*m.w+px;if(i>2&&(m.p[j]||m.t[j]==='s'))hit=true;if(m.t[j]==='h'||m.t[j]==='w')m.t[j]='g';if(m.t[j]!=='s')m.p[j]=1});
+  m.o=m.o.filter(o=>{const t=TY[o.k];if(!t||t.tr||t.npc||t.enemy||t.statue||t.chest)return true;return!(o.x<=x+2&&o.x+t.fw>=x-1&&o.y<=y+2&&o.y+t.fh>=y-1)});
+  if(hit)break;x+=dx;y+=dy}
+ cells.forEach(([cx,cy])=>addObj(m,'borda',cx,cy,{name:nm,dest:destId,entry:'Para '+(WN[destId]||destName)===en?en:en,mini:true}));
+ m._tv=(m._tv||0)+1}
+const WN={};
+function genRegion(sp){const R=rng(sp.seed||sp.id.length*977+sp.w*31),m=newMap(sp.id,sp.name,sp.w,sp.h,'g');const W=sp.w,H=sp.h;
+ const ri=(a,b)=>a+Math.floor(R()*(b-a+1));
+ const gth=sp.G??.32;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const n=(Math.sin(x*.23+sp.w)+Math.sin(y*.29+sp.h)+Math.sin((x-y)*.19))/3;if(n>gth)m.t[y*W+x]='G'}
+ let hx=Math.floor(W/2),hy=Math.floor(H/2);if(sp.water==='coast')hx=Math.floor(W*.38);
+ // água
+ const wset=(x,y)=>{if(inb(m,x,y))m.t[y*W+x]='w'};
+ if(sp.water==='lake'){const cx=W*.3,cy=H*.36,rx=W*.2,ry=H*.2;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(((x-cx)/rx)**2+((y-cy)/ry)**2<1+Math.sin(x*.7+y*.5)*.08)wset(x,y);hx=Math.floor(W*.62);hy=Math.floor(H*.6)}
+ if(sp.water==='river'){m._rv=y=>Math.round(W*.3+Math.sin(y*.21)*2.2);for(let y=0;y<H;y++){wset(m._rv(y),y);wset(m._rv(y)+1,y)}hx=Math.floor(W*.6)}
+ if(sp.water==='coast')for(let y=0;y<H;y++){const e=Math.round(W-8+Math.sin(y*.25)*2+Math.sin(y*.6)*1);for(let x=e;x<W;x++)wset(x,y)}
+ if(sp.water==='swamp'||sp.water==='ponds'){const n=sp.water==='swamp'?16:7;for(let i=0;i<n;i++){const cx=ri(4,W-5),cy=ri(4,H-5),r=1+R()*2.2;if(Math.hypot(cx-hx,cy-hy)<7)continue;for(let y=Math.floor(cy-r);y<=cy+r;y++)for(let x=Math.floor(cx-r-1);x<=cx+r+1;x++)if(((x-cx)/(r+.8))**2+((y-cy)/r)**2<1)wset(x,y)}}
+ // penhascos (platôs decorativos)
+ for(let i=0;i<(sp.cliffs||0);i++){const w=ri(5,9),h=ri(3,5),x0=ri(2,W-w-2),y0=ri(2,H-h-3);if(Math.abs(x0+w/2-hx)<w/2+5&&Math.abs(y0+h/2-hy)<h/2+5)continue;for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++)if(m.t[y*W+x]!=='w')m.t[y*W+x]='h'}
+ // saídas e caminhos até o centro
+ const exits=sp.exits.map(e=>{const off=Math.round((R()-.5)*(e.side==='N'||e.side==='S'?W*.2:H*.2));let ex,ey;
+  if(e.side==='N'){ex=Math.max(3,Math.min(W-5,hx+off));ey=0}else if(e.side==='S'){ex=Math.max(3,Math.min(W-5,hx+off));ey=H-1}else if(e.side==='W'){ex=0;ey=Math.max(3,Math.min(H-5,hy+off))}else{ex=W-1;ey=Math.max(3,Math.min(H-5,hy+off))}
+  return Object.assign({ex,ey},e)});
+ const bridges=new Set();
+ const paint=(x,y,hor)=>{if(!inb(m,x,y))return;const j=y*W+x;if(m.t[j]==='w'){if(sp.water==='river'&&hor){bridges.add(y);return}m.t[j]='g'}if(m.t[j]==='h')m.t[j]='g';if(sp.road)m.t[j]='s';else m.p[j]=1};
+ exits.forEach(e=>{let x=e.ex,y=e.ey;const vert=e.side==='N'||e.side==='S';
+  if(vert){while(y!==hy){paint(x,y,0);paint(x+1,y,0);y+=Math.sign(hy-y)}while(x!==hx){paint(x,y,1);paint(x,y+1,1);x+=Math.sign(hx-x)}}
+  else{while(x!==hx){paint(x,y,1);paint(x,y+1,1);x+=Math.sign(hx-x)}while(y!==hy){paint(x,y,0);paint(x+1,y,0);y+=Math.sign(hy-y)}}
+  paint(hx,hy,0);paint(hx+1,hy,0);paint(hx,hy+1,0);paint(hx+1,hy+1,0)});
+ const brY=[...bridges].sort((a,b)=>a-b).filter((y,i,a)=>i===0||y!==a[i-1]+1);
+ // ocupação
+ const occ=new Uint8Array(W*H);const mark=(x,y,w,h,mg)=>{for(let yy=y-mg;yy<y+h+mg;yy++)for(let xx=x-mg;xx<x+w+mg;xx++)if(inb(m,xx,yy))occ[yy*W+xx]=1};
+ const ok=(x,y,w,h,road)=>{if(x<2||y<2||x+w>W-2||y+h>H-2)return false;for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){const j=yy*W+xx;if(occ[j]||m.t[j]==='w'||m.t[j]==='h'||(yy>0&&m.t[j-W]==='h'))return false;if(!road&&(m.p[j]||m.t[j]==='s'))return false}return!exits.some(e=>Math.hypot(e.ex-x,e.ey-y)<5)};
+ const A=(k,x,y,p)=>{const o=addObj(m,k,x,y,p);const t=TY[k];mark(x,y,t.fw,t.fh,t.L==='build'?1:0);return o};
+ const place=(k,p,o2)=>{o2=o2||{};const t=TY[k];if(!t)return null;for(let i=0;i<300;i++){let x,y;if(o2.near){const a=R()*P2,r=(o2.r0||3)+R()*((o2.r1||8)-(o2.r0||3));x=Math.round(hx+Math.cos(a)*r*1.3);y=Math.round(hy+Math.sin(a)*r)}else{x=ri(2,W-3);y=ri(2,H-3)}
+  if(o2.far&&Math.hypot(x-hx,y-hy)<o2.far)continue;if(o2.water&&!(()=>{for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++)if(inb(m,x+b,y+a)&&m.t[(y+a)*W+x+b]==='w')return true;return false})())continue;
+  if(ok(x,y,t.fw,t.fh,o2.road))return A(k,x,y,p)}return null};
+ brY.forEach(y=>{const xr=m._rv(y);A('ponte',xr-1,y)});
+ exits.forEach(e=>{const cells=e.side==='N'||e.side==='S'?[[e.ex,e.ey],[e.ex+1,e.ey]]:[[e.ex,e.ey],[e.ex,e.ey+1]];cells.forEach(([x,y])=>addObj(m,'borda',x,y,{name:'Para '+e.destName,dest:e.dest,entry:'Para '+sp.name,mini:true}));mark(e.ex-2,e.ey-2,5,5,0)});
+ mark(hx-1,hy-1,4,4,0);
+ if(sp.hub)A(sp.hub,hx-1,hy-3);
+ (sp.houses||[]).forEach(([k,n])=>{for(let i=0;i<n;i++)place(k,null,{near:1,r0:5,r1:12})});
+ if(sp.statue!==false)place('estatua_anjo',null,{near:1,r0:3,r1:7});
+ (sp.npcs||[]).forEach(n=>place(n.k,{name:n.name,fala:n.fala,loja:n.loja},{near:1,r0:2,r1:7,road:1}));
+ (sp.camp||[]).forEach(([k,n])=>{for(let i=0;i<n;i++)place(k,null,{near:1,r0:3,r1:11})});
+ (sp.deco||[]).forEach(([k,n])=>{for(let i=0;i<n;i++)place(k,null,{far:k==='flores'?0:3})});
+ (sp.shore||[]).forEach(([k,n])=>{for(let i=0;i<n;i++)place(k,null,{water:1})});
+ (sp.chest||[]).forEach(it=>place('bau',{item:it},{far:9}));
+ (sp.mobs||[]).forEach(([k,n])=>{for(let i=0;i<n;i++)place(k,null,{far:7,water:k.startsWith('sapo')&&sp.water?1:0})||place(k,null,{far:7})});
+ (sp.crit||[]).forEach(([k,n])=>{for(let i=0;i<n;i++)place(k,null,{far:3,water:(k==='caranguejo'||k==='patinho'||k==='sapinho')&&sp.water?1:0})||place(k,null,{far:3})});
+ if(sp.boss){const b=sp.boss;let o=null;for(let i=0;i<200&&!o;i++){const x=ri(4,W-6),y=ri(4,H-6);if(Math.hypot(x-hx,y-hy)>Math.min(W,H)*.32&&ok(x,y,2,2))o=A(b.k,x,y,{name:b.name,boss:true,bhp:b.hp})}}
+ forest(m,[{cx:hx,cy:hy,rx:W*(sp.cr??.36),ry:H*(sp.cr??.36)}],sp.dens??.5,sp.kinds);
+ m.gx=GRID[sp.id][0];m.gy=GRID[sp.id][1];WN[sp.id]=sp.name;return m}
+const REGIONS=[
+ {id:'planalto',name:'Planalto dos Ventos',w:46,h:34,G:.18,cliffs:5,dens:.32,kinds:['pinheiro','arvore_verde'],deco:[['pedra_grande',8],['pedra_media',6],['pedrinhas',8],['toco',3]],mobs:[['lobo_branco',3],['lobo_preto',3],['lobo',3]],boss:{k:'lobo_branco',name:'Lobo Rei',hp:70},chest:['40 moedas'],crit:[['passarinho',2]]},
+ {id:'ruinas_norte',name:'Ruínas do Norte',w:44,h:32,dens:.45,deco:[['ruina',14],['estatua_heroi',1],['pedra_grande',5],['cogumelos',4],['tronco_podre',3],['flores',6]],mobs:[['aranha',4],['rato_mineiro',3]],npcs:[{k:'contador',name:'Contador Ábaco',fala:'Estas ruínas são de antes do reino. Cada pedra tem uma história.'}],chest:['Coração de Carvalho']},
+ {id:'pinheiros',name:'Bosque dos Pinheiros',w:44,h:32,dens:.55,kinds:['pinheiro'],deco:[['toco',6],['tronco',3],['cogumelos',4],['arbusto_roxo',4],['lenha',2]],mobs:[['aranha',3],['lobo_preto',3]],crit:[['esquilo',3],['passarinho',2]],npcs:[{k:'druida',name:'Druida Elmo',fala:'Os pinheiros sussurram. Algo os deixa doentes…'}],chest:['30 moedas']},
+ {id:'passo',name:'Passo da Montanha',w:46,h:34,cliffs:7,G:.2,dens:.3,kinds:['pinheiro'],deco:[['pedra_grande',10],['pedra_media',8],['pedrinhas',10],['caverna',1]],mobs:[['rato_mineiro',5],['aranha',2],['lobo_branco',2]],npcs:[{k:'aldeao',name:'Mineiro Bóris',fala:'Minério bom nessas pedras, se os ratos deixarem.'}],chest:['45 moedas']},
+ {id:'colinas',name:'Colinas Verdes',w:46,h:34,cliffs:3,G:.12,dens:.3,deco:[['flores',12],['arbusto',6],['pedra_grande',3],['ovelha',4],['cerca',6]],mobs:[['lobo',5],['javali',2]],crit:[['coelho',3],['borb_amarela',2]],npcs:[{k:'pastora',name:'Pastora Sol',fala:'Minhas ovelhas não podem sair do pasto com tanto lobo por aí.'}]},
+ {id:'estrada',name:'Estrada Real',w:48,h:30,road:1,dens:.45,houses:[['casinha',1],['barraca',1]],deco:[['lampiao',6],['placa',2],['carroca',1],['barril',3],['caixa',3],['estandarte',2]],mobs:[['lobo',4],['lobo_preto',2]],npcs:[{k:'ulric',name:'Guarda Tomás',fala:'A Estrada Real liga a cidade ao porto e às montanhas.'},{k:'mensageiro',name:'Mensageiro Pio',fala:'Levo cartas pelo continente inteiro!'}]},
+ {id:'pomar',name:'Pomar de Aldren',w:44,h:32,dens:.38,kinds:['arvore_clara','arvore_verde'],houses:[['casinha',1]],deco:[['caixote_macas',6],['sacos',3],['carrinho_abobora',1],['arbusto_vermelho',4]],mobs:[['javali',4]],crit:[['coelho',4],['borb_rosa',2]],npcs:[{k:'aldea',name:'Dona Pera',fala:'As maçãs deste ano estão lindas, mas os javalis comem tudo!'}]},
+ {id:'lago',name:'Lago Espelhado',w:46,h:34,water:'lake',dens:.4,shore:[['taboa',8],['vitoria_regia',0]],deco:[['pedra',4],['flores',6],['banco',2]],mobs:[['sapo_pescador',4],['sapo_guerreiro',2]],crit:[['patinho',3],['sapinho',3],['borb_azul',2]],npcs:[{k:'pescador',name:'Pescador Zeca',fala:'Peixe bom aqui, mas os lodosos roubam a rede.'}]},
+ {id:'fazendas',name:'Fazendas do Vale',w:48,h:34,dens:.3,houses:[['casa',2],['galinheiro',1],['moinho',1]],deco:[['trigo',16],['feno',4],['espantalho',2],['horta',4],['aboboras',4],['galinha',4],['porco',2],['ovelha',2],['cavalo_baio',1]],mobs:[['javali',4]],npcs:[{k:'aldea',name:'Fazendeira Dora',fala:'Bem-vindo às fazendas! Aqui se planta o pão do reino.'}]},
+ {id:'porto',name:'Porto de Altamar',w:46,h:34,water:'coast',road:1,dens:.25,houses:[['taverna',1],['casa_pedra',2],['sobrado',1]],deco:[['barril',6],['caixa',6],['lampiao',4],['barraca',2],['mesa_feira',2]],shore:[['rede',2],['varal_peixe',2],['cesto_peixes',3]],crit:[['gaivota',4],['caranguejo',3]],mobs:[['sapo_pescador',3]],npcs:[{k:'moca',name:'Capitã Maré',fala:'Navios de todo o mar chegam a Altamar.'},{k:'freira',name:'Irmã Lena',loja:'pocoes',fala:'Poções para a viagem, marujo?'},{k:'vendedor',name:'Mercador Ísio',loja:'armas',fala:'Artefatos de terras distantes! Dê uma olhada.'}]},
+ {id:'brejo',name:'Brejo dos Lodosos',w:46,h:34,water:'swamp',G:.1,dens:.45,shore:[['taboa',12],['vitoria_regia',0]],deco:[['tronco_podre',4],['cogumelos',4]],mobs:[['sapo_guerreiro',4],['sapo_pescador',3],['sapo_xama',2]],crit:[['sapinho',4],['vagalume',3]]},
+ {id:'aldeia_lodosa',name:'Aldeia dos Lodosos',w:46,h:34,water:'ponds',dens:.42,hub:'fogueira',camp:[['cabana_palafita',3],['cabana_chefe',1],['totem',3],['fogueira',1],['rede',2],['varal_peixe',2],['poste_cranio',4],['cerca_estacas',6],['pote',3],['sucata',2]],deco:[['lanca',3],['espinha',3],['casco',2],['taboa',6]],mobs:[['sapo_guerreiro',5],['sapo_xama',3],['sapo_pescador',3]],boss:{k:'sapo_chefe',name:'Grão-Lodoso',hp:80},chest:['Relíquia da Luz'],statue:false},
+ {id:'rio',name:'Rio das Pedras',w:46,h:34,water:'river',dens:.42,deco:[['pedra_grande',6],['pedra_media',6],['pedrinhas',6]],shore:[['taboa',6]],mobs:[['aranha',3],['sapo_pescador',2],['lobo',2]],crit:[['patinho',2],['sapinho',2]]},
+ {id:'bosque_sombrio',name:'Bosque Sombrio',w:44,h:32,dens:.6,cr:.26,kinds:['arvore','pinheiro'],deco:[['cogumelos',8],['tronco_podre',5],['toco',4],['arbusto_roxo',4]],mobs:[['lobo_preto',5],['aranha',4]],crit:[['vagalume',5]],npcs:[{k:'lenhador',name:'Lenhador Rui',fala:'Não se perca no bosque. Os lobos pretos caçam à noite.'}]},
+ {id:'praia',name:'Praia das Conchas',w:44,h:34,water:'coast',G:.5,dens:.2,deco:[['concha',10],['pedra',6],['pedrinhas',8],['casco',2],['barril_agua',2]],shore:[['cesto_peixes',2],['rede',1]],crit:[['caranguejo',8],['gaivota',5]],mobs:[['sapo_pescador',4],['sapo_guerreiro',2]],chest:['Escama do Lodoso']},
+ {id:'toca',name:'Toca das Aranhas',w:44,h:32,dens:.6,cr:.3,deco:[['cogumelos',6],['tronco_podre',6],['pedra_grande',4],['espinha',3]],mobs:[['aranha',8]],boss:{k:'aranha',name:'Aranha Rainha',hp:60},chest:['Chama Eterna']},
+ {id:'cogumelos',name:'Vale dos Cogumelos',w:44,h:32,dens:.42,deco:[['cogumelos',20],['tronco_podre',4],['flores',6]],mobs:[['rato_mineiro',4],['aranha',2]],crit:[['vagalume',4],['borb_rosa',2]],npcs:[{k:'herbalista',name:'Herbalista Nina',fala:'Cogumelo azul cura, cogumelo vermelho… melhor nem saber.'}]},
+ {id:'vila_sul',name:'Vila de Pedravale',w:46,h:34,dens:.35,hub:'fonte',houses:[['igreja',1],['ferraria',1],['casa',3],['casa_grande',1],['casa_varanda',1],['padaria',1]],deco:[['poco',1],['lampiao',6],['barraca',2],['banco',3],['vaso_flores',4],['varal',2],['quadro_avisos',1],['cachorro',1],['gato',1],['galinha',3]],crit:[['coelho',2]],npcs:[{k:'idosa',name:'Anciã Lia',fala:'Pedravale é pequena, mas tem coração grande.'},{k:'freira',name:'Irmã Rosa',loja:'pocoes',fala:'Que a Luz cure suas feridas. Tenho poções.'},{k:'ferreiro',name:'Ferreira Gema',loja:'armas',fala:'Artefatos bem forjados e aprimorados aqui!'},{k:'menino',name:'Menino Davi',fala:'Um dia eu vou ser herói igual você!'},{k:'moca',name:'Clara Flor',fala:'As flores de Pedravale são as mais bonitas do sul.'}]},
+ {id:'moinho_velho',name:'Moinho Velho',w:46,h:34,dens:.32,houses:[['moinho',1],['casinha',1]],deco:[['trigo',12],['espantalho',3],['feno',4],['cerca',8],['aboboras',3],['sacos',3]],mobs:[['javali',6]],boss:{k:'javali',name:'Javali Ancestral',hp:70},npcs:[{k:'moleiro',name:'Moleiro Tião',fala:'O moinho parou desde que aquele javali enorme apareceu.'}]},
+ {id:'farol',name:'Cabo do Farol',w:44,h:32,water:'coast',cliffs:3,dens:.25,houses:[['casa_pedra',1]],deco:[['pedra_grande',6],['lampiao',3],['barril',2],['concha',4],['sino',1]],crit:[['gaivota',6],['caranguejo',3]],mobs:[['sapo_guerreiro',3]],npcs:[{k:'idoso',name:'Faroleiro Ivo',fala:'Do alto do cabo eu vejo o continente inteiro.'}]}];
+function buildContinent(maps){REGIONS.forEach(r=>WN[r.id]=r.name);Object.values(maps).forEach(m=>WN[m.id]=m.name);
+ REGIONS.forEach(r=>{r.exits=EDGES.filter(e=>e.includes(r.id)).map(e=>{const d=e[0]===r.id?e[1]:e[0];return{side:sideOf(r.id,d),dest:d,destName:WN[d]}});maps[r.id]=genRegion(r)});
+ // saídas novas nos mapas feitos à mão
+ const fix={floresta:{S:24},cidade:{E:10,S:15},pradaria:{N:40},campo_javalis:{E:17,S:24},arena_golem:{W:14,E:14}};
+ Object.entries(fix).forEach(([id,sides])=>{const m=maps[id];Object.entries(sides).forEach(([side,at])=>{const e=EDGES.find(e=>e.includes(id)&&sideOf(id,e[0]===id?e[1]:e[0])===side);if(!e)return;const d=e[0]===id?e[1]:e[0];openExit(m,side,at,d,WN[d])})});
+ Object.keys(GRID).forEach(id=>{if(maps[id]){maps[id].gx=GRID[id][0];maps[id].gy=GRID[id][1]}});
+ ['floresta','cidade','vila_sul','porto','casa_marta'].forEach(id=>{const m=maps[id];if(!m)return;m.vila=1;m.o=m.o.filter(o=>!(TY[o.k]&&TY[o.k].enemy))});
+ return maps}
+
 function sampleWorld(){
  const F=newMap('floresta','Floresta de Aldren',40,30,'g');
  for(let y=0;y<30;y++)for(let x=0;x<40;x++){const n=(Math.sin(x*.42)+Math.sin(y*.47+1.3)+Math.sin((x+y)*.29+.7))/3;if(n>.42)F.t[y*40+x]='G'}
@@ -652,11 +746,9 @@ function sampleWorld(){
  A('marta',18,15,{name:'Marta',fala:'Bem-vindo à Vila de Aldren! Siga a estrada pro leste e você chega na Cidade de Dallarian.'});
  A('bento',29,12,{name:'Bento',fala:'Pão quentinho e maçã do pomar! Poções? Fale com a Irmã Clara na igreja. Artefatos, com o Ferreiro Duran.'});
  A('ulric',36,13,{name:'Capitão Ulric',fala:'A caverna ao norte está trancada. Dizem que a chave está num baú em Dallarian.'});
- A('tico',4,20,{name:'Tico',fala:'Os lodosos moram perto do rio, no acampamento deles. Pra oeste fica a Pradaria dos Lobos! O botão A ataca e o B solta a skill do seu herói.'});
+ A('tico',4,20,{name:'Tico',fala:'Os lodosos moram no Brejo dos Lodosos, depois do Campo dos Javalis. Pra oeste fica a Pradaria dos Lobos! O botão A ataca e o B solta a skill do seu herói.'});
  A('inicio',3,18);A('evento',12,17,{texto:'Você sente cheiro de pão fresco vindo da vila.'});A('bau',14,26,{item:'20 moedas'});
- A('lobo',16,24);A('lobo_preto',18,27);A('aranha',34,7);
- A('cabana_palafita',8,22);A('totem',12,22);A('fogueira',11,25);A('rede',9,28);A('varal_peixe',13,27);A('cesto_peixes',12,28);A('poste_cranio',13,24);A('concha',10,27);A('vitoria_regia',rv(25),25);A('taboa',rv(23)+2,23);A('taboa',rv(28)+2,28);
- A('sapo_guerreiro',10,24);A('sapo_pescador',9,26);A('sapo_xama',12,26);A('sapo_guerreiro',11,28);
+ A('vitoria_regia',rv(25),25);A('taboa',rv(23)+2,23);A('taboa',rv(28)+2,28);A('pescador',10,24,{name:'Pescador Juca',fala:'Os lodosos moravam aqui no rio, mas a guarda da vila expulsou todos pro Brejo dos Lodosos, lá no sudoeste.'});
  A('portao',0,15,{name:'Trilha da Pradaria',dest:'pradaria',entry:'Trilha da Vila'});
  A('igreja',8,11);A('freira',12,13,{name:'Irmã Clara',loja:'pocoes',fala:'A Luz te proteja, viajante. Tenho poções de cura e bênçãos. Veja o que precisa.'});A('estatua_anjo',12,14);
  A('ferraria',16,20);A('ferreiro',18,23,{name:'Ferreiro Duran',loja:'armas',fala:'Espada e escudo qualquer um forja. Eu trabalho com artefatos: deixam o herói mais forte, e eu subo o nível deles na bigorna.'});A('suporte_armas',15,22);A('forja',20,20);A('bigorna',20,22);
@@ -735,7 +827,8 @@ function sampleWorld(){
  G2('evento',16,21,{texto:'O chão está rachado em círculo… quando o golem erguer os braços, saia do círculo vermelho!'});
  forest(Ag,[{cx:17,cy:14,rx:12.5,ry:11.5},{cx:16.5,cy:25,rx:3,ry:6}],.7);
  Ag.o=Ag.o.filter(o=>!(['arbusto','flores','pedra'].includes(o.k)&&Math.hypot((o.x-17)/9,(o.y-14)/8)<1));
- return{v:1,order:['floresta','casa_marta','cidade','caverna','pradaria','campo_javalis','arena_golem'],cur:'floresta',maps:{floresta:F,casa_marta:I,cidade:Cd,caverna:Cv,pradaria:Pr,campo_javalis:Jv,arena_golem:Ag}}}
+ const maps=buildContinent({floresta:F,casa_marta:I,cidade:Cd,caverna:Cv,pradaria:Pr,campo_javalis:Jv,arena_golem:Ag});
+ return{v:1,order:['floresta','casa_marta','cidade','caverna',...Object.keys(GRID).filter(k=>!['floresta','cidade'].includes(k))],cur:'floresta',maps}}
 
 /* ================= estado ================= */
 let world,M,tool='paint',asset='arvore',sel=null,leftTab='assets',query='',bsize=1;
@@ -958,7 +1051,7 @@ function enterMap(m,entryName,at){play.m=m;play.bl=blocked(m);play.el=m._bl.e;co
   cand.sort((a,b)=>Math.hypot(a[0]-m.w/2,a[1]-m.h/2)-Math.hypot(b[0]-m.w/2,b[1]-m.h/2));[cx,cy]=cand[0]||nearWalk(m,play.bl,en.x,en.y)}
  else{const s=m.o.find(o=>o.k==='inicio');[cx,cy]=nearWalk(m,play.bl,s?s.x:m.w>>1,s?s.y:m.h>>1)}
  h.x=cx+.5;h.y=cy+.9;play.spawn=[h.x,h.y];play.inTr=null;
- play.en=m.o.filter(o=>TY[o.k]&&TY[o.k].enemy&&!play.dead.has(m.id+':'+o.id)).map(o=>{const st=ESTAT[o.k]||[3,1.6,1];return{k:o.k,key:m.id+':'+o.id,x:o.x+.5,y:o.y+.85,hp:st[0],max:st[0],spd:st[1],dmg:st[2],r:st[0]>=10?.42:.28,dx:0,dy:0,t:Math.random()*3,kx:0,ky:0,flash:0,shake:0,dir:0,ph:Math.random()*6,hx:o.x+.5,hy:o.y+.85,boss:o.boss?1:0,nm:o.name}}).map(a=>{if(a.boss){a.hp=a.max=60;a.r=.7;a.spd=1.1;a.dmg=2;a.slam=3}return a});
+ play.en=m.vila?[]:m.o.filter(o=>TY[o.k]&&TY[o.k].enemy&&!play.dead.has(m.id+':'+o.id)).map(o=>{const st=ESTAT[o.k]||[3,1.6,1];return{k:o.k,key:m.id+':'+o.id,x:o.x+.5,y:o.y+.85,hp:st[0],max:st[0],spd:st[1],dmg:st[2],r:st[0]>=10?.42:.28,dx:0,dy:0,t:Math.random()*3,kx:0,ky:0,flash:0,shake:0,dir:0,ph:Math.random()*6,hx:o.x+.5,hy:o.y+.85,boss:o.boss?1:0,nm:o.name}}).map(a=>{if(a.boss){a.hp=a.max=(m.o.find(o=>m.id+':'+o.id===a.key)||{}).bhp||60;a.r=.7;a.spd=1.1;a.dmg=2;a.slam=3}return a});
  play.cr=m.o.filter(o=>TY[o.k]&&TY[o.k].critter).map(o=>({k:o.k,x:o.x+.5,y:o.y+.8,hx:o.x+.5,hy:o.y+.8,dx:0,dy:0,t:Math.random()*4,ph:Math.random()*6,dir:0,flee:0,fly:0}));
  play.npcs=m.o.filter(o=>TY[o.k]&&TY[o.k].npc).map(o=>({o,k:o.k,x:o.x+.5,y:o.y+.9,dir:0,ph:Math.random()*6}));
  play.fx=[];play.pr=[];$('pName').textContent=m.name;qTrack();play.visited=play.visited||[];if(!play.visited.includes(m.id))play.visited.push(m.id);if(play.q)qEvent('map',m.id);const bo=play.en.find(a=>a.boss);$('bossbar').style.display=bo?'flex':'none';if(bo)$('bossName').textContent=bo.nm||'Chefe'}
@@ -1014,7 +1107,7 @@ function drawPortrait(){const c=$('hpc');if(!c||!ART.ok)return;const g=c.getCont
 /* ================= missões secundárias ================= */
 const QUESTS=[
  {id:'iris',de:'Marta',t:'Visita à Vovó Íris',d:'Leve um abraço da Marta para a Vovó Íris, na casa dela, perto do poço da vila.',tipo:'talk',alvo:'Vovó Íris',n:1,ouro:15,pocoes:1,fim:'Ela ficou tão feliz! Toma, umas moedinhas pelo favor.'},
- {id:'lodosos',de:'Tico',t:'Os lodosos do rio',d:'Derrote 4 lodosos no acampamento da beira do rio.',tipo:'kill',alvo:['sapo_guerreiro','sapo_pescador','sapo_xama'],n:4,ouro:30,art:'escama_lodoso',fim:'Você acabou com eles?! Agora dá pra pescar no rio de novo!'},
+ {id:'lodosos',de:'Tico',t:'Os lodosos do rio',d:'Derrote 4 lodosos no Brejo dos Lodosos (pradaria → campo dos javalis → sul).',tipo:'kill',alvo:['sapo_guerreiro','sapo_pescador','sapo_xama'],n:4,ouro:30,art:'escama_lodoso',fim:'Você acabou com eles?! Agora dá pra pescar no rio de novo!'},
  {id:'chave',de:'Capitão Ulric',t:'A chave da caverna',d:'Encontre a Chave da caverna. Dizem que está num baú no lado leste da Cidade de Dallarian.',tipo:'item',alvo:'Chave da caverna',n:1,ouro:20,fim:'Ótimo trabalho. Agora a caverna ao norte está aberta para você, mas cuidado lá dentro.'},
  {id:'ratos',de:'Ferreiro Duran',t:'Minério roubado',d:'Os ratos-mineiros roubam meu minério na Caverna Sombria. Derrote 3 deles.',tipo:'kill',alvo:['rato_mineiro'],n:3,ouro:35,art:'chama_eterna',req:'chave',fim:'Ha! Com esse minério de volta, forjei isso pra você. Uma chama que nunca apaga.'},
  {id:'estatuas',de:'Irmã Clara',t:'Luz nas estátuas',d:'Acenda 3 estátuas do anjo pelo reino (toque nelas chegando perto).',tipo:'estatua',n:3,ouro:20,pocoes:3,art:'reliquia_luz',fim:'A Luz voltou às estátuas! Leve esta relíquia, ela vai te curar nas batalhas.'},
@@ -1022,8 +1115,25 @@ const QUESTS=[
  {id:'lider',de:'Caçadora Nara',t:'O líder branco',d:'Os lobos brancos lideram a matilha. Derrote os 2.',tipo:'kill',alvo:['lobo_branco'],n:2,ouro:50,art:'pena_vento',req:'matilha',fim:'Sem os líderes, a pradaria fica em paz. Esta pena de vento é sua.'},
  {id:'javalis',de:'Fazendeiro Brás',t:'Praga dos javalis',d:'Derrote 10 javalis no Campo dos Javalis.',tipo:'kill',alvo:['javali'],n:10,ouro:50,art:'olho_javali',fim:'Minha plantação está salva! Achei este amuleto no meio do trigo. É seu.'},
  {id:'cancao',de:'Bardo Fino',t:'Canção dos heróis',d:'Viaje até a Pradaria dos Lobos e o Campo dos Javalis para o bardo cantar sobre você.',tipo:'map',alvo:['pradaria','campo_javalis'],n:2,ouro:25,fim:'♪ E o herói cruzou pradarias e campos… ♪ Que inspiração! Obrigado!'},
- {id:'aranhas',de:'Sentinela Bruna',t:'Teias na floresta',d:'Derrote as aranhas de musgo: uma perto da caverna e outra lá dentro.',tipo:'kill',alvo:['aranha'],n:2,ouro:30,art:'coracao_carvalho',fim:'A trilha está limpa. Leve este coração de carvalho, dá força pra aguentar mais.'},
- {id:'golem',de:'Prefeito Otto',t:'O Golem da Clareira',d:'Um Golem de Terra gigante guarda a clareira acima das ruínas, ao norte da floresta. Derrote-o.',tipo:'kill',alvo:['golem'],n:1,ouro:120,art:'runa_golem',fim:'Você derrotou o Golem?! Dallarian inteira vai saber o seu nome! Aqui, a runa dele é sua.'}];
+ {id:'aranhas',de:'Sentinela Bruna',t:'Teias na floresta',d:'Derrote 2 aranhas de musgo (tem na Caverna Sombria e nas Ruínas do Norte).',tipo:'kill',alvo:['aranha'],n:2,ouro:30,art:'coracao_carvalho',fim:'A trilha está limpa. Leve este coração de carvalho, dá força pra aguentar mais.'},
+ {id:'lobo_rei',de:'Caçadora Nara',t:'O Lobo Rei',d:'No Planalto dos Ventos, ao norte da pradaria, vive o Lobo Rei. Derrote-o.',tipo:'boss',alvo:'Lobo Rei',n:1,ouro:90,art:'presa_lobo',req:'lider',fim:'O Lobo Rei caiu! Você é a lenda das pradarias agora.'},
+ {id:'reliquias',de:'Contador Ábaco',t:'Pedras que falam',d:'Visite a Clareira do Golem, o Planalto dos Ventos e o Passo da Montanha e me conte o que viu.',tipo:'map',alvo:['arena_golem','planalto','passo'],n:3,ouro:40,pocoes:2,fim:'Então as ruínas vão até a montanha… que história!'},
+ {id:'druida',de:'Druida Elmo',t:'Bosque doente',d:'As aranhas envenenam os pinheiros. Derrote 6 aranhas de musgo.',tipo:'kill',alvo:['aranha'],n:6,ouro:45,art:'coracao_carvalho',fim:'Os pinheiros já respiram melhor. Leve este coração de carvalho.'},
+ {id:'mineiro',de:'Mineiro Bóris',t:'Ratos no minério',d:'Derrote 6 ratos-mineiros.',tipo:'kill',alvo:['rato_mineiro'],n:6,ouro:45,art:'olho_javali',fim:'Agora sim dá pra trabalhar! Achei isso na pedra, é seu.'},
+ {id:'pastora',de:'Pastora Sol',t:'Lobos no pasto',d:'Derrote 6 lobos ou lobos pretos.',tipo:'kill',alvo:['lobo','lobo_preto'],n:6,ouro:35,art:'presa_lobo',fim:'Minhas ovelhas agradecem! Méééé!'},
+ {id:'guarda',de:'Guarda Tomás',t:'Estrada segura',d:'Derrote 6 lobos pretos ou lobos que atacam viajantes.',tipo:'kill',alvo:['lobo','lobo_preto'],n:6,ouro:40,art:'pena_vento',req:'pastora',fim:'A Estrada Real está segura de novo. Obrigado, herói.'},
+ {id:'explorador',de:'Mensageiro Pio',t:'Explorador do continente',d:'Visite as 25 regiões do continente de Dallarian.',tipo:'map',alvo:Object.keys(GRID),n:25,ouro:200,pocoes:5,art:'coroa_altamar',fim:'Você conhece cada canto de Dallarian! Esta coroa é para o maior explorador do reino.'},
+ {id:'pera',de:'Dona Pera',t:'Javalis no pomar',d:'Derrote 5 javalis.',tipo:'kill',alvo:['javali'],n:5,ouro:30,art:'coracao_carvalho',fim:'Minhas maçãs estão salvas! Leve uma… e isto aqui também.'},
+ {id:'zeca',de:'Pescador Zeca',t:'Rede roubada',d:'Derrote 5 lodosos.',tipo:'kill',alvo:['sapo_guerreiro','sapo_pescador','sapo_xama'],n:5,ouro:35,art:'escama_lodoso',fim:'Minha rede de volta! Achei essa escama brilhante nela.'},
+ {id:'dora',de:'Fazendeira Dora',t:'Colheita em perigo',d:'Derrote 6 javalis.',tipo:'kill',alvo:['javali'],n:6,ouro:40,pocoes:2,fim:'A colheita está salva! Leve umas poções para a estrada.'},
+ {id:'mare',de:'Capitã Maré',t:'Carta para o farol',d:'Leve minha carta ao Faroleiro Ivo, no Cabo do Farol, ao sul da praia.',tipo:'talk',alvo:'Faroleiro Ivo',n:1,ouro:40,pocoes:2,fim:'O Ivo recebeu? Ótimo, os navios vão chegar em segurança.'},
+ {id:'ivo',de:'Faroleiro Ivo',t:'Lodosos na praia',d:'Derrote 5 lodosos na Praia das Conchas e no cabo.',tipo:'kill',alvo:['sapo_guerreiro','sapo_pescador'],n:5,ouro:40,art:'escama_lodoso',req:'mare',fim:'A praia é dos caranguejos de novo! Obrigado.'},
+ {id:'grao',de:'Tico',t:'O Grão-Lodoso',d:'O chefe dos lodosos vive na Aldeia dos Lodosos, ao sul do Campo dos Javalis. Derrote-o!',tipo:'boss',alvo:'Grão-Lodoso',n:1,ouro:120,art:'reliquia_luz',req:'lodosos',fim:'VOCÊ DERROTOU O GRÃO-LODOSO?! Vou contar pra vila inteira!'},
+ {id:'rui',de:'Lenhador Rui',t:'Matilha escura',d:'Derrote 6 lobos pretos.',tipo:'kill',alvo:['lobo_preto'],n:6,ouro:45,art:'presa_lobo',fim:'Agora dá pra cortar lenha em paz.'},
+ {id:'nina',de:'Herbalista Nina',t:'Ervas raras',d:'Procure ervas no Brejo dos Lodosos, na Toca das Aranhas e no Bosque Sombrio (visite os três).',tipo:'map',alvo:['brejo','toca','bosque_sombrio'],n:3,ouro:30,pocoes:4,art:'chama_eterna',fim:'Que ervas lindas! Fiz poções e uma chama que não apaga, pra você.'},
+ {id:'rainha',de:'Anciã Lia',t:'A Aranha Rainha',d:'A Aranha Rainha vive na Toca das Aranhas, a oeste do Vale dos Cogumelos. Acabe com ela.',tipo:'boss',alvo:'Aranha Rainha',n:1,ouro:120,art:'coracao_carvalho',fim:'Pedravale dorme tranquila hoje graças a você.'},
+ {id:'tiao',de:'Moleiro Tião',t:'O Javali Ancestral',d:'Um javali gigante tomou o Moinho Velho. Derrote-o.',tipo:'boss',alvo:'Javali Ancestral',n:1,ouro:120,art:'olho_javali',fim:'O moinho vai girar de novo! Que herói!'},
+ {id:'golem',de:'Prefeito Otto',t:'O Golem da Clareira',d:'Um Golem de Terra gigante guarda a clareira acima das ruínas, ao norte da floresta. Derrote-o.',tipo:'boss',alvo:'Golem de Terra',n:1,ouro:120,art:'runa_golem',fim:'Você derrotou o Golem?! Dallarian inteira vai saber o seu nome! Aqui, a runa dele é sua.'}];
 const QBY={};QUESTS.forEach(q=>QBY[q.id]=q);
 function qState(id){return(play.q||{})[id]}
 function qOffer(name){return QUESTS.find(q=>q.de===name&&!qState(q.id)&&(!q.req||(qState(q.req)&&qState(q.req).st==='feita')))}
@@ -1035,7 +1145,8 @@ function qEvent(tipo,v){QUESTS.forEach(q=>{const st=qState(q.id);if(!st||st.st!=
  else if(tipo==='talk'&&q.alvo===v)qProgress(q,1);
  else if(tipo==='item'&&q.alvo===v)qProgress(q,1);
  else if(tipo==='map'&&q.alvo.includes(v)){st.vis=st.vis||[];if(!st.vis.includes(v))st.vis.push(v);qProgress(q,st.vis.length)}
- else if(tipo==='estatua')qProgress(q,v)})}
+ else if(tipo==='estatua')qProgress(q,v);
+ else if(tipo==='boss'&&q.alvo===v)qProgress(q,1)})}
 function qStart(q){play.q[q.id]={st:'ativa',c:0};
  if(q.tipo==='item'&&play.items.includes(q.alvo))qProgress(q,1);
  if(q.tipo==='estatua')qProgress(q,play.lit.size);
@@ -1117,7 +1228,7 @@ function ring(x,y,r1,col,T){play.fx.push({k:'ring',x,y,r1,t:T||.4,T:T||.4,c:col}
 function num(x,y,v,col){play.fx.push({k:'num',x,y,t:.9,T:.9,v,c:col||'#ff4a4a'})}
 function slash(x,y,a,col,r){play.fx.push({k:'slash',x,y,a,t:.22,T:.22,c:col,r:r||.9})}
 function hurtEnemy(a,d,fx,fy,kb){const S=play.S||{};d+=S.atk||0;const cr=Math.random()<(S.crit||0);if(cr)d*=2;d=Math.round(d*10)/10;a.hp-=d;a.flash=.25;a.shake=.3;num(a.x,a.y-1.1,cr?d+'!':d,cr?'#ffb020':null);const l=Math.hypot(a.x-fx,a.y-fy)||1;a.kx=(a.x-fx)/l*(kb||7);a.ky=(a.y-fy)/l*(kb||7);
- if(a.hp<=0){play.dead.add(a.key);burst(a.x,a.y-.4,'#fff4d6',14,3);ring(a.x,a.y-.3,.9,'#ffffff');qEvent('kill',a.k);if(a.boss){toast('Você derrotou o '+(a.nm||'chefe')+'!');ring(a.x,a.y-.5,3,'#ffd34a',1);burst(a.x,a.y-.8,'#ffd34a',50,5)}const g=(GOLD[a.k]||2)*(a.boss?4:1);play.gold+=g;num(a.x,a.y-1.7,'+'+g+' ouro','#ffd34a');burst(a.x,a.y-.5,'#ffd34a',8,1.6);items();(DROP[a.k]||[]).some(([id,c])=>{if(Math.random()<c){gainArt(id,a.x,a.y);return true}});if(S.cura&&Math.random()<S.cura&&play.h.hp<play.maxhp){play.h.hp++;hearts();num(play.h.x,play.h.y-1.6,'+1 ♥','#5dff7a')}saveProg()}}
+ if(a.hp<=0){play.dead.add(a.key);burst(a.x,a.y-.4,'#fff4d6',14,3);ring(a.x,a.y-.3,.9,'#ffffff');qEvent('kill',a.k);if(a.boss){qEvent('boss',a.nm);toast('Você derrotou o '+(a.nm||'chefe')+'!');ring(a.x,a.y-.5,3,'#ffd34a',1);burst(a.x,a.y-.8,'#ffd34a',50,5)}const g=(GOLD[a.k]||2)*(a.boss?4:1);play.gold+=g;num(a.x,a.y-1.7,'+'+g+' ouro','#ffd34a');burst(a.x,a.y-.5,'#ffd34a',8,1.6);items();(DROP[a.k]||[]).some(([id,c])=>{if(Math.random()<c){gainArt(id,a.x,a.y);return true}});if(S.cura&&Math.random()<S.cura&&play.h.hp<play.maxhp){play.h.hp++;hearts();num(play.h.x,play.h.y-1.6,'+1 ♥','#5dff7a')}saveProg()}}
 function hitArea(x,y,r,d,kb){let n=0;play.en.forEach(a=>{if(a.hp>0&&Math.hypot(a.x-x,a.y-.3-y)<r+a.r){hurtEnemy(a,d,play.h.x,play.h.y,kb);n++}});play.en=play.en.filter(a=>a.hp>0);return n}
 function hurtHero(d,fx,fy){const h=play.h;if(h.inv>0)return;if(play.S&&play.S.def&&Math.random()<play.S.def){h.inv=.7;num(h.x,h.y-1.5,'Bloqueou!','#9fd3ff');ring(h.x,h.y-.6,.8,'#9fd3ff',.35);const l=Math.hypot(h.x-fx,h.y-fy)||1;h.kx=(h.x-fx)/l*4;h.ky=(h.y-fy)/l*4;return}h.hp-=d;h.inv=1;h.flash=.3;h.shake=.35;num(h.x,h.y-1.4,d,'#ff3030');const l=Math.hypot(h.x-fx,h.y-fy)||1;h.kx=(h.x-fx)/l*8;h.ky=(h.y-fy)/l*8;hearts();
  if(h.hp<=0){play.fading=true;$('fade').style.opacity=1;setTimeout(()=>{h.hp=play.maxhp||6;h.inv=1.5;hearts();if(play.cp){const dm=world.maps[play.cp.m];enterMap(dm,null,[play.cp.x,play.cp.y]);ring(play.h.x,play.h.y-.5,1.4,'#5fd3ff',.8);burst(play.h.x,play.h.y-.6,'#5fd3ff',24,2.5)}else{h.x=play.spawn[0];h.y=play.spawn[1]}$('fade').style.opacity=0;setTimeout(()=>{play.fading=false;say('',play.cp?'Você renasceu na estátua.':'Você desmaiou… e acordou no começo do mapa.')},260)},400)}}
