@@ -131,6 +131,26 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 #btnB{position:absolute;right:118px;bottom:24px;width:70px;height:70px;border-radius:50%;border:3px solid #24407a;background:radial-gradient(circle at 35% 30%,#bcd4ff,#5f8fe8 60%,#2f56b0);color:#0f1d3a;font:800 22px Archivo;box-shadow:0 5px 0 #24407a}
 #btnB.cd{filter:grayscale(.8) brightness(.7)}
 #btnPot{position:absolute;right:196px;bottom:22px;width:56px;height:56px;border-radius:50%;border:3px solid #2a6a3a;background:radial-gradient(circle at 35% 30%,#d4ffd8,#5fcf75 60%,#2e8c48);font-size:22px;box-shadow:0 4px 0 #2a6a3a;display:flex;align-items:center;justify-content:center;gap:1px;flex-direction:column;line-height:1}
+#shop.profile{padding:0;background:radial-gradient(ellipse at 30% 40%,#3a2c22f0,#120d0bf6)}
+.prof{width:100%;height:100%;display:flex;flex-direction:column;color:#f3e3c0;padding:10px 14px;box-sizing:border-box;font-family:Archivo,sans-serif}
+.ptop{display:flex;align-items:center;gap:10px}.plvl{width:46px;height:46px;border-radius:50%;border:4px solid #d8433a;background:#1a1210;display:flex;align-items:center;justify-content:center;font:900 18px Archivo;box-shadow:0 0 0 3px #1a1210}
+.phead{flex:1;display:flex;flex-direction:column;gap:4px}.phead b{font:800 17px Georgia,serif}.phead i,.pbar i{display:block;height:10px;background:#0008;border-radius:2px 8px 8px 2px;overflow:hidden;transform:skewX(-12deg)}.phead u,.pbar u{display:block;height:100%;background:linear-gradient(90deg,#9c1c24,#ff4a4a)}
+.pgold{font:900 20px Archivo;color:#ffd34a;text-shadow:0 2px 0 #000}#shop.profile #shopX{width:42px;height:42px;border-radius:50%;border:2px solid #f3e3c0;background:#0006;color:#f3e3c0;font-size:18px}
+.pbody{flex:1;display:flex;gap:14px;min-height:0;margin-top:14px}.pleft{width:44%;display:flex;flex-direction:column;gap:4px;min-width:0}.pright{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0}
+.phero{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;min-height:0}.phero canvas{height:190px;width:auto;flex:none}.pcol{display:flex;flex-direction:column;gap:12px}
+.pslot{width:46px;height:46px;margin:9px 6px;transform:rotate(45deg);border:3px solid #6a5a4a;background:#1a1210cc;display:flex;align-items:center;justify-content:center;position:relative;border-radius:6px;padding:0}.pslot>*{transform:rotate(-45deg)}.pslot .aic{font-size:26px}.pslot.vazio span{color:#6a5a4a;font-size:22px}
+.pslot.r1{border-color:#c99a4a}.pslot.r2{border-color:#4a8fe8}.pslot.r3{border-color:#b45ae8}.pslot.sel{box-shadow:0 0 0 3px #ff4a4a}
+.plv{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:#1a1210;border:2px solid #c99a4a;font:900 11px Archivo;display:flex;align-items:center;justify-content:center;color:#fff}.plv.r2{border-color:#4a8fe8}.plv.r3{border-color:#b45ae8}
+.pslot .plv{top:-10px;right:auto;left:16px;transform:rotate(-45deg)}
+.pst{display:flex;gap:14px;font-size:13px}.pbar{display:flex;flex-direction:column;gap:2px;font-size:12px}.pbar i{height:7px}
+.ptabs{display:flex;gap:6px;margin-bottom:6px}.ptabs button{padding:6px 16px;border-radius:999px;border:0;background:transparent;color:#f3e3c0;font:800 14px Archivo}.ptabs button.on{background:linear-gradient(90deg,#9c1c24,#e8343f);transform:skewX(-10deg)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;overflow:auto;padding:4px 2px}
+.pcard{position:relative;height:104px;border:3px solid #4a3a2e;background:#1a1210e0;color:#f3e3c0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;border-radius:4px}.pcard.r1{border-color:#8a6a3a}.pcard.r2{border-color:#2f6fd0}.pcard.r3{border-color:#8a3fc8}.pcard.sel{border-color:#ff4a4a;box-shadow:0 0 12px #ff4a4a88}
+.pcard .aic{font-size:36px}.pcard .anm{font:700 11px Archivo;text-align:center;line-height:1.1}.pcard .plv{top:4px;right:4px}.pcard .peq{position:absolute;left:4px;top:4px;font:800 9px Archivo;color:#7dff9a;font-style:normal}.pcard.vazio{opacity:.4;border-style:dashed}.pcard.vazio span{font-size:28px}.pcard.vazio small{font-size:10px}
+.pdet{display:flex;gap:10px;align-items:center;background:#0006;border:2px solid #6a5a4a;border-radius:8px;padding:6px 10px;margin-bottom:6px;font-size:12px}.pdet .aic{font-size:34px}.pdet>div{flex:1}.pdet b{font-size:14px}.rar{font-style:normal;font-size:11px}.rar.r1{color:#e0b060}.rar.r2{color:#6aa8ff}.rar.r3{color:#c88aff}
+.pdet button{min-height:40px;padding:0 16px;border:0;background:linear-gradient(90deg,#9c1c24,#e8343f);color:#fff;font:800 14px Archivo;transform:skewX(-10deg)}
+.ppot{display:flex;gap:12px;align-items:center;background:#0006;border:2px solid #6a5a4a;border-radius:8px;padding:12px;font-size:13px}.ppot .aic{font-size:44px}.pdica{opacity:.6;font-size:11px;margin-top:4px}
+@media (orientation:portrait){.pbody{flex-direction:column;overflow:auto}.pleft{width:100%}.phero canvas{max-height:200px}}
 #hudBtns{position:absolute;left:16px;top:104px;display:flex;gap:8px}#hudBtns button{min-height:38px;padding:0 12px;border-radius:9px;border:2px solid #7a4b2a;background:#f3e3c0;color:#3a2a1e;font:700 14px Archivo;box-shadow:0 3px 0 #0005}
 .art{display:flex;flex-direction:column;align-items:center;justify-content:center;width:86px;height:96px;border-radius:10px;border:3px solid #c9a06a;background:#fff6e0;color:#3a2a1e;padding:4px;position:relative}.art.r2{border-color:#2f6fd0;background:#eaf2ff}.art.r3{border-color:#8a3fc8;background:#f5ebff}.art.sel{box-shadow:0 0 0 3px #e8343f}
 .art .aic{font-size:32px;line-height:1.1}.art .alv{position:absolute;top:3px;right:5px;font:800 11px Archivo;color:#8a5a12}.art .anm{font-size:11px;font-weight:700;text-align:center;line-height:1.1}.art.vazio{border-style:dashed;opacity:.55;font-size:12px}
@@ -182,6 +202,37 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 }
 @media (max-width:600px){.mapname{left:10px;right:auto;transform:none;top:84px;font-size:13px}}
 @media (prefers-reduced-motion:reduce){#toast,#fade{transition:none}}
+
+/* ===== HUD papercraft com cara de Zelda ===== */
+#play{--pap:#fff3d6;--tin:#3a2a1e}
+.hud{display:flex!important;align-items:center;gap:10px;left:14px!important;top:12px!important}
+#hport{width:64px;height:64px;transform:rotate(45deg);background:#e8b33a;border:3px solid var(--pap);box-shadow:3px 4px 0 #0006;outline:2px dashed #ffffff88;outline-offset:-8px;overflow:hidden;flex:none;margin:6px}
+#hport canvas{width:92px;height:92px;transform:rotate(-45deg);margin:-14px}
+.hcol{display:flex;flex-direction:column;gap:5px}
+.hearts svg{width:26px!important;height:24px!important;filter:drop-shadow(0 0 0 var(--pap)) drop-shadow(2px 2px 0 #0006)}
+.hearts svg path{stroke:#fff3d6;stroke-width:2.6}
+.items{background:var(--pap)!important;color:var(--tin)!important;border-radius:3px!important;padding:3px 10px 3px 8px!important;transform:rotate(-1.5deg);box-shadow:2px 3px 0 #0005;font:800 12px Archivo!important;border-left:4px solid #e8b33a;width:max-content}
+.items .gold{color:#a8700e}
+.mapname{background:var(--pap)!important;color:#5a3a1e!important;border:0!important;border-radius:0!important;padding:6px 30px!important;clip-path:polygon(0 0,100% 0,94% 50%,100% 100%,0 100%,6% 50%);font:800 15px Cinzel,Georgia,serif!important;letter-spacing:1px}
+#hudBtns{left:14px!important;top:92px!important}
+#hudBtns button,#btnHero{background:var(--pap)!important;border:0!important;border-radius:3px!important;color:var(--tin)!important;box-shadow:2px 3px 0 #0006!important;outline:2px dashed #c9a06a;outline-offset:-5px;font:800 13px Archivo!important}
+#hudBtns button:nth-child(2){transform:rotate(1.5deg)}#hudBtns button:first-child{transform:rotate(-1deg)}
+#pmini{border:4px solid var(--pap)!important;border-radius:4px!important;box-shadow:3px 4px 0 #0006!important;transform:rotate(1deg)}
+#btnA,#btnB,#btnPot{border-radius:6px!important;transform:rotate(45deg);border:3px solid var(--pap)!important;box-shadow:3px 4px 0 #0006!important;outline:2px dashed #ffffff77;outline-offset:-9px;padding:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#btnA .bi,#btnB .bi,#btnPot .bi{transform:rotate(-45deg);display:flex;flex-direction:column;align-items:center;line-height:1;position:relative;z-index:1}
+#btnA{width:72px!important;height:72px!important;right:34px!important;bottom:34px!important;background:#e8b33a!important;color:#3a2a1e!important;font:900 28px Cinzel,Georgia,serif!important}
+#btnB{width:58px!important;height:58px!important;right:136px!important;bottom:30px!important;background:#2fa39a!important;color:#0d2a28!important;font:900 22px Cinzel,Georgia,serif!important}
+#btnB::after{content:'';position:absolute;inset:-20px;background:conic-gradient(#1d1510cc calc(var(--cd,0)*1turn),transparent 0);transform:rotate(-45deg)}
+#btnB.cd{filter:saturate(.6)}
+#btnPot{width:50px!important;height:50px!important;right:46px!important;bottom:140px!important;background:#e0623a!important;font-size:20px!important;flex-direction:row}
+#btnPot small{color:#fff!important}
+#btnA small,#btnB small{font:800 10px Archivo!important;margin-top:2px}
+#btnHero{top:auto!important;bottom:auto!important}
+@media (orientation:landscape){#btnHero{top:146px!important;right:10px!important;min-height:32px}}
+@media (orientation:portrait){#btnHero{top:170px!important}}
+#joy{background:#fff3d633!important;border:3px dashed #fff3d6aa!important}#knob{background:#fff3d6dd!important;box-shadow:2px 3px 0 #0005}
+#dlg{outline:2px dashed #c9a06a;outline-offset:-8px;box-shadow:4px 6px 0 #0006!important;border-radius:4px!important;border:0!important;background:var(--pap)!important}
+.pbars{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
 </style>
 </head>
 <body data-mt="assets">
@@ -242,17 +293,17 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 
 <div id="play">
  <canvas id="pcv"></canvas>
- <div class="hud"><div class="hearts" id="hearts"></div><div class="items" id="items"></div></div>
+ <div class="hud"><div id="hport"><canvas id="hpc" width="120" height="120"></canvas></div><div class="hcol"><div class="hearts" id="hearts"></div><div class="items" id="items"></div></div></div>
  <div class="mapname" id="pName"></div>
  <canvas id="pmini" width="256" height="192"></canvas>
  <button id="exitPlay">Sair do teste</button>
  <div id="joy"><div id="knob"></div></div>
  <div class="joyhint" id="joyhint">Arraste aqui pra andar</div>
- <button id="btnA">A<small>Ação</small></button>
- <button id="btnB">B<small>Skill</small></button>
+ <button id="btnA"><span class="bi">A<small>Ação</small></span></button>
+ <button id="btnB"><span class="bi">B<small>Skill</small></span></button>
  <button id="btnHero">Herói</button>
  <button id="btnPot">🧪</button>
- <div id="hudBtns"><button id="btnMap">🗺️ Mapa</button><button id="btnBag">🎒 Bolsa</button></div>
+ <div id="hudBtns"><button id="btnMap">🗺️ Mapa</button><button id="btnBag">🛡️ Herói</button></div>
  <div id="shop"></div>
  <div id="rot"><div><div class="rph">📱↻</div><b>Jogue na horizontal</b><p>Vire o celular de lado. Se a tela não girar, ligue a rotação automática do celular.</p><button id="rotFs">Tela cheia na horizontal</button><button id="rotNo">Continuar assim</button></div></div>
  <div id="dlg"></div>
@@ -895,11 +946,11 @@ function stopPlay(){play.on=false;closeShop();saveProg();$('play').classList.rem
 function resizePlay(){const d=Math.min(devicePixelRatio||1,2);pcv.width=innerWidth*d;pcv.height=innerHeight*d;play.dpr=d}
 addEventListener('resize',()=>{if(play.on)resizePlay()});
 $('bPlay').addEventListener('click',startPlay);$('exitPlay').addEventListener('click',stopPlay);
-function heroBtn(){saveProg();$('btnHero').textContent='Herói: '+HEROES[play.hi||0][1]}
+function heroBtn(){saveProg();drawPortrait();$('btnHero').textContent='Herói: '+HEROES[play.hi||0][1]}
 $('btnHero').addEventListener('pointerdown',e=>{e.stopPropagation();play.hi=((play.hi||0)+1)%HEROES.length;heroBtn();burst(play.h.x,play.h.y-.6,'#ffe9a8',14)});
 const HEART=f=>`<svg viewBox="0 0 24 22"><path d="M12 21 2.5 11.5A5.5 5.5 0 0 1 12 4a5.5 5.5 0 0 1 9.5 7.5z" fill="${f?'#e8343f':'#4a2a2e'}" stroke="#2a0d10" stroke-width="2"/></svg>`;
 function hearts(){$('hearts').innerHTML=Array.from({length:play.maxhp||6},(_,i)=>HEART(i<play.h.hp)).join('')}
-function items(){$('items').innerHTML=`<b class="gold">● ${play.gold||0} ouro</b> · Itens: ${play.items.length?esc(play.items.join(', ')):'nenhum'}`;$('btnPot').innerHTML=`🧪<small>${play.pots||0}</small>`}
+function items(){$('items').innerHTML=`<b class="gold">● ${play.gold||0} ouro</b> · Itens: ${play.items.length?esc(play.items.join(', ')):'nenhum'}`;$('btnPot').innerHTML=`<span class="bi">🧪<small>${play.pots||0}</small></span>`}
 const GOLD={lobo:3,lobo_preto:5,lobo_branco:7,javali:4,aranha:3,rato_mineiro:2,golem:15,sapo_guerreiro:3,sapo_pescador:3,sapo_xama:4,sapo_chefe:20,slime:1};
 const SHOPS={
  pocoes:{t:'Bênçãos da igreja',it:[
@@ -919,7 +970,7 @@ const ARTS={
  reliquia_luz:{n:'Relíquia da Luz',ic:'✨',st:'cura',v:.08,r:2,d:'Cura ao derrotar'},
  runa_golem:{n:'Runa do Golem',ic:'🪨',st:'atk',v:.3,st2:'def',v2:.04,r:3,d:'Dano e bloqueio'},
  coroa_altamar:{n:'Coroa de Altamar',ic:'👑',st:'atk',v:.3,st2:'crit',v2:.04,r:3,d:'Dano e crítico'}};
-const RAR=['','Comum','Raro','Épico'],RARC=['','#7a6a50','#2f6fd0','#8a3fc8'],MAXLV=5,SLOTS=4;
+const RAR=['','Comum','Raro','Épico'],RARC=['','#7a6a50','#2f6fd0','#8a3fc8'],MAXLV=5,SLOTS=6;
 const DROP={lobo:[['presa_lobo',.1]],lobo_preto:[['presa_lobo',.15],['pena_vento',.05]],lobo_branco:[['presa_lobo',.3],['pena_vento',.15]],javali:[['olho_javali',.1],['coracao_carvalho',.05]],
  sapo_guerreiro:[['escama_lodoso',.12]],sapo_pescador:[['escama_lodoso',.12]],sapo_xama:[['chama_eterna',.15],['escama_lodoso',.1]],sapo_chefe:[['reliquia_luz',.5]],aranha:[['pena_vento',.1]],rato_mineiro:[['coracao_carvalho',.06]],golem:[['runa_golem',.4]]};
 const STATN={atk:'Dano',def:'Bloqueio',vida:'Vida',crit:'Crítico',vel:'Velocidade',rec:'Recarga',cura:'Cura ao derrotar'};
@@ -937,20 +988,26 @@ function gainArt(id,x,y){const a=ARTS[id];const lv=play.arts[id]||0;
 const SAVEK='dallarian-papel-save';
 function saveProg(){try{localStorage.setItem(SAVEK,JSON.stringify({gold:play.gold,pots:play.pots,arts:play.arts,eq:play.eq,hi:play.hi||0}))}catch(e){}}
 function loadProg(){let d=null;try{d=JSON.parse(localStorage.getItem(SAVEK))}catch(e){}if(d){play.gold=d.gold||0;play.pots=d.pots??1;play.arts=d.arts||{};play.eq=(d.eq||[]).filter(id=>ARTS[id]&&play.arts[id]);if(d.hi!=null)play.hi=d.hi}applyStats()}
-/* bolsa de artefatos */
-function openBag(sel){if(!play.on)return;play.dlg=3;const el=$('shop'),S=stats();
- const card=(id,eq)=>{const a=ARTS[id],lv=play.arts[id],o=artVal(id,lv);return`<button class="art r${a.r}${sel===id?' sel':''}" data-a="${id}"><span class="aic">${a.ic}</span><span class="alv">Nv ${lv}</span><span class="anm">${esc(a.n)}</span></button>`};
- const slots=Array.from({length:SLOTS},(_,i)=>play.eq[i]?card(play.eq[i],1):'<div class="art vazio">vazio</div>').join('');
- const bag=Object.keys(play.arts).filter(id=>!play.eq.includes(id));
- let det='';if(sel&&play.arts[sel]){const a=ARTS[sel],lv=play.arts[sel],o=artVal(sel,lv),isEq=play.eq.includes(sel);
-  det=`<div class="adet"><span class="aic big">${a.ic}</span><div><b>${esc(a.n)}</b> <i style="color:${RARC[a.r]}">${RAR[a.r]}</i><br>Nível ${lv}/${MAXLV} · ${Object.entries(o).map(([k,v])=>STATN[k]+' '+fmtStat(k,v)).join(' · ')}<br><small>No próximo nível: ${lv<MAXLV?Object.entries(artVal(sel,lv+1)).map(([k,v])=>STATN[k]+' '+fmtStat(k,v)).join(' · '):'máximo'}</small></div>
-  <button id="bagEq">${isEq?'Tirar':'Equipar'}</button></div>`}
- el.innerHTML=`<div class="shead"><div><b>Bolsa de artefatos</b><span>Equipe até ${SLOTS}. Achar um repetido sobe o nível.</span></div><b class="gold">● ${play.gold} ouro</b><button id="shopX">Fechar</button></div>
- <div class="slist"><div class="stats">${['atk','def','vida','crit','vel','rec','cura'].map(k=>`<span>${STATN[k]} <b>${fmtStat(k,S[k])}</b></span>`).join('')}</div>
- <h4>Equipados</h4><div class="agrid2">${slots}</div>${det}<h4>Na bolsa</h4><div class="agrid2">${bag.length?bag.map(id=>card(id)).join(''):'<small>Nenhum. Monstros soltam artefatos e o Ferreiro Duran vende.</small>'}</div>
- <h4>Poções</h4><small>🧪 ${play.pots} poções de cura (botão verde na tela)</small></div>`;
- el.style.display='flex';$('shopX').onclick=e=>{e.stopPropagation();closeShop()};
- el.querySelectorAll('.art[data-a]').forEach(b=>b.onclick=e=>{e.stopPropagation();openBag(b.dataset.a)});
+function drawPortrait(){const c=$('hpc');if(!c||!ART.ok)return;const g=c.getContext('2d'),hk=heroKey(),f=ART.cat.sprites[hk].f[0],src=artCanvas(hk,0);g.clearRect(0,0,120,120);const cw=f[3]*.8,ch=f[4]*.42,k=120/Math.max(cw,ch);g.drawImage(src,f[3]*.1,0,cw,ch,60-cw*k/2,8,cw*k,ch*k)}
+/* perfil do herói: herói no meio, 3 espaços de cada lado, bolsa à direita */
+function openBag(sel,tab){if(!play.on)return;play.dlg=3;tab=tab||play.bagTab||'art';play.bagTab=tab;const el=$('shop'),S=stats(),hk=heroKey(),hn=HEROES[play.hi||0][1];
+ const slot=i=>{const id=play.eq[i];if(!id)return`<button class="pslot vazio" data-s="${i}"><span>＋</span></button>`;const a=ARTS[id];return`<button class="pslot r${a.r}${sel===id?' sel':''}" data-a="${id}"><span class="aic">${a.ic}</span><b class="plv r${a.r}">${play.arts[id]}</b></button>`};
+ const ids=Object.keys(play.arts);
+ const card=id=>{const a=ARTS[id],isEq=play.eq.includes(id);return`<button class="pcard r${a.r}${sel===id?' sel':''}${isEq?' eq':''}" data-a="${id}"><b class="plv r${a.r}">${play.arts[id]}</b><span class="aic">${a.ic}</span><span class="anm">${esc(a.n)}</span>${isEq?'<i class="peq">equipado</i>':''}</button>`};
+ let det='';if(sel&&play.arts[sel]){const a=ARTS[sel],lv=play.arts[sel],isEq=play.eq.includes(sel);
+  det=`<div class="pdet"><span class="aic">${a.ic}</span><div><b>${esc(a.n)}</b> <i class="rar r${a.r}">${RAR[a.r]} · Nv ${lv}/${MAXLV}</i><br>${Object.entries(artVal(sel,lv)).map(([k,v])=>STATN[k]+' '+fmtStat(k,v)).join(' · ')}${lv<MAXLV?'<br><small>Nv '+(lv+1)+': '+Object.entries(artVal(sel,lv+1)).map(([k,v])=>STATN[k]+' '+fmtStat(k,v)).join(' · ')+'</small>':''}</div><button id="bagEq">${isEq?'Tirar':'Equipar'}</button></div>`}
+ const bar=(k,max)=>`<div class="pbar"><span>${STATN[k]} <b>${fmtStat(k,S[k])}</b></span><i><u style="width:${Math.min(100,S[k]/max*100)}%"></u></i></div>`;
+ const right=tab==='art'?`<div class="pgrid">${ids.length?ids.map(card).join(''):''}${Array.from({length:Math.max(0,8-ids.length)},()=>'<div class="pcard vazio"><span>?</span><small>Derrote monstros</small></div>').join('')}</div>`
+  :`<div class="ppot"><span class="aic">🧪</span><div><b>Poção de cura</b><br>Você tem <b>${play.pots}</b>. Recupera 3 corações (botão verde na tela). A Irmã Clara vende na igreja.</div></div>`;
+ el.innerHTML=`<div class="prof"><div class="ptop"><div class="plvl">${Object.values(play.arts).reduce((a,b)=>a+b,0)}</div><div class="phead"><b>${esc(hn)}</b><i><u style="width:${play.h.hp/play.maxhp*100}%"></u></i></div><div class="pgold">● ${play.gold}</div><button id="shopX">✕</button></div>
+ <div class="pbody"><div class="pleft"><div class="phero"><div class="pcol">${slot(0)}${slot(1)}${slot(2)}</div><canvas id="phc" width="220" height="300"></canvas><div class="pcol">${slot(3)}${slot(4)}${slot(5)}</div></div>
+  <div class="pst"><span>♥ Vida: <b>${play.h.hp}/${play.maxhp}</b></span><span>🧪 <b>${play.pots}</b></span></div><div class="pbars">${bar('atk',3)}${bar('def',.6)}${bar('crit',.6)}${bar('vel',.5)}${bar('rec',.6)}${bar('cura',.6)}</div></div>
+ <div class="pright"><div class="ptabs"><button class="${tab==='art'?'on':''}" data-t="art">Artefatos</button><button class="${tab==='pot'?'on':''}" data-t="pot">Poções</button></div>${det}${right}<small class="pdica">Toque num artefato para equipar. Achar um repetido sobe o nível; o Ferreiro Duran também aprimora.</small></div></div></div>`;
+ el.style.display='flex';el.classList.add('profile');$('shopX').onclick=e=>{e.stopPropagation();closeShop()};
+ const c=$('phc'),g=c.getContext('2d');if(ART.ok){const sp=ART.cat.sprites[hk],f=sp.f[0],k=Math.min(200/f[3],290/f[4]);const hc=artCanvas(hk,0);g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(110,292,70,10,0,0,P2);g.fill();g.drawImage(hc,110-f[3]*k/2,295-f[4]*k,f[3]*k,f[4]*k)}
+ el.querySelectorAll('[data-a]').forEach(b=>b.onclick=e=>{e.stopPropagation();openBag(b.dataset.a)});
+ el.querySelectorAll('.pslot.vazio').forEach(b=>b.onclick=e=>{e.stopPropagation();toast(ids.length>play.eq.length?'Toque num artefato da direita para equipar':'Sem artefatos sobrando: derrote monstros ou fale com o Ferreiro Duran')});
+ el.querySelectorAll('[data-t]').forEach(b=>b.onclick=e=>{e.stopPropagation();openBag(sel,b.dataset.t)});
  const be=$('bagEq');if(be)be.onclick=e=>{e.stopPropagation();const i=play.eq.indexOf(sel);if(i>=0)play.eq.splice(i,1);else{if(play.eq.length>=SLOTS){toast('Todos os espaços cheios: tire um artefato antes');return}play.eq.push(sel)}applyStats();saveProg();openBag(sel)}}
 /* mapa grande */
 function openMap(){if(!play.on)return;play.dlg=4;const m=play.m,h=play.h,el=$('shop');
@@ -968,7 +1025,7 @@ function openShop(o){const S=SHOPS[o.loja];if(!S)return;if(S.art){openArtShop(o)
  el.style.display='flex';$('shopX').onclick=e=>{e.stopPropagation();closeShop()};
  el.querySelectorAll('.sit').forEach(b=>b.onclick=e=>{e.stopPropagation();const it=S.it.find(q=>q.id===b.dataset.i);if(b.classList.contains('off'))return;if(play.gold<it.p){toast('Ouro insuficiente: derrote monstros e abra baús');return}
   play.gold-=it.p;it.go();items();saveProg();toast('Comprou: '+it.n);openShop(o)})}
-function closeShop(){$('shop').style.display='none';play.dlg=null;play.shop=null;saveProg()}
+function closeShop(){$('shop').style.display='none';$('shop').classList.remove('profile');play.dlg=null;play.shop=null;saveProg()}
 const ARTSHOP=['presa_lobo','escama_lodoso','coracao_carvalho','olho_javali','pena_vento','chama_eterna'];
 function openArtShop(o){play.dlg=2;play.shop=o;const el=$('shop');const price=id=>40*ARTS[id].r;
  const row=(id)=>{const a=ARTS[id],lv=play.arts[id]||0;let lab,act,cost;if(!lv){cost=price(id);lab=cost+' ouro';act='buy'}else if(lv<MAXLV){cost=upCost(id,lv);lab=`Nv ${lv}→${lv+1}: ${cost} ouro`;act='up'}else{lab='Nível máximo';act=''}
@@ -1011,7 +1068,7 @@ function skill(){const h=play.h,k=heroKey();if(h.cd>0)return;const fx=h.fx,fy=h.
  else if(k==='maga'){h.cd=3;play.pr.push({x:h.x+fx*.5,y:h.y-.5+fy*.5,vx:fx*7,vy:fy*7,r:.35,d:3,life:1,c:'#ff5a1a',big:1})}
  else{h.cd=3;h.dash=.22;h.dx=fx;h.dy=fy;h.inv=Math.max(h.inv,.35)}
  refreshB()}
-function refreshB(){$('btnB').classList.toggle('cd',play.h.cd>0);$('btnB').querySelector('small').textContent=play.h.cd>0?Math.ceil(play.h.cd)+'s':{paladino:'Martelo',sacerdotisa:'Luz',maga:'Fogo',duelista:'Investida'}[heroKey()]}
+function refreshB(){const cd=play.h.cd;if(cd>0&&(!play.cdMax||cd>play.cdMax))play.cdMax=cd;if(cd<=0)play.cdMax=0;$('btnB').style.setProperty('--cd',cd>0?cd/play.cdMax:0);$('btnB').classList.toggle('cd',cd>0);$('btnB').querySelector('small').textContent=play.h.cd>0?Math.ceil(play.h.cd)+'s':{paladino:'Martelo',sacerdotisa:'Luz',maga:'Fogo',duelista:'Investida'}[heroKey()]}
 function actionA(){if(!play.on)return;if(play.shop||play.dlg>=3){closeShop();return}if(play.dlg){closeDlg();return}if(play.fading)return;const h=play.h,m=play.m;
  const nn=play.npcs.map(n=>({n,d:Math.hypot(n.x-h.x,n.y-h.y)})).sort((a,b)=>a.d-b.d)[0];
  if(nn&&nn.d<1.5){if(nn.n.o.loja&&SHOPS[nn.n.o.loja]){if(play.shopTalk!==nn.n.o){play.shopTalk=nn.n.o;say(nn.n.o.name,nn.n.o.fala||'Dá uma olhada!');play.pendingShop=nn.n.o;return}}say(nn.n.o.name,nn.n.o.fala||'…');return}
