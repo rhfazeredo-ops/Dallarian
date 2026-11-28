@@ -274,6 +274,7 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 
 #hsel .tbg{background:url(art/castelo.webp) center/cover,#3a2a1e}
 .tlink{border:0;background:none;color:#7a4b2a;font:700 12px Archivo;text-decoration:underline;padding:2px}.gbtn{background:#fff!important}.gbtn b{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#4285f4;color:#fff;align-items:center;justify-content:center;font:900 14px Arial;margin-right:6px}.mnu{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px!important}
+#pmini{top:8px!important;right:8px!important}#exitPlay{right:116px!important;top:8px!important}#btnHero{top:88px!important;bottom:auto!important;right:8px!important}
 #app{display:none!important}html,body{background:#1d2a14}
 </style>
 </head>
@@ -1337,8 +1338,54 @@ function openArtShop(o){play.dlg=2;play.shop=o;const el=$('shop');const price=id
   play.gold-=c;gainArt(id);openArtShop(o)})}
 function drinkPot(){if(!play.on||play.fading)return;const h=play.h;if(!play.pots){toast('Sem poções. A Irmã Clara vende na igreja.');return}if(h.hp>=play.maxhp){toast('Seus corações já estão cheios');return}
  play.pots--;h.hp=Math.min(play.maxhp,h.hp+3);hearts();items();saveProg();burst(h.x,h.y-.8,'#7dff9a',18,1.8);ring(h.x,h.y-.4,1,'#7dff9a',.5);num(h.x,h.y-1.6,'+3','#5dff7a')}
-function say(name,text){play.dlg=1;const d=$('dlg');d.innerHTML=(name?`<b>${esc(name)}</b>`:'')+esc(text)+'<small>toque pra continuar ▸</small>';d.style.display='block'}
-function closeDlg(){play.dlg=null;$('dlg').style.display='none';if(play.pendingShop){const o=play.pendingShop;play.pendingShop=null;play.shopTalk=null;openShop(o)}}
+/* ================= falas dos NPCs ================= */
+// conversas: cada item é uma conversa (as páginas são separadas por |); a cada vez que fala, muda.
+// baloes: frases curtas que aparecem em cima da cabeça quando o herói passa perto.
+const FALAS={
+ 'Marta':{c:['Bem-vindo à Vila de Aldren!|Siga a estrada pro leste e você chega na Cidade de Dallarian.','A Vovó Íris mora comigo, na casa perto do poço.|Ela adora visita, viu?','Dizem que a estátua do anjo protege quem acende a chama azul.|Toque nela quando passar perto.'],b:['Que dia bonito!','Já visitou a Vovó?','Cuidado lá fora!']},
+ 'Bento':{c:['Pão quentinho e maçã do pomar!|Poções? A Irmã Clara vende na igreja.|Artefatos? Só com o Ferreiro Duran.','O pomar fica pro sudoeste, depois do Campo dos Javalis.|Mas os javalis comem tudo antes de mim!'],b:['Pão quentinho!','Olha a maçã!','Fresquinho!']},
+ 'Capitão Ulric':{c:['A caverna ao norte está trancada.|Dizem que a chave está num baú em Dallarian.','A guarda expulsou os lodosos da vila.|Agora eles vivem no Brejo, no sudoeste.','Um bom soldado sempre acende as estátuas.|É ali que você volta quando cai.'],b:['Atenção, recruta!','Tudo em ordem.','Fique alerta.']},
+ 'Tico':{c:['Os lodosos moram no Brejo dos Lodosos!|É depois do Campo dos Javalis.','Pra oeste fica a Pradaria dos Lobos.|Eu nunca fui… dá medo!','Um dia eu vou ter uma espada igual à sua!'],b:['Ei, herói!','Me leva junto?','Olha o sapinho!']},
+ 'Irmã Clara':{c:['A Luz te proteja, viajante.|Tenho poções de cura e bênçãos.','As estátuas do anjo foram feitas pelos primeiros reis.|Cada chama acesa é uma esperança.'],b:['A Luz te guie.','Paz, viajante.']},
+ 'Ferreiro Duran':{c:['Espada e escudo qualquer um forja.|Eu trabalho com artefatos.|Eles deixam o herói mais forte, e eu subo o nível deles na bigorna.','Traga ouro que eu aprimoro qualquer artefato seu.|Até o nível 5!'],b:['*clang* *clang*','Forja quente!']},
+ 'Cavalariço Léo':{c:['Os cavalos estão descansando.|Logo dá pra montar e atravessar o reino!','O alazão é o mais rápido.|Mas o baio é o mais teimoso, hehe.'],b:['Calma, garoto…','Hora do feno!']},
+ 'Vovó Íris':{c:['Entre, querido!|A Marta saiu pra vila.|Pode levar o mapa do baú, ele mostra o caminho pra Altamar.','Quando eu era moça, o Golem ainda dormia.|Agora o chão da clareira treme todo dia…'],b:['Quer um chá?','Que visita boa!']},
+ 'Taberneira Rosa':{c:['Senta aí! A sopa de hoje é de abóbora.|Também vendo poções pra estrada.','Ouvi dizer que tem um javali gigante no Moinho Velho.|O moleiro não dorme mais.'],b:['Mais uma rodada?','Sopa quentinha!']},
+ 'Bardo Fino':{c:['♪ Canto a lenda do herói…|…que acendeu as estátuas do reino ♪','♪ Lobo Rei no planalto, Grão-Lodoso no brejo ♪|♪ Quem vencer os dois terá a coroa que eu desejo ♪'],b:['♪ Lá-lá-lá ♪','♪ Ô herói! ♪']},
+ 'Prefeito Otto':{c:['Bem-vindo a Dallarian!|Temos missões no quadro de avisos.','O Golem da clareira assusta todo mundo.|Quem derrotá-lo terá a gratidão da cidade.'],b:['Ordem e progresso!','Bom dia, cidadão.']},
+ 'Dona Lúcia':{c:['Tecidos de Altamar, especiarias do Porto!|O Porto fica descendo a Estrada Real.'],b:['Tecido fino!','Especiarias!']},
+ 'Sentinela Bruna':{c:['Bem-vindo a Dallarian!|O baú do tesouro da cidade fica no lado leste.','As aranhas de musgo estão por toda parte.|Cuidado nas Ruínas do Norte.'],b:['Alto lá!','Passe, viajante.']},
+ 'Joana':{c:['Dizem que a caverna da floresta esconde uma espada antiga.','Meu sonho é ver o mar do Porto de Altamar.'],b:['Oi!','Lindo dia.']},
+ 'Caçadora Nara':{c:['A pradaria é dos lobos.|Eles andam em matilha, e o lobo branco é o líder.','Lá no Planalto dos Ventos vive o Lobo Rei.|Só vá quando estiver forte.'],b:['Shh… ouviu isso?','Lobos por perto.']},
+ 'Fazendeiro Brás':{c:['Os javalis destruíram minha plantação inteira!|Se você der conta deles, a vila agradece.'],b:['Minhas abóboras!','Malditos javalis!']},
+ 'Pescador Juca':{c:['Os lodosos moravam aqui no rio.|A guarda expulsou todos pro Brejo dos Lodosos.'],b:['Peixe bom hoje.','Fisgou!']},
+ 'Pescador Zeca':{c:['Peixe bom aqui, mas os lodosos roubam a rede.'],b:['Cadê minha rede?','Peixão!']},
+ 'Contador Ábaco':{c:['Estas ruínas são de antes do reino.|Cada pedra tem uma história.'],b:['Hmm, interessante…','Pedras antigas.']},
+ 'Druida Elmo':{c:['Os pinheiros sussurram.|Algo os deixa doentes…'],b:['Ouça a floresta.','A natureza chora.']},
+ 'Mineiro Bóris':{c:['Minério bom nessas pedras, se os ratos deixarem.'],b:['Picareta firme!','Ratos malditos!']},
+ 'Pastora Sol':{c:['Minhas ovelhas não podem sair do pasto com tanto lobo por aí.'],b:['Méééé!','Venham, ovelhinhas!']},
+ 'Guarda Tomás':{c:['A Estrada Real liga a cidade ao porto e às montanhas.'],b:['Estrada segura.','Siga em frente.']},
+ 'Mensageiro Pio':{c:['Levo cartas pelo continente inteiro!|Conheço as 25 regiões… você conhece?'],b:['Correspondência!','Com licença, pressa!']},
+ 'Dona Pera':{c:['As maçãs deste ano estão lindas, mas os javalis comem tudo!'],b:['Maçã madura!','Xô, javali!']},
+ 'Fazendeira Dora':{c:['Bem-vindo às fazendas!|Aqui se planta o pão do reino.'],b:['Colheita boa!','Muito trabalho hoje.']},
+ 'Capitã Maré':{c:['Navios de todo o mar chegam a Altamar.'],b:['Maré alta!','Ancorar!']},
+ 'Irmã Lena':{c:['Poções para a viagem, marujo?'],b:['A Luz te guie.']},
+ 'Mercador Ísio':{c:['Artefatos de terras distantes!|Dê uma olhada.'],b:['Ofertas raras!','Só hoje!']},
+ 'Lenhador Rui':{c:['Não se perca no bosque.|Os lobos pretos caçam à noite.'],b:['Tóc, tóc, tóc.','Madeira boa.']},
+ 'Herbalista Nina':{c:['Cogumelo azul cura, cogumelo vermelho…|…melhor nem saber.'],b:['Ervas frescas!','Hmm, que cheiro.']},
+ 'Anciã Lia':{c:['Pedravale é pequena, mas tem coração grande.'],b:['Bem-vindo, jovem.']},
+ 'Irmã Rosa':{c:['Que a Luz cure suas feridas.|Tenho poções.'],b:['A Luz te guie.']},
+ 'Ferreira Gema':{c:['Artefatos bem forjados e aprimorados aqui!'],b:['*clang*','Forja acesa!']},
+ 'Menino Davi':{c:['Um dia eu vou ser herói igual você!'],b:['Herói!','Olha eu aqui!']},
+ 'Clara Flor':{c:['As flores de Pedravale são as mais bonitas do sul.'],b:['Que perfume!']},
+ 'Moleiro Tião':{c:['O moinho parou desde que aquele javali enorme apareceu.'],b:['Meu moinho…']},
+ 'Faroleiro Ivo':{c:['Do alto do cabo eu vejo o continente inteiro.'],b:['Navio à vista!','Vento forte hoje.']}};
+const BALAO_GEN=['Olá!','Bom dia!','Cuidado lá fora.','Que calor.','Oi, viajante!'];
+function falaDe(o){const F=FALAS[o.name];if(!F)return o.fala||'…';play.talkN=play.talkN||{};const k=o.name,n=play.talkN[k]||0;play.talkN[k]=n+1;return F.c[n%F.c.length]}
+function balaoDe(o){const F=FALAS[o.name];const L=F&&F.b||BALAO_GEN;return L[Math.floor(Math.random()*L.length)]}
+
+function say(name,text){const pg=String(text).split('|');play.dlgQ=pg.slice(1);play.dlgN=name;play.dlg=1;const d=$('dlg');d.innerHTML=(name?`<b>${esc(name)}</b>`:'')+esc(pg[0])+`<small>${pg.length>1?'toque pra continuar ▸':'toque pra fechar'}</small>`;d.style.display='block'}
+function closeDlg(){if(play.dlgQ&&play.dlgQ.length){say(play.dlgN,play.dlgQ.join('|'));return}play.dlg=null;$('dlg').style.display='none';if(play.pendingShop){const o=play.pendingShop;play.pendingShop=null;play.shopTalk=null;openShop(o)}}
 $('dlg').addEventListener('pointerdown',e=>{e.stopPropagation();closeDlg()});
 const pcell=(x,y)=>{const m=play.m,X=Math.floor(x),Y=Math.floor(y);return!inb(m,X,Y)||play.bl[Y*m.w+X]};
 const elevAt=(x,y)=>{const m=play.m,X=Math.floor(x),Y=Math.floor(y);return inb(m,X,Y)?play.el[Y*m.w+X]:0};
@@ -1373,7 +1420,7 @@ function skill(){const h=play.h,k=heroKey();if(h.cd>0)return;const fx=h.fx,fy=h.
 function refreshB(){const cd=play.h.cd;if(cd>0&&(!play.cdMax||cd>play.cdMax))play.cdMax=cd;if(cd<=0)play.cdMax=0;$('btnB').style.setProperty('--cd',cd>0?cd/play.cdMax:0);$('btnB').classList.toggle('cd',cd>0);$('btnB').querySelector('small').textContent=play.h.cd>0?Math.ceil(play.h.cd)+'s':{paladino:'Martelo',sacerdotisa:'Luz',maga:'Fogo',duelista:'Investida'}[heroKey()]}
 function actionA(){if(!play.on)return;if(play.shop||play.dlg>=3){closeShop();return}if(play.dlg){closeDlg();return}if(play.fading)return;const h=play.h,m=play.m;
  const nn=play.npcs.map(n=>({n,d:Math.hypot(n.x-h.x,n.y-h.y)})).sort((a,b)=>a.d-b.d)[0];
- if(nn&&nn.d<1.5){qEvent('talk',nn.n.o.name);if(qTalk(nn.n.o))return;if(nn.n.o.loja&&SHOPS[nn.n.o.loja]){if(play.shopTalk!==nn.n.o){play.shopTalk=nn.n.o;say(nn.n.o.name,nn.n.o.fala||'Dá uma olhada!');play.pendingShop=nn.n.o;return}}say(nn.n.o.name,nn.n.o.fala||'…');return}
+ if(nn&&nn.d<1.5){qEvent('talk',nn.n.o.name);if(qTalk(nn.n.o))return;if(nn.n.o.loja&&SHOPS[nn.n.o.loja]){if(play.shopTalk!==nn.n.o){play.shopTalk=nn.n.o;say(nn.n.o.name,falaDe(nn.n.o));play.pendingShop=nn.n.o;return}}say(nn.n.o.name,falaDe(nn.n.o));nn.n.bt=0;return}
  const ch=m.o.filter(o=>TY[o.k]&&TY[o.k].chest&&!play.opened.has(m.id+':'+o.id)).map(o=>({o,d:Math.hypot(o.x+.5-h.x,o.y+.7-h.y)})).sort((a,b)=>a.d-b.d)[0];
  if(ch&&ch.d<1.45){const o=ch.o;play.opened.add(m.id+':'+o.id);const gm=o.item&&/^(\d+)\s*moedas?$/i.exec(o.item.trim());const ga=o.item&&Object.keys(ARTS).find(id=>ARTS[id].n.toLowerCase()===o.item.trim().toLowerCase());if(ga){gainArt(ga,o.x+.5,o.y+.5)}else if(gm){play.gold+=+gm[1];saveProg()}else if(o.item){play.items.push(o.item);qEvent('item',o.item)}if(/poç/i.test(o.item||'')){play.pots++;play.items.pop()}items();burst(o.x+.5,o.y+.3,'#ffe46a',16,2);say('',`Você abriu o baú e encontrou: ${o.item||'nada'}!`);return}
  attack()}
@@ -1418,7 +1465,7 @@ function playStep(dt){const h=play.h,m=play.m;
    if(c.fly>0){c.fly-=dt;c.x+=c.dx*dt*1.4;c.y+=c.dy*dt*1.4;if(c.fly<=0){c.x=c.hx;c.y=c.hy}}
    else moveEnt(c,c.dx*dt,c.dy*dt,.15);
    c.mv=Math.hypot(c.dx,c.dy)>.1;if(c.mv)c.dir=dirOf(c.dx,c.dy);c.ph+=dt*(c.mv?14:2)});
-  play.npcs.forEach(n=>{const d=Math.hypot(h.x-n.x,h.y-n.y);n.ph+=dt*2;n.dir=d<3?dirOf(h.x-n.x,h.y-n.y):0});
+  play.npcs.forEach(n=>{const d=Math.hypot(h.x-n.x,h.y-n.y);n.ph+=dt*2;n.dir=d<3?dirOf(h.x-n.x,h.y-n.y):0;n.bt=Math.max(0,(n.bt||0)-dt);n.cd=Math.max(0,(n.cd||0)-dt);if(d<3.2&&!n.cd&&!play.dlg){n.bal=balaoDe(n.o);n.bt=3.2;n.cd=14+Math.random()*6}});
   play.pr.forEach(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(Math.random()<.6)play.fx.push({k:'p',x:p.x,y:p.y,vx:(Math.random()-.5),vy:-.5-Math.random(),t:.35,T:.35,c:p.big?'#ffb347':'#ffd27a',r:p.big?.12:.06});
    const hit=play.en.find(a=>a.hp>0&&Math.hypot(a.x-p.x,a.y-.35-p.y)<a.r+p.r);
    if(hit||pcell(p.x,p.y+.4)||p.life<=0){p.life=-1;if(p.big){sfx('fogo_explosao',p.x,p.y,3.4,.55)||ring(p.x,p.y,1.7,'#ff7a2a',.45);burst(p.x,p.y,'#ff9a3a',20,3.5);hitArea(p.x,p.y,1.6,3,9)}else{sfx('fogo_explosao',p.x,p.y,1.3,.35);burst(p.x,p.y,'#ffb347',6,1.2);if(hit)hurtEnemy(hit,p.d,h.x,h.y)}play.en=play.en.filter(a=>a.hp>0)}});
@@ -1439,7 +1486,7 @@ function playDraw(){{const bo=play.en&&play.en.find(a=>a.boss);if(bo)$('bossHp')
  play.en.forEach(a=>extra.push({y:a.y,f:()=>{if(A&&TY[a.k].art){drawCut(pctx,TY[a.k].art,VIEW[a.dir],a.x,a.y,vx,vy,z,{mv:a.mv,ph:a.ph,flash:a.flash,shake:a.shake,s:TY[a.k].s*(a.boss?1.6:1)})}else{pctx.save();if(a.flash>0)pctx.globalAlpha=.5;pctx.translate((a.x-.5-vx)*z,(a.y-.85-vy)*z);pctx.scale(z/U,z/U);dSlime(pctx,U,U,U,T*5+a.t);pctx.restore()}
   if(a.warn>0){pctx.save();pctx.globalAlpha=.25+.35*(1-a.warn/1.1);pctx.fillStyle='#d8433a';pctx.beginPath();pctx.ellipse((a.x-vx)*z,(a.y-vy)*z,2.6*z,1.6*z,0,0,P2);pctx.fill();pctx.globalAlpha=.9;pctx.strokeStyle='#fff3d6';pctx.lineWidth=3;pctx.setLineDash([10,8]);pctx.stroke();pctx.restore()}
   if(a.boss)return;if(a.hp<a.max){pctx.fillStyle='#0008';pctx.fillRect((a.x-.4-vx)*z,(a.y-vy)*z+3,.8*z,5);pctx.fillStyle='#e8343f';pctx.fillRect((a.x-.4-vx)*z,(a.y-vy)*z+3,.8*z*a.hp/a.max,5)}}}));
- if(A){play.npcs.forEach(n=>extra.push({y:n.y,f:()=>{drawCut(pctx,TY[n.k].art,VIEW[n.dir],n.x,n.y,vx,vy,z,{ph:n.ph,s:TY[n.k].s});const mk=qMark(n.o.name);const mkA=ART.ui&&ART.ui.p[mk==='!'?'marca_excl':'marca_interr'];if(mk&&mkA&&mk!=='…'){const t=TY[n.k],hh=artDim(t.art,0)[1]*t.s,sz=z*.62,X=(n.x-vx)*z,Y=(n.y-hh-.4-vy)*z+Math.sin(T*4)*3;pctx.drawImage(ART.ui.im,mkA[0],mkA[1],mkA[2],mkA[3],X-sz/2,Y-sz/2,sz,sz)}else if(mk){const t=TY[n.k],hh=artDim(t.art,0)[1]*t.s,X=(n.x-vx)*z,Y=(n.y-hh-.35-vy)*z+Math.sin(T*4)*3,r=z*.26;pctx.save();pctx.translate(X,Y);pctx.rotate(Math.PI/4);pctx.fillStyle='#0005';pctx.fillRect(-r+3,-r+4,r*2,r*2);pctx.fillStyle=mk==='!'?'#e8b33a':mk==='?'?'#2fa39a':'#b8a890';pctx.strokeStyle='#fff3d6';pctx.lineWidth=3;pctx.fillRect(-r,-r,r*2,r*2);pctx.strokeRect(-r,-r,r*2,r*2);pctx.rotate(-Math.PI/4);pctx.fillStyle='#3a2a1e';pctx.font=`900 ${Math.round(z*.36)}px Georgia,serif`;pctx.textAlign='center';pctx.textBaseline='middle';pctx.fillText(mk,0,1);pctx.restore()}}}));
+ if(A){play.npcs.forEach(n=>{if(n.bt>0)extra.push({y:1e5,f:()=>{const t=TY[n.k],hh=artDim(t.art,0)[1]*t.s,X=(n.x-vx)*z,Y=(n.y-hh-.25-vy)*z;pctx.save();pctx.globalAlpha=Math.min(1,n.bt*3);pctx.font=`700 ${Math.round(Math.max(11,z*.28))}px Archivo,sans-serif`;const tw=pctx.measureText(n.bal).width+16,th=Math.max(20,z*.46);pctx.fillStyle='rgba(0,0,0,.25)';pctx.beginPath();pctx.roundRect(X-tw/2+3,Y-th+3,tw,th,6);pctx.fill();pctx.fillStyle='#fff3d6';pctx.strokeStyle='#3a2a1e';pctx.lineWidth=2;pctx.beginPath();pctx.roundRect(X-tw/2,Y-th,tw,th,6);pctx.fill();pctx.stroke();pctx.beginPath();pctx.moveTo(X-5,Y);pctx.lineTo(X,Y+7);pctx.lineTo(X+5,Y);pctx.fill();pctx.fillStyle='#3a2a1e';pctx.textAlign='center';pctx.textBaseline='middle';pctx.fillText(n.bal,X,Y-th/2);pctx.restore()}});extra.push({y:n.y,f:()=>{drawCut(pctx,TY[n.k].art,VIEW[n.dir],n.x,n.y,vx,vy,z,{ph:n.ph,s:TY[n.k].s});const mk=qMark(n.o.name);const mkA=ART.ui&&ART.ui.p[mk==='!'?'marca_excl':'marca_interr'];if(mk&&mkA&&mk!=='…'){const t=TY[n.k],hh=artDim(t.art,0)[1]*t.s,sz=z*.62,X=(n.x-vx)*z,Y=(n.y-hh-.4-vy)*z+Math.sin(T*4)*3;pctx.drawImage(ART.ui.im,mkA[0],mkA[1],mkA[2],mkA[3],X-sz/2,Y-sz/2,sz,sz)}else if(mk){const t=TY[n.k],hh=artDim(t.art,0)[1]*t.s,X=(n.x-vx)*z,Y=(n.y-hh-.35-vy)*z+Math.sin(T*4)*3,r=z*.26;pctx.save();pctx.translate(X,Y);pctx.rotate(Math.PI/4);pctx.fillStyle='#0005';pctx.fillRect(-r+3,-r+4,r*2,r*2);pctx.fillStyle=mk==='!'?'#e8b33a':mk==='?'?'#2fa39a':'#b8a890';pctx.strokeStyle='#fff3d6';pctx.lineWidth=3;pctx.fillRect(-r,-r,r*2,r*2);pctx.strokeRect(-r,-r,r*2,r*2);pctx.rotate(-Math.PI/4);pctx.fillStyle='#3a2a1e';pctx.font=`900 ${Math.round(z*.36)}px Georgia,serif`;pctx.textAlign='center';pctx.textBaseline='middle';pctx.fillText(mk,0,1);pctx.restore()}}})});
   play.cr.forEach(c=>{const C2=CRIT[c.k]||{},t=TY[c.k];if(!t||!t.art)return;let fi=0,flip=false;
    if(C2.flap){fi=Math.floor(c.ph)%3}else if(c.fly>0&&C2.fly){fi=C2.fly[Math.floor(c.ph/3)%C2.fly.length];flip=c.dx<0}else if(c.mv){if(c.dir>=2){fi=C2.side;flip=C2.R?c.dir===2:c.dir===3}else fi=c.dir===1?C2.back:0}
    extra.push({y:C2.flap||c.fly>0?c.y+3:c.y,f:()=>{if(C2.glow){const gl=pctx.createRadialGradient((c.x-vx)*z,(c.y-.3-vy)*z,0,(c.x-vx)*z,(c.y-.3-vy)*z,z*.6);gl.addColorStop(0,`rgba(255,240,120,${.35+.25*Math.sin(T*6+c.t)})`);gl.addColorStop(1,'rgba(255,240,120,0)');pctx.fillStyle=gl;pctx.fillRect((c.x-.6-vx)*z,(c.y-.9-vy)*z,1.2*z,1.2*z)}
