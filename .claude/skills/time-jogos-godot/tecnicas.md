@@ -944,3 +944,13 @@
   GitHub e copia `papel/jogo/` para o bucket com a service role do próprio Supabase. Quem chamar só sincroniza o main.
 - Horizontal no APK: `android:screenOrientation="sensorLandscape"` na activity (sed no AndroidManifest depois do `cap add`).
 - Chave de assinatura fixa no repositório (`papel/apk/chave-debug.keystore`) por causa da armadilha do cache.
+
+## Jogo 2D em canvas (Dallarian papel) — aprendizados
+- Testar com playwright um jogo cujo script fica dentro de um bloco `{ ... }` (consts não ficam em `window`):
+  no teste, servir o index.html trocando uma linha conhecida por `window.DBG=c=>eval(c);` e chamar
+  `pg.evaluate("DBG(\`enterMap(world.maps.praia)\`)")`. O arquivo publicado não muda.
+- Folha de chão com bordas (3×3 de 128 px, grama por fora): desenhar em quartos de 64 px escolhendo canto/borda/meio
+  pelos vizinhos (auto9) e, nas células com os 8 vizinhos iguais, sortear um ladrilho de preenchimento da linha lisa.
+  Manchas de bioma com a mesma função de ruído e limites crescentes ficam aninhadas (cascalho → neve dentro).
+- Mapa do continente em imagem pronta: posicionar os pinos por % medida na própria arte e esconder as linhas de
+  ligação (a arte já tem as trilhas). Cuidado com seletor `svg{display:none}` — some com os ícones também; usar `>svg`.
