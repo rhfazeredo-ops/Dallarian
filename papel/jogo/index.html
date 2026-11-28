@@ -272,6 +272,8 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 .hcard .tbtn{min-width:0;width:100%;min-height:40px;font-size:15px}.hdel{border:0;background:none;color:#b03a2e;font:700 11px Archivo;text-decoration:underline;padding:2px}
 @media (orientation:portrait){.hsgrid{grid-template-columns:1fr 1fr;overflow:auto}.tlogo{font-size:40px}}
 
+#hsel .tbg{background:url(art/castelo.webp) center/cover,#3a2a1e}
+.tlink{border:0;background:none;color:#7a4b2a;font:700 12px Archivo;text-decoration:underline;padding:2px}.gbtn{background:#fff!important}.gbtn b{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#4285f4;color:#fff;align-items:center;justify-content:center;font:900 14px Arial;margin-right:6px}.mnu{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px!important}
 #app{display:none!important}html,body{background:#1d2a14}
 </style>
 </head>
@@ -555,8 +557,8 @@ const assetName=id=>id.startsWith('T:')?TER[id[2]]:id.startsWith('P:')?PTH[id[2]
 /* ================= arte do ChatGPT ================= */
 const ART={ok:false,pages:[],tiles:null,cat:null,cache:{},ui:null,ic:null};
 function loadArt(){const li=src=>new Promise((ok,no)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>ok(im);im.onerror=no;im.src=src});
- const extra=(j,img,slot)=>fetch(j).then(r=>r.json()).then(d=>li(img).then(im=>{ART[slot]={im,src:img,p:d.p||d,W:im.naturalWidth,H:im.naturalHeight}})).catch(e=>console.warn('sem',img,e));
- return Promise.all([extra('art/icons.json','art/icons.webp','ic'),extra('art/ui.json','art/ui.webp','ui')]).then(()=>fetch('art/catalog.json')).then(r=>r.json()).then(cat=>{ART.cat=cat;return Promise.all([...cat.pages.map(li),li(cat.tiles)]).then(ims=>{ART.tiles=ims.pop();ART.pages=ims;ART.ok=true;applyArt()})}).catch(e=>console.warn('arte não carregou',e))}
+ const itl=li('art/interior.webp').then(im=>{ART.itiles=im}).catch(()=>{});const extra=(j,img,slot)=>fetch(j).then(r=>r.json()).then(d=>li(img).then(im=>{ART[slot]={im,src:img,p:d.p||d,W:im.naturalWidth,H:im.naturalHeight}})).catch(e=>console.warn('sem',img,e));
+ return Promise.all([itl,extra('art/icons.json','art/icons.webp','ic'),extra('art/ui.json','art/ui.webp','ui')]).then(()=>fetch('art/catalog.json')).then(r=>r.json()).then(cat=>{ART.cat=cat;return Promise.all([...cat.pages.map(li),li(cat.tiles)]).then(ims=>{ART.tiles=ims.pop();ART.pages=ims;ART.ok=true;applyArt()})}).catch(e=>console.warn('arte não carregou',e))}
 function artDim(name,i){const sp=ART.cat.sprites[name],f=sp.f[i||0];return[f[3]/sp.ppt,f[4]/sp.ppt]}
 function artCanvas(name,i,mode){i=i||0;const key=name+':'+i+':'+(mode||'');if(ART.cache[key])return ART.cache[key];const f=ART.cat.sprites[name].f[i];const c=document.createElement('canvas');c.width=f[3];c.height=f[4];const g=c.getContext('2d');g.drawImage(ART.pages[f[0]],f[1],f[2],f[3],f[4],0,0,f[3],f[4]);
  if(mode==='grey'){const d=g.getImageData(0,0,c.width,c.height),q=d.data;for(let k=0;k<q.length;k+=4){const l=(q[k]*.3+q[k+1]*.59+q[k+2]*.11)*.8+10;q[k]=q[k+1]=q[k+2]=l}g.putImageData(d,0,0)}
@@ -583,10 +585,13 @@ grp('Animais da vila','ent','cavalo_preto=Cavalo_preto cavalo_alazao=Cavalo_alaz
 grp('Acampamento','build','cabana_palafita=Cabana_sobre_palafitas cabana_chefe=Cabana_do_chefe',{col:1,fh:2,s:.8});
 grp('Acampamento','build','totem=Totem fogueira=Fogueira rede=Rede_de_pesca varal_peixe=Varal_de_peixes sucata=Pilha_de_sucata cerca_estacas=Cerca_de_estacas pote=Pote',{col:1,fh:1,s:.55});
 grp('Acampamento','deco','concha=Concha espinha=Espinha_de_peixe casco=Casco cesto_peixes=Cesto_de_peixes ninho=Ninho lanca=Lança poste_cranio=Poste_com_crânio',{fw:1,s:.6});
+grp('Interior','build','cama_solteiro=Cama_de_solteiro cama_casal=Cama_de_casal mesa_redonda=Mesa_redonda mesa_comprida=Mesa_comprida armario=Armário estante_livros=Estante_de_livros bau_casa=Baú_de_casa comoda=Cômoda fogao=Fogão_a_lenha bancada_cozinha=Bancada_de_cozinha tina=Tina_de_água prateleira_pratos=Prateleira_de_pratos tear=Tear roca=Roca_de_fiar berco=Berço poltrona=Poltrona cabideiro=Cabideiro balcao_taverna=Balcão_da_taverna barris_torneira=Barris_com_torneira mesa_taverna=Mesa_de_taverna banco_comprido=Banco_comprido lareira_caldeirao=Lareira_com_caldeirão prateleira_queijos=Prateleira_de_queijos balcao_loja=Balcão_de_loja prateleira_pocoes=Prateleira_de_poções cesto_paes=Cesto_de_pães altar=Altar banco_igreja=Banco_de_igreja pulpito=Púlpito candelabro=Candelabro bigorna_int=Bigorna forja_int=Forja suporte_int=Suporte_de_armas barril_tenaz=Barril_com_tenaz bancada_ferreiro=Bancada_do_ferreiro',{col:1,fh:1});
+grp('Interior','deco','cadeira_int=Cadeira banquinho=Banquinho vaso_planta=Vaso_de_planta',{col:1,fw:1});
+grp('Interior','deco','vitral=Vitral placa_caneca=Placa_da_taverna',{fw:1});
 grp('NPCs','ent','marta=Marta bento=Bento ulric=Capitão_Ulric bruna=Sentinela_Bruna tico=Tico iris=Vovó_Íris lucia=Dona_Lúcia joana=Joana fazendeiro=Fazendeiro taberneira=Taberneira menina=Menina bardo=Bardo prefeito=Prefeito lenhador=Lenhador pescador=Pescador herbalista=Herbalista cacadora=Caçadora mensageiro=Mensageiro lavadeira=Lavadeira contador=Contador_de_histórias sentinela_elfa=Sentinela_elfa druida=Druida mercadora_elfa=Mercadora_elfa crianca_elfa=Criança_elfa freira=Freira ferreiro=Ferreiro cavalarico=Cavalariço aldeao=Aldeão aldea=Aldeã rapaz=Rapaz moca=Moça idoso=Senhor idosa=Senhora menino=Menino carpinteiro=Carpinteiro pastora=Pastora moleiro=Moleiro mae=Mãe vendedor=Vendedor_de_frutas',{npc:1,col:1,s:1.2});
 grp('Monstros','ent','lobo=Lobo lobo_preto=Lobo_preto lobo_branco=Lobo_branco javali=Javali aranha=Aranha_de_musgo rato_mineiro=Rato-mineiro golem=Golem_de_terra sapo_guerreiro=Sapo_guerreiro sapo_pescador=Sapo_pescador sapo_xama=Sapo_xamã sapo_chefe=Sapo_chefe',{enemy:1});
 grp('Bichinhos','ent','coelho=Coelho borb_azul=Borboleta_azul borb_amarela=Borboleta_amarela borb_rosa=Borboleta_rosa vagalume=Vaga-lume caranguejo=Caranguejo gaivota=Gaivota esquilo=Esquilo passarinho=Passarinho sapinho=Sapinho patinho=Patinho',{critter:1});
-AM.estatua_anjo={sec:'Eventos',L:'evt',n:'Estátua de renascer',statue:1,col:1,fw:2,fh:1,s:.62};
+AM.estatua_anjo={sec:'Eventos',L:'evt',n:'Estátua de renascer',statue:1,col:1,fw:1,fh:1,s:.34};
 AM.portao={sec:'Eventos',L:'evt',n:'Portão',fw:2,fitW:2.7,tr:1};
 AM.bau={sec:'Eventos',L:'inter',n:'Baú',col:1,chest:1,fw:1,s:.9};
 const ALIAS={guarda:'ulric',mercador:'bento',cogumelo:'cogumelos'};
@@ -604,7 +609,7 @@ function applyArt(){const S=ART.cat.sprites;
  TY.escada=Object.assign({},TY.escada,{fw:1,fh:2,sw:1,sh:2,flat:1,stairs:1,art:null,tileArt:1});
  for(const k in SPR)delete SPR[k];for(const k in TH)delete TH[k];
  const sec=n=>Object.keys(AM).filter(k=>AM[k].sec===n);
- ASSETS.assets=[['Natureza',sec('Natureza')],['Casas',sec('Casas')],['Vila',[...sec('Vila'),'escada']],['Objetos',sec('Objetos')],['Animais da vila',sec('Animais da vila')],['Acampamento',sec('Acampamento')],['Interior',['cama','mesa','cadeira','estante','tapete','lareira','planta']],['NPCs',sec('NPCs')],['Monstros',sec('Monstros')],['Bichinhos',sec('Bichinhos')]];
+ ASSETS.assets=[['Natureza',sec('Natureza')],['Casas',sec('Casas')],['Vila',[...sec('Vila'),'escada']],['Objetos',sec('Objetos')],['Animais da vila',sec('Animais da vila')],['Acampamento',sec('Acampamento')],['Interior',[...sec('Interior'),'tapete']],['NPCs',sec('NPCs')],['Monstros',sec('Monstros')],['Bichinhos',sec('Bichinhos')]];
  ASSETS.eventos=[['Transições',['portao','porta','borda']],['Eventos',['evento','bau','estatua_anjo','inicio']]];
  ASSETS.terreno[0][1]=['T:g','T:G','T:h','T:t','T:s','T:a','T:c','T:w'];TER.G='Grama com flores'}
 const FEATH={};function featherTile(cc,rr){const key=cc+','+rr;if(FEATH[key])return FEATH[key];const S2=160,c=document.createElement('canvas');c.width=c.height=S2;const g=c.getContext('2d');g.drawImage(ART.tiles,cc*128+22,rr*128+22,84,84,0,0,S2,S2);
@@ -615,6 +620,12 @@ const assetLayer=id=>id.startsWith('T:')?(id==='T:w'?'agua':'ter'):id.startsWith
 
 /* ================= terreno ================= */
 const TCOL={g:'#69ad3c',G:'#4f9535',h:'#78bb45',t:'#c99556',s:'#cdbd9c',a:'#e7d29a',c:'#55505c',m:'#b98552',x:'#4b3d52',w:'#69ad3c'};
+const PISO={madeira:[0,0],escura:[0,4],creme:[1,0],pedra:[1,4]},PAREDE={madeira:[2,0,3],pedra:[2,4,7],enxaimel:[3,0,3]};
+function intTile(g,m,k,x,y,B){const I=ART.itiles,T=(r,c)=>g.drawImage(I,c*128,r*128,128,128,x*B,y*B,B+.5,B+.5);
+ if(k==='m'){const pz=PISO[m.piso||'madeira'];T(pz[0],pz[1]+Math.floor(hsh(x,y,51)*4));return}
+ const below=y+1<m.h?m.t[(y+1)*m.w+x]:'x';
+ if(below!=='x'){const pw=PAREDE[m.parede||'madeira'];const left=x>0&&m.t[y*m.w+x-1]==='x',right=x+1<m.w&&m.t[y*m.w+x+1]==='x';let c=pw[1];if(m.parede==='enxaimel')c=pw[1]+Math.floor(hsh(x,y,52)*4);else if(!left)c=pw[1]+1;else if(!right)c=pw[1]+2;else if(hsh(x,y,53)>.78)c=pw[2];T(pw[0],c);return}
+ g.fillStyle='#2e1d12';g.fillRect(x*B,y*B,B+.5,B+.5);g.fillStyle='#4a3020';g.fillRect(x*B,y*B,B+.5,B*.12)}
 function baseTile(g,k,x,y,B){const X=x*B,Y=y*B;g.fillStyle=TCOL[k]||TCOL.g;g.fillRect(X,Y,B+.5,B+.5);const h1=hsh(x,y),h2=hsh(x,y,1),h3=hsh(x,y,2);
  if(k==='g'||k==='G'||k==='w'||k==='h'){if(h1>.5){g.fillStyle=k==='G'?'rgba(0,40,0,.12)':'rgba(255,255,200,.07)';g.fillRect(X,Y,B,B)}
   st(g,B*.04,k==='G'?'#3c7a28':'#4f9530');for(let i=0;i<2;i++){if(hsh(x,y,9+i)>.4){const tx=X+(.2+.6*hsh(x,y,3+i))*B,ty=Y+(.25+.6*hsh(x,y,5+i))*B;g.beginPath();g.moveTo(tx-.07*B,ty-.09*B);g.lineTo(tx,ty);g.lineTo(tx+.07*B,ty-.11*B);g.stroke()}}
@@ -641,7 +652,7 @@ function bakeMap(m,B,v){const c=document.createElement('canvas');c.width=m.w*B;c
  if(v.ter!==false)for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){let k=at(x,y);if(k==='w'&&v.agua===false)k='g';if(TL&&(k==='g'||k==='w'||k==='h'||k==='G'))continue;
   if(TL&&(k==='g'||k==='w'||k==='h'||k==='G')){g.fillStyle='#79b83c';g.fillRect(x*B,y*B,B+.5,B+.5)}
   else if(CAL&&k==='s'){const f=CAL[Math.floor(hsh(x,y,43)*CAL.length)];g.drawImage(ART.pages[f[0]],f[1],f[2],f[3],f[4],x*B,y*B,B+.5,B+.5)}
-  else baseTile(g,k,x,y,B)}
+  else if(ART.itiles&&(k==='m'||k==='x'))intTile(g,m,k,x,y,B);else baseTile(g,k,x,y,B)}
  if(v.ter!==false)for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){const k=at(x,y);if(k!=='h'&&k!=='x')continue;const X=x*B,Y=y*B,ib=y+1<m.h,below=ib?at(x,y+1):k,L=x>0?at(x-1,y):k,Rr=x+1<m.w?at(x+1,y):k,T=y>0?at(x,y-1):k;
   if(k==='h'){const face=ib&&below!=='h';
    if(face&&TL){const cc=L!=='h'?0:Rr!=='h'?2:1;tile(cc,5,x,y);if(y+1<m.h)tile(cc,7,x,y+1)}
@@ -817,7 +828,8 @@ function sampleWorld(){
  const I=newMap('casa_marta','Casa de Marta',12,9,'m');
  for(let x=0;x<12;x++){I.t[x]='x';I.t[12+x]='x';I.t[96+x]='x'}for(let y=0;y<9;y++){I.t[y*12]='x';I.t[y*12+11]='x'}I.t[96+5]='m';
  const Rm=(k,x,y,p)=>addObj(I,k,x,y,p);
- Rm('estante',1,2);Rm('lareira',5,2);Rm('cama',9,2);Rm('tapete',4,4);Rm('mesa',2,6);Rm('cadeira',4,6);Rm('planta',1,5);Rm('planta',10,7);Rm('bau',10,5,{item:'Mapa de Altamar'});
+ I.piso='madeira';I.parede='enxaimel';for(let x=0;x<12;x++)I.t[12+x]='x';
+ Rm('estante_livros',1,2);Rm('fogao',3,2);Rm('bancada_cozinha',4,2);Rm('prateleira_pratos',6,2);Rm('armario',8,2);Rm('cama_solteiro',10,2);Rm('tapete',4,4);Rm('mesa_redonda',2,5);Rm('cadeira_int',1,5);Rm('cadeira_int',3,5);Rm('poltrona',8,5);Rm('roca',9,6);Rm('vaso_planta',1,7);Rm('vaso_planta',10,7);Rm('bau',10,4,{item:'Mapa de Altamar'});
  Rm('iris',7,5,{name:'Vovó Íris',fala:'Entre, querido! A Marta saiu pra vila. Pode levar o mapa do baú, ele mostra o caminho pra Altamar.'});
  Rm('porta',5,8,{name:'Porta',dest:'floresta',entry:'Porta da casa de Marta'});
  /* Pradaria dos Lobos: campo aberto */
@@ -862,7 +874,25 @@ function sampleWorld(){
  forest(Ag,[{cx:17,cy:14,rx:12.5,ry:11.5},{cx:16.5,cy:25,rx:3,ry:6}],.7);
  Ag.o=Ag.o.filter(o=>!(['arbusto','flores','pedra'].includes(o.k)&&Math.hypot((o.x-17)/9,(o.y-14)/8)<1));
  const maps=buildContinent({floresta:F,casa_marta:I,cidade:Cd,caverna:Cv,pradaria:Pr,campo_javalis:Jv,arena_golem:Ag});
- return{v:1,order:['floresta','casa_marta','cidade','caverna',...Object.keys(GRID).filter(k=>!['floresta','cidade'].includes(k))],cur:'floresta',maps}}
+ /* interiores: taverna, igreja e ferraria */
+ const room=(id,name,w,h,piso,parede)=>{const r=newMap(id,name,w,h,'m');r.piso=piso;r.parede=parede;for(let x=0;x<w;x++){r.t[x]='x';r.t[w+x]='x';r.t[(h-1)*w+x]='x'}for(let y=0;y<h;y++){r.t[y*w]='x';r.t[y*w+w-1]='x'}r.t[(h-1)*w+(w>>1)]='m';return r};
+ const door=(out,kind,inMap,name)=>{const o=out.o.find(q=>q.k===kind);if(!o)return;const t=TY[o.k];const ex='Saída de '+inMap.name;addObj(out,'porta',o.x+Math.floor(t.fw/2),o.y+t.fh-1,{name:'Porta: '+inMap.name,dest:inMap.id,entry:ex,mini:false});addObj(inMap,'porta',inMap.w>>1,inMap.h-1,{name:ex,dest:out.id,entry:'Porta: '+inMap.name});inMap.vila=1};
+ const Tv=room('taverna_int','Taverna da Rosa',14,10,'escura','madeira');const tv=(k,x,y,p)=>addObj(Tv,k,x,y,p);
+ tv('balcao_taverna',2,2);tv('barris_torneira',4,2);tv('prateleira_queijos',6,2);tv('lareira_caldeirao',10,2);tv('placa_caneca',8,1);tv('cesto_paes',8,3);
+ tv('mesa_taverna',3,5);tv('mesa_taverna',7,5);tv('mesa_taverna',10,6);tv('banco_comprido',3,7);tv('banco_comprido',7,7);tv('barril',12,3);tv('vaso_planta',1,8);tv('vaso_planta',12,8);tv('tapete',6,7);
+ tv('taberneira',3,3,{name:'Taberneira Rosa',loja:'pocoes',fala:'Senta aí! A sopa de hoje é de abóbora. Também vendo poções pra estrada.'});tv('bardo',10,4,{name:'Bardo Fino',fala:'♪ Canto a lenda do herói que acendeu as estátuas do reino… ♪'});
+ const Ig=room('igreja_int','Igreja de Aldren',13,12,'creme','pedra');const ig=(k,x,y,p)=>addObj(Ig,k,x,y,p);
+ ig('vitral',6,1);ig('altar',6,2);ig('candelabro',4,2);ig('candelabro',8,2);ig('pulpito',9,3);for(let r=0;r<3;r++){ig('banco_igreja',3,5+r*2);ig('banco_igreja',8,5+r*2)}ig('vaso_planta',1,2);ig('vaso_planta',11,2);ig('tapete',5,4);
+ ig('freira',5,3,{name:'Irmã Clara',loja:'pocoes',fala:'A Luz te proteja, viajante. Tenho poções de cura e bênçãos. Veja o que precisa.'});
+ const Fr=room('ferraria_int','Ferraria do Duran',12,9,'pedra','pedra');const fr=(k,x,y,p)=>addObj(Fr,k,x,y,p);
+ fr('forja_int',2,2);fr('bigorna_int',5,3);fr('suporte_int',7,2);fr('bancada_ferreiro',9,2);fr('barril_tenaz',2,5);fr('armario',10,5);fr('bau_casa',9,7);
+ fr('ferreiro',5,4,{name:'Ferreiro Duran',loja:'armas',fala:'Espada e escudo qualquer um forja. Eu trabalho com artefatos: deixam o herói mais forte, e eu subo o nível deles na bigorna.'});
+ // os NPCs que foram para dentro saem da rua
+ maps.floresta.o=maps.floresta.o.filter(o=>!(o.k==='freira'&&o.name==='Irmã Clara')&&!(o.k==='ferreiro'&&o.name==='Ferreiro Duran'));
+ maps.cidade.o=maps.cidade.o.filter(o=>!(o.k==='taberneira'||o.k==='bardo'));
+ door(maps.floresta,'igreja',Ig);door(maps.floresta,'ferraria',Fr);door(maps.cidade,'taverna',Tv);
+ Object.assign(maps,{taverna_int:Tv,igreja_int:Ig,ferraria_int:Fr});
+ return{v:1,order:['floresta','casa_marta','igreja_int','ferraria_int','cidade','taverna_int','caverna',...Object.keys(GRID).filter(k=>!['floresta','cidade'].includes(k))],cur:'floresta',maps}}
 
 /* ================= estado ================= */
 let world,M,tool='paint',asset='arvore',sel=null,leftTab='assets',query='',bsize=1;
@@ -884,6 +914,7 @@ function blocked(m){const key=(m._tv||0)+'/'+(m._ov||0);if(m._bl&&m._bl.key===ke
  m.o.forEach(o=>{const t=TY[o.k];if(!t||!t.bridge)return;for(let x=o.x;x<o.x+t.fw;x++)if(inb(m,x,o.y))a[o.y*m.w+x]=0});
  m.o.forEach(o=>{const t=TY[o.k];if(t&&t.stairs)for(let y=o.y;y<o.y+t.fh;y++)if(inb(m,o.x,y)){a[y*m.w+o.x]=0;e[y*m.w+o.x]=-1}});
  m.o.forEach(o=>{const t=TY[o.k];if(!t||!t.col)return;for(let y=o.y;y<o.y+t.fh;y++)for(let x=o.x;x<o.x+t.fw;x++)if(inb(m,x,y))a[y*m.w+x]=1});
+ m.o.forEach(o=>{if(o.k==='porta'&&inb(m,o.x,o.y))a[o.y*m.w+o.x]=0});
  m._bl={key,a,e};return a}
 
 /* ================= desenho da cena ================= */
@@ -1095,8 +1126,8 @@ function stopPlay(){play.on=false;closeShop();saveProg();$('play').classList.rem
 function resizePlay(){const d=Math.min(devicePixelRatio||1,2);pcv.width=innerWidth*d;pcv.height=innerHeight*d;play.dpr=d}
 addEventListener('resize',()=>{if(play.on)resizePlay()});
 $('bPlay').addEventListener('click',startPlay);$('exitPlay').addEventListener('click',stopPlay);
-function heroBtn(){saveProg();drawPortrait();if(ART.ic)$('bIcon').innerHTML=icSvg('sk_'+heroKey()+'_b');$('btnHero').textContent='⇄ Heróis'}
-$('btnHero').addEventListener('pointerdown',e=>{e.stopPropagation();if(play.dlg)return;saveProg();openHeroSel()});
+function heroBtn(){saveProg();drawPortrait();if(ART.ic)$('bIcon').innerHTML=icSvg('sk_'+heroKey()+'_b');$('btnHero').textContent='☰ Menu'}
+$('btnHero').addEventListener('pointerdown',e=>{e.stopPropagation();if(play.dlg)return;openMenu()});
 addEventListener('visibilitychange',()=>{if(document.hidden&&play.on)saveProg()});addEventListener('pagehide',()=>{if(play.on)saveProg()});
 const HEART=f=>ART.ui&&ART.ui.p.coracao?icSvg(f?'coracao':'coracao_vazio','ui'):`<svg viewBox="0 0 24 22"><path d="M12 21 2.5 11.5A5.5 5.5 0 0 1 12 4a5.5 5.5 0 0 1 9.5 7.5z" fill="${f?'#e8343f':'#4a2a2e'}" stroke="#2a0d10" stroke-width="2"/></svg>`;
 function hearts(){$('hearts').innerHTML=Array.from({length:play.maxhp||6},(_,i)=>HEART(i<play.h.hp)).join('')}
@@ -1162,12 +1193,28 @@ function readSave(hi){try{let d=JSON.parse(localStorage.getItem(saveKey(hi)));if
 function loadProg(){const d=readSave(play.hi||0);play.savePos=null;if(d){play.savePos=d.pos||null;play.cp=d.cp||null;play.items=d.items||[];play.opened=new Set(d.opened||[])}if(d){play.gold=d.gold||0;play.pots=d.pots??1;play.arts=d.arts||{};play.eq=(d.eq||[]).filter(id=>ARTS[id]&&play.arts[id]);if(d.hi!=null)play.hi=d.hi;play.q=d.q||{};play.lit=new Set(d.lit||[]);play.visited=d.vis||[]}else{play.q={}}applyStats()}
 const HDESC={paladino:['Guerreiro de armadura e martelo de guerra. Aguenta pancada e esmaga tudo em volta.','Martelo Sagrado'],sacerdotisa:['Curandeira da Luz. Bate de perto e cura os próprios corações.','Luz do Sol'],maga:['Ataca de longe com bolas de fogo. Frágil, mas muito forte.','Explosão de Fogo'],duelista:['Rápido e certeiro: corte duplo e investida que atravessa os inimigos.','Investida']};
 function lastSave(){let best=null;HEROES.forEach((h,i)=>{const d=readSave(i);if(d&&(!best||(d.t||0)>(best.t||0)))best=Object.assign({i},d)});return best}
+function openMenu(){play.dlg=6;const el=$('shop');
+ el.innerHTML=`<div class="shead"><div><b>☰ Menu</b><span>${esc(HEROES[play.hi||0][1])} · ${esc(play.m.name)}</span></div><button id="shopX">Voltar ao jogo</button></div><div class="slist mnu"><button class="tbtn" id="mSave">Salvar agora</button><button class="tbtn main" id="mTitle">Salvar e voltar ao menu principal</button><small>O progresso também é salvo sozinho a cada 12 segundos.</small></div>`;
+ el.style.display='flex';$('shopX').onclick=e=>{e.stopPropagation();closeShop()};
+ $('mSave').onclick=e=>{e.stopPropagation();saveProg();toast('Jogo salvo')};
+ $('mTitle').onclick=e=>{e.stopPropagation();saveProg();closeShop();play.on=false;$('play').classList.remove('on');joy=null;$('joy').style.display='none';if(window.MODO_JOGO)showTitle();else stopPlay()}}
+/* conta: Google ou convidado (antes da tela de início) */
+const CONTA='dallarian-conta';
+function conta(){try{return JSON.parse(localStorage.getItem(CONTA))}catch(e){return null}}
+function showLogin(){const el=$('title');
+ el.innerHTML=`<div class="tbg"></div><div class="tbox"><div class="tlogo">Dallarian</div><div class="tsub">${ART.ui?icSvg('fita','ui'):''}<span>O Reino de Papel</span></div>
+ <button class="tbtn gbtn" id="lGoogle"><b>G</b> Entrar com Google<small>salva seus heróis na nuvem</small></button>
+ <button class="tbtn main" id="lGuest">Jogar como convidado<small>o progresso fica só neste aparelho</small></button></div>`;
+ el.style.display='flex';$('hsel').style.display='none';
+ $('lGuest').onclick=()=>{try{localStorage.setItem(CONTA,JSON.stringify({tipo:'convidado'}))}catch(e){}showTitle()};
+ $('lGoogle').onclick=()=>toast('Login com Google ainda não está ligado: por enquanto, jogue como convidado')}
+function showStart(){if(conta())showTitle();else showLogin()}
 function showTitle(){const el=$('title');const last=lastSave();
  el.innerHTML=`<div class="tbg"></div><div class="tbox"><div class="tlogo">Dallarian</div><div class="tsub">${ART.ui?icSvg('fita','ui'):''}<span>O Reino de Papel</span></div>
  ${last?`<button class="tbtn main" id="tCont">Continuar<small>${esc(HEROES[last.i][1])} · ${esc((world.maps[(last.pos||{}).m]||{}).name||'')}</small></button>`:''}
- <button class="tbtn ${last?'':'main'}" id="tPlay">${last?'Escolher herói':'Novo jogo'}</button></div><div class="tver">tela deitada</div>`;
+ <button class="tbtn ${last?'':'main'}" id="tPlay">${last?'Escolher herói':'Novo jogo'}</button><button class="tlink" id="tConta">${(conta()||{}).tipo==='google'?'Conta Google':'Convidado'} · trocar conta</button></div><div class="tver">tela deitada</div>`;
  el.style.display='flex';$('hsel').style.display='none';
- if(last)$('tCont').onclick=()=>{el.style.display='none';play.hi=last.i;startPlay()};$('tPlay').onclick=()=>openHeroSel()}
+ if(last)$('tCont').onclick=()=>{el.style.display='none';play.hi=last.i;startPlay()};$('tPlay').onclick=()=>openHeroSel();$('tConta').onclick=()=>{try{localStorage.removeItem(CONTA)}catch(e){}showLogin()}}
 function openHeroSel(){const el=$('hsel');if(play.on){play.on=false;$('play').classList.remove('on')}
  el.innerHTML=`<div class="tbg"></div><div class="hshead"><button id="hsBack">‹ Voltar</button><b>Escolha seu herói</b><span></span></div><div class="hsgrid">${HEROES.map(([k,n],i)=>{const d=readSave(i),lv=d?Object.values(d.arts||{}).reduce((a,b)=>a+b,0):0,qf=d?Object.values(d.q||{}).filter(q=>q.st==='feita').length:0;
   return`<div class="hcard" data-i="${i}"><canvas width="200" height="230"></canvas><b>${esc(n)}</b><small>${esc(HDESC[k][0])}</small><div class="hsk">${icSvg('sk_'+k+'_a')}${icSvg('sk_'+k+'_b')}<span>${esc(HDESC[k][1])}</span></div>
@@ -1417,7 +1464,7 @@ function playDraw(){{const bo=play.en&&play.en.find(a=>a.boss);if(bo)$('bossHp')
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(play.on){playStep(dt);playDraw()}else if(dirty&&M&&!window.MODO_JOGO){drawEditor();dirty=false}requestAnimationFrame(frame)}
 
-window.MODO_JOGO=1;toast('Carregando o mundo…');loadArt().then(()=>{try{localStorage.removeItem(KEY)}catch(e){}load();$('exitPlay').style.display='none';showTitle();return;
+window.MODO_JOGO=1;toast('Carregando o mundo…');loadArt().then(()=>{try{localStorage.removeItem(KEY)}catch(e){}load();$('exitPlay').style.display='none';showStart();return;
  let seen=null;try{seen=localStorage.getItem('dallarian-arte-v1')}catch(e){}if(ART.ok&&!seen){try{localStorage.setItem('dallarian-arte-v1','1')}catch(e){}setTimeout(()=>toast('Arte nova aplicada! Pro exemplo com igreja, monstros e bichos: Abrir → Restaurar exemplo'),1200)}});requestAnimationFrame(frame);
 }
 </script>
