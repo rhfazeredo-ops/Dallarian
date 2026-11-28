@@ -272,6 +272,7 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 .hcard .tbtn{min-width:0;width:100%;min-height:40px;font-size:15px}.hdel{border:0;background:none;color:#b03a2e;font:700 11px Archivo;text-decoration:underline;padding:2px}
 @media (orientation:portrait){.hsgrid{grid-template-columns:1fr 1fr;overflow:auto}.tlogo{font-size:40px}}
 
+#app{display:none!important}html,body{background:#1d2a14}
 </style>
 </head>
 <body data-mt="assets">
@@ -1414,9 +1415,9 @@ function playDraw(){{const bo=play.en&&play.en.find(a=>a.boss);if(bo)$('bossHp')
 
 /* ================= loop ================= */
 let last=performance.now();
-function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(play.on){playStep(dt);playDraw()}else if(dirty&&M){drawEditor();dirty=false}requestAnimationFrame(frame)}
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(play.on){playStep(dt);playDraw()}else if(dirty&&M&&!window.MODO_JOGO){drawEditor();dirty=false}requestAnimationFrame(frame)}
 
-window.MODO_JOGO=1;toast('Carregando o mundo…');loadArt().then(()=>{try{localStorage.removeItem(KEY)}catch(e){}load();renderAll();$('exitPlay').style.display='none';showTitle();return;
+window.MODO_JOGO=1;toast('Carregando o mundo…');loadArt().then(()=>{try{localStorage.removeItem(KEY)}catch(e){}load();$('exitPlay').style.display='none';showTitle();return;
  let seen=null;try{seen=localStorage.getItem('dallarian-arte-v1')}catch(e){}if(ART.ok&&!seen){try{localStorage.setItem('dallarian-arte-v1','1')}catch(e){}setTimeout(()=>toast('Arte nova aplicada! Pro exemplo com igreja, monstros e bichos: Abrir → Restaurar exemplo'),1200)}});requestAnimationFrame(frame);
 }
 </script>
