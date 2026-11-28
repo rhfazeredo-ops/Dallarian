@@ -264,7 +264,7 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 .tver{position:absolute;bottom:10px;color:#fff;font-size:12px;text-shadow:0 1px 2px #000}
 .hshead{position:relative;width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;box-sizing:border-box}.hshead b{font:900 24px Cinzel,Georgia,serif;color:#fff;text-shadow:2px 2px 0 #3a2a1e}
 .hshead button{min-height:38px;padding:0 14px;border:0;border-radius:4px;background:#fff3d6;font:800 14px Archivo;box-shadow:2px 3px 0 #0006}.hshead span{width:80px}
-.hsgrid{position:relative;flex:1;width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 12px 12px;box-sizing:border-box;min-height:0}
+.hsgrid{position:relative;flex:1;width:100%;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:0 12px 12px;box-sizing:border-box;min-height:0}
 .hcard{background:#fff3d6f0;border-radius:6px;box-shadow:4px 6px 0 #0006;outline:2px dashed #c9a06a;outline-offset:-7px;display:flex;flex-direction:column;align-items:center;padding:8px 8px 10px;gap:3px;overflow:auto;min-height:0}
 .hcard canvas{height:clamp(70px,30vh,170px);width:auto;flex:none}.hcard b{font:900 15px Cinzel,Georgia,serif;color:#7a3a1e;text-align:center}.hcard small{font-size:10.5px;text-align:center;opacity:.85;line-height:1.2}
 .hsk{display:flex;align-items:center;gap:4px;font:800 11px Archivo;color:#2f7a72}.hsk .uic{width:24px;height:24px}
@@ -291,6 +291,19 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 .wrib{background:#fff3d6;color:#5a3a1e;font:800 10px Cinzel,Georgia,serif;padding:2px 8px;border:2px solid #c9a06a;border-radius:3px;box-shadow:2px 2px 0 #0005;white-space:nowrap;clip-path:polygon(0 0,100% 0,95% 50%,100% 100%,0 100%,5% 50%)}
 .wn.here .wrib{background:#e8b33a}.wn.dg .wrib{border-color:#b03a2e}.wn.vila .wrib{border-color:#2f6fd0}
 .wn small{background:#b03a2ee0;color:#fff;border-radius:3px;padding:0 4px;font:800 8.5px Archivo}
+#shop.wfull{padding:0;background:radial-gradient(ellipse at center,#7a4f2e,#3d2716 75%)}
+.wmenu{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.wpaper{position:relative;height:calc(100% - 64px);aspect-ratio:16/9;max-width:calc(100% - 120px);margin-top:44px;border-radius:6px;box-shadow:0 10px 0 #0005,0 0 0 6px #5a3a1e,0 0 0 9px #c99a4a;overflow:hidden}
+.wpaper .wmap{height:100%;border-radius:0;background:url(art/continente.webp) center/100% 100%;filter:sepia(.85) saturate(.75) contrast(.95) brightness(1.05)}
+.wpaper .wmap::before{display:none}
+.wtitle{position:absolute;top:2px;left:50%;transform:translateX(-50%);width:220px;height:62px;z-index:3;display:flex;align-items:center;justify-content:center}.wtitle .uic{position:absolute;inset:0;width:100%;height:100%}.wtitle b{position:relative;margin-top:16px;font:900 18px Cinzel,Georgia,serif;color:#fff3d6;text-shadow:0 2px 0 #3a2a1e}
+.wbtn{position:absolute;z-index:3;border:0;background:none;padding:0}.wbtn .uic{width:52px;height:52px}.wback{left:10px;bottom:10px}.whelp{right:10px;top:8px}.wreg{left:10px;top:8px;display:flex;flex-direction:column;align-items:center}.wreg .uic{width:46px;height:46px}.wreg b{font:800 11px Archivo;color:#fff3d6;margin-top:-6px}
+.wrosa{position:absolute;right:2%;top:3%;width:11%;opacity:.85}.wrosa .uic{width:100%;height:auto}
+.wdeco{position:absolute;z-index:2;pointer-events:none}.wluneta{right:-6px;bottom:-4px}.wluneta .uic{width:110px;height:110px}.wfolha{right:0;top:60px}.wfolha .uic{width:70px;height:70px}.wlivros{left:-10px;top:70px}.wlivros .uic{width:70px;height:70px}
+.wcloud{width:19%!important;height:auto!important}.wcloud .uic{width:100%;height:auto;filter:drop-shadow(0 4px 0 #0004)}
+.wpin .uic{width:26px;height:30px}.wpin{filter:none!important}
+.wlock{position:absolute;z-index:4;transform:translate(-50%,-50%);display:none;align-items:center;width:200px;height:40px}.wlock.on{display:flex}.wlock .uic{position:absolute;inset:0;width:100%;height:100%}.wlock span{position:relative;margin-left:44px;font:700 12px Archivo;color:#fff}
+.wn.v{z-index:2}.wcloud{z-index:1}.wpin .uic{width:30px;height:34px}.wtitle{width:280px!important;height:86px!important;top:-6px!important}.wtitle b{margin-top:30px!important;font-size:19px!important}.wlivros{top:150px!important}
 #app{display:none!important}html,body{background:#1d2a14}
 </style>
 </head>
@@ -615,7 +628,7 @@ const ALIAS={guarda:'ulric',mercador:'bento',cogumelo:'cogumelos'};
 const ESTAT={slime:[2,1.4,1],lobo:[3,2.4,1],lobo_preto:[4,2.6,1],lobo_branco:[5,2.7,1],javali:[5,2.1,1],aranha:[3,1.9,1],rato_mineiro:[3,1.7,1],golem:[10,.9,2],sapo_guerreiro:[3,1.9,1],sapo_pescador:[3,1.7,1],sapo_xama:[3,1.4,1],sapo_chefe:[10,1.5,2]};
 const CRIT={coelho:{side:3,back:6,R:1},esquilo:{side:1,back:2},sapinho:{side:1,back:2},patinho:{side:1,back:2,R:1},caranguejo:{side:1,back:2},passarinho:{side:1,back:2,fly:[4,5]},gaivota:{side:1,back:0,fly:[3,4,5]},borb_azul:{flap:1},borb_amarela:{flap:1},borb_rosa:{flap:1},vagalume:{flap:1,glow:1}};
 const HS=.78;
-const HEROES=[['paladino','Paladino'],['sacerdotisa','Sacerdotisa do Sol'],['maga','Maga do Fogo'],['duelista','Duelista']];
+const HEROES=[['paladino','Paladino'],['sacerdotisa','Sacerdotisa do Sol'],['maga','Maga do Fogo'],['duelista','Duelista'],['lamina','Lâmina Solar']];
 function applyArt(){const S=ART.cat.sprites;
  const make=(k,art,o)=>{const sp=S[art];if(!sp)return;const f=sp.f[o.face||0],s=o.s||1;let sw=f[3]/sp.ppt*s,sh=f[4]/sp.ppt*s;if(o.fitW){sh*=o.fitW/sw;sw=o.fitW}
   const life=o.npc||o.enemy||o.critter;const fw=o.fw||(life?1:Math.max(1,Math.round(sw*(o.L==='build'?.85:.7))));const fh=o.fh||(o.L==='build'?2:1);
@@ -1211,7 +1224,7 @@ const SAVEK0='dallarian-papel-save';const saveKey=hi=>'dallarian-heroi-'+HEROES[
 function saveProg(){if(!play.h||!play.m)return;try{localStorage.setItem(saveKey(play.hi),JSON.stringify({t:Date.now(),pos:{m:play.m.id,x:Math.floor(play.h.x),y:Math.floor(play.h.y-.1)},cp:play.cp,items:play.items,opened:[...(play.opened||[])],gold:play.gold,pots:play.pots,arts:play.arts,eq:play.eq,loot:play.loot||{},hi:play.hi||0,q:play.q,lit:[...(play.lit||[])],vis:play.visited||[]}))}catch(e){}}
 function readSave(hi){try{let d=JSON.parse(localStorage.getItem(saveKey(hi)));if(!d){const o=JSON.parse(localStorage.getItem(SAVEK0));if(o&&(o.hi||0)===hi){d=o}}return d}catch(e){return null}}
 function loadProg(){const d=readSave(play.hi||0);play.savePos=null;if(d){play.savePos=d.pos||null;play.cp=d.cp||null;play.items=d.items||[];play.opened=new Set(d.opened||[])}if(d){play.gold=d.gold||0;play.loot=d.loot||{};play.pots=d.pots??1;play.arts=d.arts||{};play.eq=(d.eq||[]).filter(id=>ARTS[id]&&play.arts[id]);if(d.hi!=null)play.hi=d.hi;play.q=d.q||{};play.lit=new Set(d.lit||[]);play.visited=d.vis||[]}else{play.q={}}applyStats()}
-const HDESC={paladino:['Guerreiro de armadura e martelo de guerra. Aguenta pancada e esmaga tudo em volta.','Martelo Sagrado'],sacerdotisa:['Curandeira da Luz. Bate de perto e cura os próprios corações.','Luz do Sol'],maga:['Ataca de longe com bolas de fogo. Frágil, mas muito forte.','Explosão de Fogo'],duelista:['Rápido e certeiro: corte duplo e investida que atravessa os inimigos.','Investida']};
+const HDESC={paladino:['Guerreiro de armadura e martelo de guerra. Aguenta pancada e esmaga tudo em volta.','Martelo Sagrado'],sacerdotisa:['Curandeira da Luz. Bate de perto e cura os próprios corações.','Luz do Sol'],maga:['Ataca de longe com bolas de fogo. Frágil, mas muito forte.','Explosão de Fogo'],duelista:['Rápido e certeiro: corte duplo e investida que atravessa os inimigos.','Investida'],lamina:['Elfa sangrenta com montante de duas mãos. Golpes pesados e uma onda de luz sagrada.','Juízo Solar']};
 function lastSave(){let best=null;HEROES.forEach((h,i)=>{const d=readSave(i);if(d&&(!best||(d.t||0)>(best.t||0)))best=Object.assign({i},d)});return best}
 function openMenu(){play.dlg=6;const el=$('shop');
  el.innerHTML=`<div class="shead"><div><b>☰ Menu</b><span>${esc(HEROES[play.hi||0][1])} · ${esc(play.m.name)}</span></div><button id="shopX">Voltar ao jogo</button></div><div class="slist mnu"><button class="tbtn" id="mSave">Salvar agora</button><button class="tbtn main" id="mTitle">Salvar e voltar ao menu principal</button><small>O progresso também é salvo sozinho a cada 12 segundos.</small></div>`;
@@ -1334,14 +1347,18 @@ function openBag(sel,tab){if(!play.on)return;play.dlg=3;tab=tab||play.bagTab||'a
 const BOSSN={arena_golem:'Golem',planalto:'Lobo Rei',aldeia_lodosa:'Grão-Lodoso',toca:'Aranha Rainha',moinho_velho:'Javali Ancestral'};
 function homeOf(id){if(GRID[id])return id;const m=world.maps[id];if(!m)return null;const t=m.o.find(o=>TY[o.k]&&TY[o.k].tr&&o.dest&&GRID[o.dest]);return t?t.dest:null}
 function openWorld(){if(!play.on)return;play.dlg=4;const el=$('shop'),here=homeOf(play.m.id),vis=new Set(play.visited||[]);vis.add(play.m.id);
- const pos=id=>({x:(GRID[id][0]+.5)*20,y:(GRID[id][1]+.5)*20});
+ const pos=id=>({x:4+(GRID[id][0]+.5)*18.4,y:4+(GRID[id][1]+.5)*18.4});
  const lines=EDGES.map(([a,b])=>{const A=pos(a),B=pos(b),k=vis.has(a)&&vis.has(b);return`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" class="${k?'ok':''}"/>`}).join('');
  const nodes=Object.keys(GRID).filter(id=>world.maps[id]).map(id=>{const P=pos(id),mm=world.maps[id],v=vis.has(id),cur=id===here,vila=mm.vila;
-  if(!v)return`<div class="wcloud" data-w="${id}" style="left:${P.x}%;top:${P.y}%"><i></i><i></i><i></i></div>`;
-  return`<button class="wn v${cur?' here':''}${vila?' vila':''}${DGN[id]?' dg':''}" data-w="${id}" style="left:${P.x}%;top:${P.y}%"><span class="wpin">${cur?'📍':DGN[id]?'☠':vila?'🏠':'✔'}</span><span class="wrib">${esc(mm.name)}</span>${BOSSN[id]?`<small>${esc(BOSSN[id])}</small>`:''}</button>`}).join('');
- el.innerHTML=`<div class="shead"><div><b>🗺️ Continente de Dallarian</b><span>Toque numa região descoberta para viajar até a estátua dela. As nuvens somem quando você chega andando.</span></div><button id="wReg">Mapa da região</button><button id="shopX">Fechar</button></div><div class="slist wbox"><div class="wmap"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${lines}</svg>${nodes}</div></div>`;
- el.style.display='flex';$('shopX').onclick=e=>{e.stopPropagation();closeShop()};$('wReg').onclick=e=>{e.stopPropagation();closeShop();openMap()};
- el.querySelectorAll('.wcloud').forEach(b=>b.onclick=e=>{e.stopPropagation();toast('🔒 Região coberta pelas nuvens: chegue andando pela primeira vez')});
+  if(!v)return`<div class="wcloud" data-w="${id}" style="left:${P.x}%;top:${P.y}%">${icSvg(['mk_nuvem1','mk_nuvem2','mk_nuvens3'][Math.floor(hsh(GRID[id][0],GRID[id][1],5)*3)],'ui')}</div>`;
+  return`<button class="wn v${cur?' here':''}${vila?' vila':''}${DGN[id]?' dg':''}" data-w="${id}" style="left:${P.x}%;top:${P.y}%"><span class="wpin">${icSvg(cur?'mk_pino_aqui':DGN[id]?'mk_pino_chefe':vila?'mk_pino_vila':'mk_pino_ok','ui')}</span><span class="wrib">${esc(mm.name)}</span></button>`}).join('');
+ const U=k=>icSvg(k,'ui');
+ el.innerHTML=`<div class="wmenu"><div class="wtitle">${U('mk_placa')}<b>Continente</b></div><button class="wbtn wback" id="shopX">${U('mk_voltar')}</button><button class="wbtn whelp" id="wHelp">${U('mk_ajuda')}</button><button class="wbtn wreg" id="wReg">${U('mk_pergaminho')}<b>Região</b></button>
+ <div class="wpaper"><div class="wmap"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${lines}</svg>${nodes}</div><i class="wrosa">${U('mk_rosa')}</i><div class="wlock" id="wLock">${U('mk_cadeado')}<span></span></div></div>
+ <i class="wdeco wluneta">${U('mk_luneta')}</i><i class="wdeco wfolha">${U('mk_folhas')}</i><i class="wdeco wlivros">${U('mk_livros')}</i></div>`;
+ $('wHelp').onclick=e=>{e.stopPropagation();say('Mapa','Nuvens = regiões que você ainda não descobriu.|Pino vermelho = você. Verde = descoberta. Roxo = DG com chefe. Azul = vila.|Toque duas vezes numa região descoberta para viajar até a estátua dela.');closeShop()};
+ el.style.display='flex';el.classList.add('wfull');$('shopX').onclick=e=>{e.stopPropagation();closeShop()};$('wReg').onclick=e=>{e.stopPropagation();closeShop();openMap()};
+ el.querySelectorAll('.wcloud').forEach(b=>b.onclick=e=>{e.stopPropagation();const L=$('wLock');L.querySelector('span').textContent='Descubra andando até lá';L.style.left=b.style.left;L.style.top=b.style.top;L.classList.add('on');clearTimeout(L._t);L._t=setTimeout(()=>L.classList.remove('on'),1800)});
  el.querySelectorAll('.wn').forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.w;if(id===play.m.id){closeShop();return}
   if(b.dataset.ok){travel(id)}else{el.querySelectorAll('.wn[data-ok]').forEach(q=>{delete q.dataset.ok;q.classList.remove('conf')});b.dataset.ok=1;b.classList.add('conf');toast('Toque de novo em '+world.maps[id].name+' para viajar')}})}
 function travel(id){const m=world.maps[id];closeShop();const st=m.o.find(o=>TY[o.k]&&TY[o.k].statue),ini=m.o.find(o=>o.k==='inicio');const at=st?[st.x,st.y+2]:ini?[ini.x,ini.y]:null;
@@ -1363,7 +1380,7 @@ function openShop(o){const S=SHOPS[o.loja];if(!S)return;if(S.art){openArtShop(o)
   play.gold-=it.p;it.go();items();saveProg();toast('Comprou: '+it.n);openShop(o)})}
 function sellHTML(){const L=Object.entries(play.loot||{}).filter(([k,n])=>n>0&&LOOT[k]);if(!L.length)return'<h4>Vender</h4><small>Nada para vender. Monstros soltam itens (peles, presas, escamas…).</small>';const tot=L.reduce((a,[k,n])=>a+LOOT[k][1]*n,0);return`<h4>Vender itens</h4>${L.map(([k,n])=>`<button class="sit" data-sell="${k}"><span class="sic">${icSvg(k)}</span><span class="stx"><b>${esc(LOOT[k][0])} ×${n}</b><small>${LOOT[k][1]} ouro cada</small></span><span class="spr">Vender 1</span></button>`).join('')}<button class="tbtn main" data-sellall="1" style="margin:6px auto">Vender tudo (${tot} ouro)</button>`}
 function bindSell(el,again){el.querySelectorAll('[data-sell]').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.sell;if(!(play.loot[k]>0))return;play.loot[k]--;play.gold+=LOOT[k][1];items();saveProg();again()});const all=el.querySelector('[data-sellall]');if(all)all.onclick=e=>{e.stopPropagation();let g=0;for(const k in play.loot){g+=(LOOT[k]?LOOT[k][1]:0)*play.loot[k]}play.loot={};play.gold+=g;items();saveProg();toast('Vendeu tudo: +'+g+' ouro');again()}}
-function closeShop(){$('shop').style.display='none';$('shop').classList.remove('profile');play.dlg=null;play.shop=null;saveProg()}
+function closeShop(){$('shop').style.display='none';$('shop').classList.remove('profile','wfull');play.dlg=null;play.shop=null;saveProg()}
 const ARTSHOP=LOJA_INI;
 function openArtShop(o){play.dlg=2;play.shop=o;const el=$('shop');const price=id=>25+ARTS[id].il*4;
  const row=(id)=>{const a=ARTS[id],lv=play.arts[id]||0;let lab,act,cost;if(!lv){cost=price(id);lab=cost+' ouro';act='buy'}else if(lv<MAXLV){cost=upCost(id,lv);lab=`Nv ${lv}→${lv+1}: ${cost} ouro`;act='up'}else{lab='Nível máximo';act=''}
@@ -1446,15 +1463,17 @@ function hurtHero(d,fx,fy){const h=play.h;if(h.inv>0)return;if(play.S&&play.S.de
 function attack(){const h=play.h,k=heroKey(),fx=h.fx,fy=h.fy,ax=h.x+fx*.7,ay=h.y-.35+fy*.7,an=Math.atan2(fy,fx);h.atk=.3;
  if(k==='maga'){play.pr.push({x:h.x+fx*.4,y:h.y-.5+fy*.4,vx:fx*9,vy:fy*9,r:.18,d:1,life:.7,c:'#ff8a2a',big:0});burst(h.x+fx*.4,h.y-.5,'#ffb347',5,1)}
  else if(k==='sacerdotisa'){sfx('sac_golpe',ax,ay,1.3,.3)||slash(ax,ay,an,'#fff0a0',.75);hitArea(ax,ay,.55,1);burst(ax,ay,'#ffe46a',6,1.5)}
+ else if(k==='lamina'){sfx('lam_golpe',h.x+fx*.9,h.y-.4+fy*.9,2.2,.34,an)||slash(ax,ay,an,'#fff0b0',1.1);hitArea(h.x+fx*.85,h.y-.35+fy*.85,.95,3,12);burst(ax,ay,'#ffe46a',6,1.4)}
  else if(k==='duelista'){sfx('corte_x',ax,ay,1.4,.32)||slash(ax,ay,an-.4,'#ffffff',.8);setTimeout(()=>{if(play.on)hitArea(ax,ay,.6,1)},110);hitArea(ax,ay,.6,1)}
  else{sfx('pal_golpe',ax,ay,1.6,.3,an)||slash(ax,ay,an,'#ffe08a',1.0);hitArea(ax,ay,.7,2,9);burst(ax,ay,'#ffd75a',5,1)}}
 function skill(){const h=play.h,k=heroKey();if(h.cd>0)return;const fx=h.fx,fy=h.fy;h.atk=.45;
  if(k==='paladino'){h.cd=4;sfx('pal_skill',h.x,h.y,4.6,.65,0,{low:1})||ring(h.x,h.y-.3,2.4,'#ffd75a',.5);burst(h.x,h.y-.3,'#ffd75a',22,4);hitArea(h.x,h.y-.3,2.2,3,10)}
  else if(k==='sacerdotisa'){h.cd=6;h.hp=Math.min(play.maxhp,h.hp+2);hearts();num(h.x,h.y-1.5,'+2','#7dff8a');if(!sfx('sac_skill',h.x,h.y+.1,3.6,.9,0,{low:1})){for(let i=0;i<12;i++){const a=i/12*P2;play.fx.push({k:'ray',x:h.x,y:h.y-.5,a,t:.6,T:.6,c:'#ffe46a'})}ring(h.x,h.y-.4,2.6,'#fff2a0',.6)}hitArea(h.x,h.y-.4,2.5,2,6)}
  else if(k==='maga'){h.cd=3;play.pr.push({x:h.x+fx*.5,y:h.y-.5+fy*.5,vx:fx*7,vy:fy*7,r:.35,d:3,life:1,c:'#ff5a1a',big:1})}
+ else if(k==='lamina'){h.cd=4;const an2=Math.atan2(fy,fx);sfx('lam_skill',h.x+fx*2.4,h.y-.4+fy*2.4,5.2,.55,an2);play.en.forEach(a=>{if(a.hp<=0)return;const dx=a.x-h.x,dy=a.y-.3-(h.y-.4),t=dx*fx+dy*fy,d=Math.abs(dx*fy-dy*fx);if(t>-.3&&t<5.2&&d<1)hurtEnemy(a,4,h.x,h.y,12)});play.en=play.en.filter(a=>a.hp>0);ring(h.x+fx*.6,h.y-.4+fy*.6,1,'#ffe46a',.4)}
  else{h.cd=3;h.dash=.22;h.dx=fx;h.dy=fy;h.inv=Math.max(h.inv,.35);sfx('investida',h.x+fx*1.2,h.y-.4+fy*1.2,2.8,.4,Math.atan2(fy,fx))}
  refreshB()}
-function refreshB(){const cd=play.h.cd;if(cd>0&&(!play.cdMax||cd>play.cdMax))play.cdMax=cd;if(cd<=0)play.cdMax=0;$('btnB').style.setProperty('--cd',cd>0?cd/play.cdMax:0);$('btnB').classList.toggle('cd',cd>0);$('btnB').querySelector('small').textContent=play.h.cd>0?Math.ceil(play.h.cd)+'s':{paladino:'Martelo',sacerdotisa:'Luz',maga:'Fogo',duelista:'Investida'}[heroKey()]}
+function refreshB(){const cd=play.h.cd;if(cd>0&&(!play.cdMax||cd>play.cdMax))play.cdMax=cd;if(cd<=0)play.cdMax=0;$('btnB').style.setProperty('--cd',cd>0?cd/play.cdMax:0);$('btnB').classList.toggle('cd',cd>0);$('btnB').querySelector('small').textContent=play.h.cd>0?Math.ceil(play.h.cd)+'s':{paladino:'Martelo',sacerdotisa:'Luz',maga:'Fogo',duelista:'Investida',lamina:'Juízo'}[heroKey()]}
 function actionA(){if(!play.on)return;if(play.shop||play.dlg>=3){closeShop();return}if(play.dlg){closeDlg();return}if(play.fading)return;const h=play.h,m=play.m;
  const nn=play.npcs.map(n=>({n,d:Math.hypot(n.x-h.x,n.y-h.y)})).sort((a,b)=>a.d-b.d)[0];
  if(nn&&nn.d<1.5){qEvent('talk',nn.n.o.name);if(qTalk(nn.n.o))return;if(nn.n.o.loja&&SHOPS[nn.n.o.loja]){if(play.shopTalk!==nn.n.o){play.shopTalk=nn.n.o;say(nn.n.o.name,falaDe(nn.n.o));play.pendingShop=nn.n.o;return}}say(nn.n.o.name,falaDe(nn.n.o));nn.n.bt=0;return}
