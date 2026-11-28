@@ -276,6 +276,21 @@ main{display:grid;grid-template-columns:280px minmax(0,1fr) 290px;gap:8px;paddin
 .tlink{border:0;background:none;color:#7a4b2a;font:700 12px Archivo;text-decoration:underline;padding:2px}.gbtn{background:#fff!important}.gbtn b{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#4285f4;color:#fff;align-items:center;justify-content:center;font:900 14px Arial;margin-right:6px}.mnu{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px!important}
 #pmini{top:8px!important;right:8px!important}#exitPlay{right:116px!important;top:8px!important}#btnHero{top:88px!important;bottom:auto!important;right:8px!important}
 .pcard .pil{position:absolute;bottom:3px;left:0;right:0;text-align:center;font:800 9px Archivo;color:#e8b33a;font-style:normal}
+.shead #wReg,.shead #wCont{min-height:36px;padding:0 12px;border-radius:8px;border:0;background:#e8b33a;color:#3a2a1e;font-weight:800;margin-right:6px}
+.wbox{padding:6px!important}.wmap{position:relative;width:100%;height:min(66vh,440px);border-radius:8px;background:url(art/mundo.webp) center/cover;overflow:hidden;filter:sepia(.25)}
+.wmap::before{content:'';position:absolute;inset:0;background:rgba(255,243,214,.35)}
+.wmap svg{position:absolute;inset:0;width:100%;height:100%}.wmap line{stroke:#7a4b2a;stroke-width:.5;stroke-dasharray:1.2 1;opacity:.55}.wmap line.ok{stroke:#3a2a1e;opacity:.9;stroke-dasharray:none}
+.wn{position:absolute;transform:translate(-50%,-50%);min-width:17%;max-width:19%;padding:3px 4px;border-radius:4px;border:2px solid #b8a890;background:#d8cdb8;color:#6a5a4a;font:800 10.5px Archivo;line-height:1.1;box-shadow:2px 3px 0 #0005;display:flex;flex-direction:column;align-items:center}
+.wn small{font-size:8.5px;font-weight:700}.wn.v{background:#fff3d6;color:#3a2a1e;border-color:#c9a06a}.wn.v.vila{border-color:#2f6fd0}.wn.v.dg{border-color:#b03a2e}.wn.v.dg small{color:#b03a2e}
+.wn.here{background:#e8b33a;border-color:#7a4b2a}.wn.conf{outline:3px solid #2fa39a;outline-offset:1px}
+.wcloud{position:absolute;transform:translate(-50%,-50%);width:21%;height:22%;cursor:pointer}
+.wcloud i{position:absolute;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fffaf0,#efe1c4 70%,#d8c4a0);box-shadow:0 4px 0 #b89f7866,inset 0 -3px 0 #d8c4a0;border:2px solid #fff8ea}
+.wcloud i:nth-child(1){left:4%;top:28%;width:46%;height:62%}.wcloud i:nth-child(2){left:30%;top:6%;width:44%;height:70%}.wcloud i:nth-child(3){left:56%;top:30%;width:42%;height:58%}
+.wn.v{background:none!important;border:0!important;box-shadow:none!important;padding:0;gap:1px}
+.wpin{font-size:18px;filter:drop-shadow(1px 2px 0 #0006)}
+.wrib{background:#fff3d6;color:#5a3a1e;font:800 10px Cinzel,Georgia,serif;padding:2px 8px;border:2px solid #c9a06a;border-radius:3px;box-shadow:2px 2px 0 #0005;white-space:nowrap;clip-path:polygon(0 0,100% 0,95% 50%,100% 100%,0 100%,5% 50%)}
+.wn.here .wrib{background:#e8b33a}.wn.dg .wrib{border-color:#b03a2e}.wn.vila .wrib{border-color:#2f6fd0}
+.wn small{background:#b03a2ee0;color:#fff;border-radius:3px;padding:0 4px;font:800 8.5px Archivo}
 #app{display:none!important}html,body{background:#1d2a14}
 </style>
 </head>
@@ -1315,11 +1330,27 @@ function openBag(sel,tab){if(!play.on)return;play.dlg=3;tab=tab||play.bagTab||'a
  el.querySelectorAll('[data-t]').forEach(b=>b.onclick=e=>{e.stopPropagation();openBag(sel,b.dataset.t)});
  const be=$('bagEq');if(be)be.onclick=e=>{e.stopPropagation();const i=play.eq.indexOf(sel);if(i>=0)play.eq.splice(i,1);else{if(play.eq.length>=SLOTS){toast('Todos os espaços cheios: tire um artefato antes');return}play.eq.push(sel)}applyStats();saveProg();openBag(sel)}}
 /* mapa grande */
+/* mapa do continente: toque numa região visitada para viajar até a estátua dela */
+const BOSSN={arena_golem:'Golem',planalto:'Lobo Rei',aldeia_lodosa:'Grão-Lodoso',toca:'Aranha Rainha',moinho_velho:'Javali Ancestral'};
+function homeOf(id){if(GRID[id])return id;const m=world.maps[id];if(!m)return null;const t=m.o.find(o=>TY[o.k]&&TY[o.k].tr&&o.dest&&GRID[o.dest]);return t?t.dest:null}
+function openWorld(){if(!play.on)return;play.dlg=4;const el=$('shop'),here=homeOf(play.m.id),vis=new Set(play.visited||[]);vis.add(play.m.id);
+ const pos=id=>({x:(GRID[id][0]+.5)*20,y:(GRID[id][1]+.5)*20});
+ const lines=EDGES.map(([a,b])=>{const A=pos(a),B=pos(b),k=vis.has(a)&&vis.has(b);return`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" class="${k?'ok':''}"/>`}).join('');
+ const nodes=Object.keys(GRID).filter(id=>world.maps[id]).map(id=>{const P=pos(id),mm=world.maps[id],v=vis.has(id),cur=id===here,vila=mm.vila;
+  if(!v)return`<div class="wcloud" data-w="${id}" style="left:${P.x}%;top:${P.y}%"><i></i><i></i><i></i></div>`;
+  return`<button class="wn v${cur?' here':''}${vila?' vila':''}${DGN[id]?' dg':''}" data-w="${id}" style="left:${P.x}%;top:${P.y}%"><span class="wpin">${cur?'📍':DGN[id]?'☠':vila?'🏠':'✔'}</span><span class="wrib">${esc(mm.name)}</span>${BOSSN[id]?`<small>${esc(BOSSN[id])}</small>`:''}</button>`}).join('');
+ el.innerHTML=`<div class="shead"><div><b>🗺️ Continente de Dallarian</b><span>Toque numa região descoberta para viajar até a estátua dela. As nuvens somem quando você chega andando.</span></div><button id="wReg">Mapa da região</button><button id="shopX">Fechar</button></div><div class="slist wbox"><div class="wmap"><svg viewBox="0 0 100 100" preserveAspectRatio="none">${lines}</svg>${nodes}</div></div>`;
+ el.style.display='flex';$('shopX').onclick=e=>{e.stopPropagation();closeShop()};$('wReg').onclick=e=>{e.stopPropagation();closeShop();openMap()};
+ el.querySelectorAll('.wcloud').forEach(b=>b.onclick=e=>{e.stopPropagation();toast('🔒 Região coberta pelas nuvens: chegue andando pela primeira vez')});
+ el.querySelectorAll('.wn').forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.w;if(id===play.m.id){closeShop();return}
+  if(b.dataset.ok){travel(id)}else{el.querySelectorAll('.wn[data-ok]').forEach(q=>{delete q.dataset.ok;q.classList.remove('conf')});b.dataset.ok=1;b.classList.add('conf');toast('Toque de novo em '+world.maps[id].name+' para viajar')}})}
+function travel(id){const m=world.maps[id];closeShop();const st=m.o.find(o=>TY[o.k]&&TY[o.k].statue),ini=m.o.find(o=>o.k==='inicio');const at=st?[st.x,st.y+2]:ini?[ini.x,ini.y]:null;
+ play.fading=true;$('fade').style.opacity=1;setTimeout(()=>{if(at)enterMap(m,null,at);else enterMap(m,null);$('fade').style.opacity=0;setTimeout(()=>{play.fading=false;toast('Você viajou para '+m.name);saveProg()},250)},300)}
 function openMap(){if(!play.on)return;play.dlg=4;const m=play.m,h=play.h,el=$('shop');
  if(!m._big){const W=1200,H=Math.round(1200*m.h/m.w);const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');const z=W/m.w;drawScene(g,m,0,0,z,W,H,{thumb:1});m._big={c,z}}
  const lines=world.order.map(id=>{const mm=world.maps[id];if(!mm)return'';const ex=mm.o.filter(o=>TY[o.k]&&TY[o.k].tr&&o.dest&&world.maps[o.dest]).map(o=>world.maps[o.dest].name);return`<div class="wrow${id===m.id?' here':''}"><b>${id===m.id?'📍 ':''}${esc(mm.name)}</b><small>${ex.length?'→ '+esc([...new Set(ex)].join(', ')):''}</small></div>`}).join('');
- el.innerHTML=`<div class="shead"><div><b>🗺️ ${esc(m.name)}</b><span>Você está no ponto vermelho. Amarelo: saídas. Azul: estátuas. Lojas marcadas.</span></div><button id="shopX">Fechar</button></div><div class="slist mapbox"><canvas id="bigmap"></canvas><div class="wlist"><h4>Mundo</h4>${lines}</div></div>`;
- el.style.display='flex';$('shopX').onclick=e=>{e.stopPropagation();closeShop()};
+ el.innerHTML=`<div class="shead"><div><b>🗺️ ${esc(m.name)}</b><span>Você está no ponto vermelho. Amarelo: saídas. Azul: estátuas. Lojas marcadas.</span></div><button id="wCont">Continente</button><button id="shopX">Fechar</button></div><div class="slist mapbox"><canvas id="bigmap"></canvas><div class="wlist"><h4>Mundo</h4>${lines}</div></div>`;
+ el.style.display='flex';$('shopX').onclick=e=>{e.stopPropagation();closeShop()};$('wCont').onclick=e=>{e.stopPropagation();closeShop();openWorld()};
  const cv2=$('bigmap'),B=m._big;cv2.width=B.c.width;cv2.height=B.c.height;const g=cv2.getContext('2d');g.drawImage(B.c,0,0);const z=B.z;
  const pin=(x,y,c,r,t)=>{g.fillStyle=c;g.strokeStyle='#2a1a0e';g.lineWidth=4;g.beginPath();g.arc(x*z,y*z,r,0,P2);g.fill();g.stroke();if(t){g.font='bold 26px Archivo,sans-serif';g.textAlign='center';g.lineWidth=6;g.strokeStyle='#2a1a0e';g.strokeText(t,x*z,y*z-r-8);g.fillStyle='#fff6dc';g.fillText(t,x*z,y*z-r-8)}};
  m.o.forEach(o=>{const t=TY[o.k];if(!t)return;if(t.tr&&o.dest&&world.maps[o.dest])pin(o.x+t.fw/2,o.y+t.fh/2,'#ffe14a',14,'→ '+world.maps[o.dest].name);else if(t.statue)pin(o.x+t.fw/2,o.y+1,play.lit.has(m.id+':'+o.id)?'#5fd3ff':'#8aa0b0',12,'Estátua');else if(t.npc&&o.loja)pin(o.x+.5,o.y+.5,'#7dff9a',12,o.loja==='pocoes'?'Poções':'Artefatos')});
@@ -1431,7 +1462,7 @@ function actionA(){if(!play.on)return;if(play.shop||play.dlg>=3){closeShop();ret
  if(ch&&ch.d<1.45){const o=ch.o;play.opened.add(m.id+':'+o.id);const gm=o.item&&/^(\d+)\s*moedas?$/i.exec(o.item.trim());const ga=o.item&&Object.keys(ARTS).find(id=>ARTS[id].n.toLowerCase()===o.item.trim().toLowerCase());if(ga){gainArt(ga,o.x+.5,o.y+.5)}else if(gm){play.gold+=+gm[1];saveProg()}else if(o.item){play.items.push(o.item);qEvent('item',o.item)}if(/poç/i.test(o.item||'')){play.pots++;play.items.pop()}items();burst(o.x+.5,o.y+.3,'#ffe46a',16,2);say('',`Você abriu o baú e encontrou: ${o.item||'nada'}!`);return}
  attack()}
 $('btnA').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();actionA()});
-$('btnQ').addEventListener('click',e=>{e.stopPropagation();if(!play.dlg)openQuests()});$('btnMap').addEventListener('click',e=>{e.stopPropagation();if(!play.dlg)openMap()});$('btnBag').addEventListener('click',e=>{e.stopPropagation();if(!play.dlg)openBag()});
+$('btnQ').addEventListener('click',e=>{e.stopPropagation();if(!play.dlg)openQuests()});$('btnMap').addEventListener('click',e=>{e.stopPropagation();if(!play.dlg)openWorld()});$('btnBag').addEventListener('click',e=>{e.stopPropagation();if(!play.dlg)openBag()});
 $('btnPot').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!play.dlg)drinkPot()});
 $('rotNo').addEventListener('click',e=>{e.stopPropagation();$('play').classList.remove('wantland');try{localStorage.setItem('dallarian-pe','1')}catch(_){}});
 $('rotFs').addEventListener('click',async e=>{e.stopPropagation();try{const el=document.documentElement;if(el.requestFullscreen)await el.requestFullscreen();else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen()}catch(_){}try{await screen.orientation.lock('landscape')}catch(_){toast('O celular não deixou girar sozinho: vire ele de lado')}setTimeout(resizePlay,300)});
